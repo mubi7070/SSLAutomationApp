@@ -87,31 +87,46 @@ export default function SSLConverter() {
     // Add submission logic here.
     e.preventDefault();
     setResult('');
-
-    try {
-      const response = await fetch('/api/ssl-converter', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-      
-      console.log(`The response: ${response}`);
-      const data = await response.json();
-      console.log('API Response:', data);
-      if (response.ok) {
-        //setResult(data.results.join('\n'));
-        setResult(Array.isArray(data.results) ? data.results.join('\n') : data.results);
-      } else {
-        setResult(data.error || 'Something went wrong');
-      }
-    } catch (error) {
-      setResult('An error occurred');
+    console.log(`selectedoption: ${selectedOption}`);
+    if (selectedOption === 'P12Creation') {
+      try {
+        const response = await fetch('/api/ssl-converter-option1', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData),
+        });
+        
+        console.log(`The response: ${response}`);
+        const data = await response.json();
+        console.log('API Response:', data);
+        if (response.ok) {
+          //setResult(data.results.join('\n'));
+          setResult(Array.isArray(data.results) ? data.results.join('\n') : data.results);
+        } else {
+          setResult(data.error || 'Something went wrong');
+        }
+      } catch (error) {
+        setResult('An error occurred');
+      } 
     } 
-    
-    
-  };
+    else if (selectedOption === 'KeystoreToKey') {
+      //Login yaha likhni he
+    }
+    else if (selectedOption === 'KeystoreToP12') {
+      //Login yaha likhni he
+    }
+    else{
+      console.log('No Option Selected');
+      
+    }
+
+
+
+
+
+  }; 
 
   return (
     <>
@@ -234,11 +249,22 @@ export default function SSLConverter() {
 
             {selectedOption === 'KeystoreToKey' && (
               <>
-                
+                {/* Write Login Here */}
               </>
             )}
-            {selectedOption === 'KeystoreToP12' && <p>Functionality to be added for Keystore → P12.</p>}
+            {selectedOption === 'KeystoreToP12' && (
+              <>
+              {/* Write Login Here */}
+            </>
+            )}
+
+
             <br />
+
+
+
+
+
             <div className={styles.inputGroup}>
             <label className={styles.description}>Password:</label> <br />
             <div style={{ display: 'flex', alignItems: 'center', width: '50%' }}>
@@ -276,14 +302,12 @@ export default function SSLConverter() {
           </div>
 
             
-
             <div style={{ textAlign: 'center', marginTop: '20px' }}>
               <button type="submit" className={styles.btndescription}>
                 Convert
               </button>
               <button
                 type="button"
-                //onClick={() => setSelectedOption('')}
                 onClick={handleClear}
                 className={styles.clearbtn}
                 style={{ marginLeft: '10px' }}
