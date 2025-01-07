@@ -126,35 +126,36 @@ export default function SSLConverter() {
       } 
     } 
     else if (selectedOption === 'KeystoreToKey') {
-      //Login yaha likhni he
       try {
         console.log(`
-          keystore name: ${KeystoreName}
+          Keystore Name: ${KeystoreName}
           Keystore Password: ${KeystorePassword}`);
         
+        // Make the API call
         const response = await fetch('/api/ssl-converter-option2', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(KeystoreName, KeystorePassword),
+          body: JSON.stringify({
+            keystoreName: KeystoreName,
+            keystorePassword: KeystorePassword,
+          }),
         });
-        
-        //console.log(`The response: ${response}`);
-
+    
         const data = await response.json();
-        //console.log('API Response:', data);
-
+    
         if (response.ok) {
-          //setResult(data.results.join('\n'));
-          setResult(Array.isArray(data.results) ? data.results.join('\n') : data.results);
+          setResult(Array.isArray(data.results) ? data.results.join('\n') : data.results.message);
         } else {
           setResult(data.error || 'Something went wrong');
         }
       } catch (error) {
-        setResult('An error occurred');
-      } 
+        console.error('Error occurred:', error);
+        setResult('An error occurred while processing your request');
+      }
     }
+    
     else if (selectedOption === 'KeystoreToP12') {
       //Login yaha likhni he
     }
