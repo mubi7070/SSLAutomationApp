@@ -152,8 +152,8 @@ export default function SSLInstaller() {
                 <option key={index} value={file} />
               ))}
             </datalist>
-            <label className={styles.description}> Note: </label>
-            <label className={styles.description} style={{ color: 'red' }}>
+            <label className={styles.notedescription}> Note: </label>
+            <label className={styles.notedescription} style={{ color: 'red' }}>
               The keystore file should be present in the Files Folder
             </label>
           </div>

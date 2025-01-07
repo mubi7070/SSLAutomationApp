@@ -66,8 +66,8 @@ export default function Home() {
                 style={{ width: '60%', padding: '7px', margin: '10px 0' }}
               />
             </label>
-            <label className={styles.description}> Note: </label>
-            <label className={styles.description} style={{ color: 'red' }}> Avoid blank spaces</label>
+            <label className={styles.notedescription}> Note: </label>
+            <label className={styles.notedescription} style={{ color: 'red' }}> Avoid blank spaces</label>
             <br />
           </div>
 
