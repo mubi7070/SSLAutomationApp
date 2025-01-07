@@ -9,10 +9,6 @@ const createP12 = ({ certFileName, keyFileName, bundleFileName, p12FileName, pas
     const bundleFilePath = path.join(process.cwd(), 'Certs', bundleFileName);
     const p12FilePath = path.join(process.cwd(), 'Files', `${p12FileName}.p12`);
 
-    if (!fs.existsSync(certFilePath) || !fs.existsSync(keyFilePath) || !fs.existsSync(bundleFilePath)) {
-      return reject(new Error('One or more required files are missing.'));
-    }
-
     const openssl = spawn('openssl', [
       'pkcs12',
       '-export',
@@ -33,39 +29,39 @@ const createP12 = ({ certFileName, keyFileName, bundleFileName, p12FileName, pas
       `pass:${password}`,
     ]);
 
-    openssl.stderr.on('data', (data) => {
-      console.error(`OpenSSL error: ${data.toString()}`);
-    });
-
     openssl.on('close', (code) => {
       if (code !== 0) {
-        return reject(new Error(`OpenSSL process exited with code ${code}`));
+        return reject(new Error(`Failed to create P12 file: ${p12FileName}.p12`));
+      } else {
+        return resolve(`P12 file created successfully: ${p12FileName}.p12`);
       }
-      resolve(`P12 file created successfully: ${p12FileName}.p12`);
     });
   });
 
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { certFileName, keyFileName, bundleFileName, p12FileName, password } = req.body;
-
+    console.log(`
+        certFileName: ${certFileName}, 
+        keyFileName: ${keyFileName}, 
+        bundleFileName: ${bundleFileName}, 
+        p12FileName: ${p12FileName}, 
+        password: ${password}`
+    );
         if (!certFileName || !keyFileName || !bundleFileName || !p12FileName || !password) {
-            res.status(400).json({ error: 'All fields are required' });
+            return res.status(400).json({ error: 'All fields are required' });
         }
         try {
             const results = await createP12({ certFileName, keyFileName, bundleFileName, p12FileName, password });
-            console.log(`THe Results: ${results}`);
-            
-            //return res.status(200).json({ results });
-            return res.status(200).json({ results: [results] });
+            return res.status(200).json({ message: results });
             //return res.status(200).json({ results });
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            return res.status(500).json({ error: error.message });
         }
         } 
     else {
         res.setHeader('Allow', ['POST', 'GET']);
-        res.status(405).end(`Method ${req.method} Not Allowed`);
+        return res.status(405).end(`Method ${req.method} Not Allowed`);
       }
 
 }

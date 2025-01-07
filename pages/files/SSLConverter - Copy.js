@@ -96,13 +96,10 @@ export default function SSLConverter() {
         },
         body: JSON.stringify(formData),
       });
-      
-      console.log(`The response: ${response}`);
+
       const data = await response.json();
-      console.log('API Response:', data);
       if (response.ok) {
-        //setResult(data.results.join('\n'));
-        setResult(Array.isArray(data.results) ? data.results.join('\n') : data.results);
+        setResult(data.results.join('\n'));
       } else {
         setResult(data.error || 'Something went wrong');
       }
@@ -145,7 +142,7 @@ export default function SSLConverter() {
                   <label className={styles.description}>Certificate File Name:</label>
                   <input
                     type="text"
-                    value={formData.certFileName}
+                    value={formData.CertName}
                     onChange={(e) => handleInputChange('certFileName', e.target.value)}
                     placeholder="Type to search or select"
                     list="CertsOptions"
