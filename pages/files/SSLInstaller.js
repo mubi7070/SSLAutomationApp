@@ -154,7 +154,7 @@ export default function SSLInstaller() {
             </datalist>
             <label className={styles.notedescription}> Note: </label>
             <label className={styles.notedescription} style={{ color: 'red' }}>
-              The keystore file should be present in the Files Folder
+              The keystore file should be present in the Files folder
             </label>
           </div>
           <div style={{ marginBottom: '20px', paddingLeft: '15%' }}>

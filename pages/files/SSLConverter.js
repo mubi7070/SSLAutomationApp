@@ -15,8 +15,12 @@ export default function SSLConverter() {
   const [filteredBundle, setfilteredBundle] = useState([]);
   const [BundleFiles, setBundleFiles] = useState([]);
 
+  const [filteredkeystore, setfilteredkeystore] = useState([]);
+  const [keystoreFiles, setkeystoreFiles] = useState([]);
   //const [keystoreFiles, setKeystoreFiles] = useState([]);
-  
+  const [KeystoreName, setKeystoreName] = useState('');
+  const [KeystorePassword, setKeystorePassword] = useState('sibisoft');
+
   const [formData, setFormData] = useState({
     certFileName: '',
     keyFileName: '',
@@ -53,6 +57,16 @@ export default function SSLConverter() {
         .then((data) => {
           setfilteredBundle(data.files || []);
           setBundleFiles(data.files || []);
+        })
+        .catch((error) => console.error('Error fetching Certificate files:', error));
+    }, []);
+
+    useEffect(() => {
+      fetch('/api/get-keystore')
+        .then((response) => response.json())
+        .then((data) => {
+          setfilteredkeystore(data.files || []);
+          setkeystoreFiles(data.files || []);
         })
         .catch((error) => console.error('Error fetching Certificate files:', error));
     }, []);
@@ -113,6 +127,33 @@ export default function SSLConverter() {
     } 
     else if (selectedOption === 'KeystoreToKey') {
       //Login yaha likhni he
+      try {
+        console.log(`
+          keystore name: ${KeystoreName}
+          Keystore Password: ${KeystorePassword}`);
+        
+        const response = await fetch('/api/ssl-converter-option2', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(KeystoreName, KeystorePassword),
+        });
+        
+        //console.log(`The response: ${response}`);
+
+        const data = await response.json();
+        //console.log('API Response:', data);
+
+        if (response.ok) {
+          //setResult(data.results.join('\n'));
+          setResult(Array.isArray(data.results) ? data.results.join('\n') : data.results);
+        } else {
+          setResult(data.error || 'Something went wrong');
+        }
+      } catch (error) {
+        setResult('An error occurred');
+      } 
     }
     else if (selectedOption === 'KeystoreToP12') {
       //Login yaha likhni he
@@ -174,7 +215,7 @@ export default function SSLConverter() {
                   </datalist>
                   <label className={styles.notedescription}> Note: </label>
                   <label className={styles.notedescription} style={{ color: 'red' }}>
-                    The Cert file should be present in the Certs Folder
+                    The Cert file should be present in the Certs folder
                   </label>
                   <br />
                   <br />
@@ -198,7 +239,7 @@ export default function SSLConverter() {
                   </datalist>
                   <label className={styles.notedescription}> Note: </label>
                   <label className={styles.notedescription} style={{ color: 'red' }}>
-                    The key file should be present in the Files Folder
+                    The key file should be present in the Files folder
                   </label>
                   <br />
                   <br />
@@ -222,7 +263,7 @@ export default function SSLConverter() {
                   </datalist>
                   <label className={styles.notedescription}> Note: </label>
                   <label className={styles.notedescription} style={{ color: 'red' }}>
-                    The bundle file should be present in the Certs Folder
+                    The bundle file should be present in the Certs folder
                   </label>
                   <br />
                   <br />
@@ -243,28 +284,7 @@ export default function SSLConverter() {
                     Do not enter the file extension (.p12) in the file name
                   </label>
             </div>
-
-              </>
-            )}
-
-            {selectedOption === 'KeystoreToKey' && (
-              <>
-                {/* Write Login Here */}
-              </>
-            )}
-            {selectedOption === 'KeystoreToP12' && (
-              <>
-              {/* Write Login Here */}
-            </>
-            )}
-
-
             <br />
-
-
-
-
-
             <div className={styles.inputGroup}>
             <label className={styles.description}>Password:</label> <br />
             <div style={{ display: 'flex', alignItems: 'center', width: '50%' }}>
@@ -272,8 +292,8 @@ export default function SSLConverter() {
                 className={styles.styledselecttempmargin}
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Type Here..."
-                defaultValue={'sibisoft'}
-                value={formData.keystorePassword}
+                //defaultValue={'sibisoft'}
+                value={formData.password}
                 onChange={(e) => handleInputChange('password', e.target.value)}
                 required
                 style={{
@@ -300,6 +320,88 @@ export default function SSLConverter() {
               </button>
             </div>
           </div>
+
+              </>
+            )}
+
+            {selectedOption === 'KeystoreToKey' && (
+              <>
+
+              <div className={styles.inputGroup}>
+                  <label className={styles.description}>Keystore File Name:</label>
+                  <input
+                    type="text"
+                    value={KeystoreName}
+                    onChange={(e) => setKeystoreName(e.target.value)}
+                    //onChange={(e) => handleInputChange('certFileName', e.target.value)}
+                    placeholder="Type to search or select"
+                    list="KeystoreOptions"
+                    className={styles.styledselecttempmargin}
+                    style={{ width: '100%', padding: '7px' }}
+                  />
+                  <datalist id="KeystoreOptions">
+                    {filteredkeystore.map((file, index) => (
+                      <option key={index} value={file} />
+                    ))}
+                  </datalist>
+                  <label className={styles.notedescription}> Note: </label>
+                  <label className={styles.notedescription} style={{ color: 'red' }}>
+                    The keystore file should be present in the Files folder
+                  </label>
+                  <br />
+                  <br />
+            <div className={styles.inputGroup}>
+            <label className={styles.description}>Password:</label> <br />
+            <div style={{ display: 'flex', alignItems: 'center', width: '50%' }}>
+              <input
+                className={styles.styledselecttempmargin}
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Type Here..."
+                value={KeystorePassword}
+                onChange={(e) => setKeystorePassword(e.target.value)}
+                required
+                style={{
+                  flex: 1,
+                  padding: '7px',
+                  margin: '10px 0',
+                  borderRight: 'none',
+                  borderRadius: '5px 0 0 5px',
+                }}
+              />
+              <button
+                type="button"
+                onClick={togglePasswordVisibility}
+                style={{
+                  padding: '7px',
+                  borderLeft: 'none',
+                  cursor: 'pointer',
+                  backgroundColor: '#f5f5f5',
+                  borderRadius: '0 5px 5px 0',
+                  border: '1px solid #ccc',
+                }}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
+            </div>
+          </div>
+                </div>
+
+              </>
+            )}
+            {selectedOption === 'KeystoreToP12' && (
+              <>
+              {/* Write Login Here */}
+            </>
+            )}
+
+
+            <br />
+
+
+
+
+
+            
 
             
             <div style={{ textAlign: 'center', marginTop: '20px' }}>
