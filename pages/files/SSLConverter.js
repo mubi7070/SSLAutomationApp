@@ -21,6 +21,9 @@ export default function SSLConverter() {
   const [KeystoreName, setKeystoreName] = useState('');
   const [KeystorePassword, setKeystorePassword] = useState('sibisoft');
 
+  const [Keystore2Name, setKeystore2Name] = useState('');
+  const [Keystore2Password, setKeystore2Password] = useState('sibisoft');
+
   const [formData, setFormData] = useState({
     certFileName: '',
     keyFileName: '',
@@ -158,6 +161,35 @@ export default function SSLConverter() {
     
     else if (selectedOption === 'KeystoreToP12') {
       //Login yaha likhni he
+      
+      try {
+        console.log(`
+          Keystore Name: ${Keystore2Name}
+          Keystore Password: ${Keystore2Password}`);
+        
+        // Make the API call
+        const response = await fetch('/api/ssl-converter-option3', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            keystoreName: Keystore2Name,
+            keystorePassword: Keystore2Password,
+          }),
+        });
+    
+        const data = await response.json();
+    
+        if (response.ok) {
+          setResult(Array.isArray(data.results) ? data.results.join('\n') : data.results.message);
+        } else {
+          setResult(data.error || 'Something went wrong');
+        }
+      } catch (error) {
+        console.error('Error occurred:', error);
+        setResult('An error occurred while processing your request');
+      }
     }
     else{
       console.log('No Option Selected');
@@ -391,8 +423,67 @@ export default function SSLConverter() {
             )}
             {selectedOption === 'KeystoreToP12' && (
               <>
-              {/* Write Login Here */}
-            </>
+
+              <div className={styles.inputGroup}>
+                  <label className={styles.description}>Keystore File Name:</label>
+                  <input
+                    type="text"
+                    value={Keystore2Name}
+                    onChange={(e) => setKeystore2Name(e.target.value)}
+                    //onChange={(e) => handleInputChange('certFileName', e.target.value)}
+                    placeholder="Type to search or select"
+                    list="KeystoreOptions"
+                    className={styles.styledselecttempmargin}
+                    style={{ width: '100%', padding: '7px' }}
+                  />
+                  <datalist id="KeystoreOptions">
+                    {filteredkeystore.map((file, index) => (
+                      <option key={index} value={file} />
+                    ))}
+                  </datalist>
+                  <label className={styles.notedescription}> Note: </label>
+                  <label className={styles.notedescription} style={{ color: 'red' }}>
+                    The keystore file should be present in the Files folder
+                  </label>
+                  <br />
+                  <br />
+            <div className={styles.inputGroup}>
+            <label className={styles.description}>Password:</label> <br />
+            <div style={{ display: 'flex', alignItems: 'center', width: '50%' }}>
+              <input
+                className={styles.styledselecttempmargin}
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Type Here..."
+                value={Keystore2Password}
+                onChange={(e) => setKeystore2Password(e.target.value)}
+                required
+                style={{
+                  flex: 1,
+                  padding: '7px',
+                  margin: '10px 0',
+                  borderRight: 'none',
+                  borderRadius: '5px 0 0 5px',
+                }}
+              />
+              <button
+                type="button"
+                onClick={togglePasswordVisibility}
+                style={{
+                  padding: '7px',
+                  borderLeft: 'none',
+                  cursor: 'pointer',
+                  backgroundColor: '#f5f5f5',
+                  borderRadius: '0 5px 5px 0',
+                  border: '1px solid #ccc',
+                }}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
+            </div>
+          </div>
+                </div>
+
+              </>
             )}
 
 
