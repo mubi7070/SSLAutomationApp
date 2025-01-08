@@ -17,9 +17,9 @@ export default function Home() {
            SSL Automation Tool
         </h1>
 
-        <p className={styles.description}>
-          By: Mubashir Ahmed
-        </p>
+        <h2 className={styles.description}>
+          By: Mubashir Ahmed (DevOps)
+        </h2>
 
         <div className={styles.grid}>
           <Link href="/files/CSRGenerator" className={styles.card} >
@@ -37,9 +37,19 @@ export default function Home() {
             <p>Convert the file formats by just updating the paths and file names.</p>
           </Link>
           
-          <Link href="https://docs.google.com/spreadsheets/d/1xOoiO96sFfYB8uFnOgn3xom-wzL7XntPiEJkRk5TOC4/edit?gid=1355153592#gid=1355153592" className={styles.card} >
+          <Link href="https://docs.google.com/spreadsheets/d/1xOoiO96sFfYB8uFnOgn3xom-wzL7XntPiEJkRk5TOC4/edit?gid=1355153592#gid=1355153592" className={styles.card} target="_blank" rel="noopener noreferrer">
             <h3>SSL Renewal Sheet &rarr;</h3>
-            <p>Go the the google sheet to check the yearly renewals.</p>
+            <p>Go to the google sheet to check the yearly renewals.</p>
+          </Link>
+
+          <Link href="https://www.sslshopper.com/certificate-key-matcher.html" className={styles.card} target="_blank" rel="noopener noreferrer">
+              <h3>CSR Certificate Matcher &rarr;</h3>
+              <p>Go to the website and check if the CSR and the certificate matches.</p>
+          </Link>
+
+          <Link href="https://www.ssllabs.com/ssltest/" className={styles.card} target="_blank" rel="noopener noreferrer">
+              <h3>SSL Server Test &rarr;</h3>
+              <p>Go to the website and test the SSL and ciphers health.</p>
           </Link>
           
         </div>
@@ -64,6 +74,7 @@ export default function Home() {
           flex-direction: column;
           justify-content: center;
           align-items: center;
+          background-color:rgb(236, 236, 236);
         }
         footer {
           width: 100%;

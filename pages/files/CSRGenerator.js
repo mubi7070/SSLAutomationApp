@@ -51,6 +51,7 @@ export default function Home() {
     <>
       <Head>
         <title>CSR Generator</title>
+        <link rel="icon" href="./ssl2white.svg" />
       </Head>
       <div style={{ padding: '20px' }}>
         <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', display: 'flex', justifyContent: 'center'}}>CSR and Keystore Generator</h1>
