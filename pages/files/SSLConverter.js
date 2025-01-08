@@ -122,7 +122,7 @@ export default function SSLConverter() {
           //setResult(data.results.join('\n'));
           setResult(Array.isArray(data.results) ? data.results.join('\n') : data.results);
         } else {
-          setResult(data.error || 'Something went wrong');
+          setResult(data.error || 'Something went wrong. Kindly recheck the password or the same name file is already present in the Files Folder and try again');
         }
       } catch (error) {
         setResult('An error occurred');
@@ -151,7 +151,7 @@ export default function SSLConverter() {
         if (response.ok) {
           setResult(Array.isArray(data.results) ? data.results.join('\n') : data.results.message);
         } else {
-          setResult(data.error || 'Something went wrong');
+          setResult(data.error || 'Something went wrong. Kindly recheck the password or the same name file is already present in the Files Folder and try again');
         }
       } catch (error) {
         console.error('Error occurred:', error);
@@ -184,10 +184,12 @@ export default function SSLConverter() {
         if (response.ok) {
           setResult(Array.isArray(data.results) ? data.results.join('\n') : data.results.message);
         } else {
-          setResult(data.error || 'Something went wrong');
+          console.log(`Data error: ${data.error}`);
+          
+          setResult(data.error || 'Something went wrong. Kindly recheck the password or the same name file is already present in the Files Folder and try again');
         }
       } catch (error) {
-        console.error('Error occurred:', error);
+        console.error('Error occurred: ', error);
         setResult('An error occurred while processing your request');
       }
     }
@@ -219,7 +221,7 @@ export default function SSLConverter() {
             className={styles.styledselecttempmargin}
             style={{ marginLeft: '10px', padding: '7px' }}
           >
-            <option value="">-- Select --</option>
+            <option value="Select">-- Select --</option>
             <option value="P12Creation">P12 Creation (Apache → Tomcat)</option>
             <option value="KeystoreToKey">Keystore → Key (Tomcat → Apache)</option>
             <option value="KeystoreToP12">Keystore → P12</option>
@@ -228,8 +230,14 @@ export default function SSLConverter() {
 
         {selectedOption && (
           <form onSubmit={handleSubmit} style={{ maxWidth: '600px', margin: '0 auto' }}>
+            {selectedOption === 'Select' && (
+              <>
+              <h2 className={styles.headingnew}>Choose the option you want to convert.</h2>
+              </>
+            )}
             {selectedOption === 'P12Creation' && (
               <>
+                <h2 className={styles.headingnew}>P12 Creation (Apache → Tomcat)</h2>
                 <div className={styles.inputGroup}>
                   <label className={styles.description}>Certificate File Name:</label>
                   <input
@@ -359,6 +367,7 @@ export default function SSLConverter() {
 
             {selectedOption === 'KeystoreToKey' && (
               <>
+                <h2 className={styles.headingnew}>Keystore → Key (Tomcat → Apache)</h2>
 
               <div className={styles.inputGroup}>
                   <label className={styles.description}>Keystore File Name:</label>
@@ -423,7 +432,7 @@ export default function SSLConverter() {
             )}
             {selectedOption === 'KeystoreToP12' && (
               <>
-
+              <h2 className={styles.headingnew}>Keystore → P12</h2>
               <div className={styles.inputGroup}>
                   <label className={styles.description}>Keystore File Name:</label>
                   <input
@@ -489,13 +498,6 @@ export default function SSLConverter() {
 
             <br />
 
-
-
-
-
-            
-
-            
             <div style={{ textAlign: 'center', marginTop: '20px' }}>
               <button type="submit" className={styles.btndescription}>
                 Convert

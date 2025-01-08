@@ -34,6 +34,23 @@
   text-align: center;
 }
 
+.titlenew {
+  display: flex; /* Flexbox for alignment */
+  align-items: center; /* Vertically align items */
+  justify-content: center; /* Center horizontally */
+  margin: 0 0 1rem;
+  line-height: 1.15;
+  font-size: 3.6rem;
+  color: rgb(16, 31, 118);
+  text-align: center;
+}
+
+.icon {
+  height: 1em; /* Match the font size of the text */
+  margin-right: 0.5rem; /* Add space between the icon and text */
+}
+
+
 .description {
   line-height: 1.5;
   font-size: 1.2rem;
@@ -43,7 +60,12 @@
   font-size: 1rem;
 }
 
-
+.headingnew {
+  line-height: 1.5;
+  font-size: 1.2rem;
+  text-align: center;
+  color: rgb(12, 27, 115);
+}
 
 .btndescriptions {
   padding: 10px 20px;
