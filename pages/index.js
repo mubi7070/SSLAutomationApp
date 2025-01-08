@@ -61,6 +61,16 @@ export default function Home() {
             Powered by{' '} Northstar Technologies
             <img src="/northstar.jpg" alt="Northstar" className={styles.logonew} />
           </a>
+          
+        </div>
+        <div className={styles.footerRow}>
+        <a
+            href="https://www.globalnorthstar.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            |
+          </a>
         </div>
         <div className={styles.footerRow}>
           <a
@@ -76,7 +86,7 @@ export default function Home() {
 
       <style jsx>{`
         main {
-          padding: 5rem 0;
+          padding: 3rem 0;
           flex: 1;
           display: flex;
           flex-direction: column;
@@ -90,15 +100,7 @@ export default function Home() {
           border-radius: 5px;
           padding: 0.75rem;
           font-size: 1.1rem;
-          font-family:
-            Menlo,
-            Monaco,
-            Lucida Console,
-            Liberation Mono,
-            DejaVu Sans Mono,
-            Bitstream Vera Sans Mono,
-            Courier New,
-            monospace;
+
         }
       `}</style>
 

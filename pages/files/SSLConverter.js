@@ -543,6 +543,16 @@ export default function SSLConverter() {
             Powered by{' '} Northstar Technologies
             <img src="/northstar.jpg" alt="Northstar" className={styles.logonew} />
           </a>
+          
+        </div>
+        <div className={styles.footerRow}>
+        <a
+            href="https://www.globalnorthstar.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            |
+          </a>
         </div>
         <div className={styles.footerRow}>
           <a
