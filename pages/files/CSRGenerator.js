@@ -53,6 +53,7 @@ export default function Home() {
         <title>CSR Generator</title>
         <link rel="icon" href="./ssl2white.svg" />
       </Head>
+      <main>
       <div style={{ padding: '20px' }}>
         <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', display: 'flex', justifyContent: 'center'}}>CSR and Keystore Generator</h1>
         <form onSubmit={handleSubmit}>
@@ -136,6 +137,30 @@ export default function Home() {
       <div className={styles.Installerhomebtn}>
         <button><Link href="/">Back to Home</Link></button>
       </div>
+  </main>
+      <footer className={styles.footer}>
+        <div className={styles.footerRow}>
+          <a
+            href="https://www.globalnorthstar.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Powered by{' '} Northstar Technologies
+            <img src="/northstar.jpg" alt="Northstar" className={styles.logonew} />
+          </a>
+        </div>
+        <div className={styles.footerRow}>
+          <a
+            href="https://github.com/mubi7070/SSLAutomationApp/tree/master"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            By: Mubashir Ahmed (DevOps)
+            <img src="/dev.svg" alt="DevOps" className={styles.logonew} />
+          </a>
+        </div>
+      </footer>
+
     </>
   );
 }

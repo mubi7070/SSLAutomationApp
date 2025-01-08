@@ -220,6 +220,29 @@ export default function SSLInstaller() {
           <Link href="/">Back to Home</Link>
         </button>
       </div>
+
+      <footer className={styles.footer}>
+        <div className={styles.footerRow}>
+          <a
+            href="https://www.globalnorthstar.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Powered by{' '} Northstar Technologies
+            <img src="/northstar.jpg" alt="Northstar" className={styles.logonew} />
+          </a>
+        </div>
+        <div className={styles.footerRow}>
+          <a
+            href="https://github.com/mubi7070/SSLAutomationApp/tree/master"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            By: Mubashir Ahmed (DevOps)
+            <img src="/dev.svg" alt="DevOps" className={styles.logonew} />
+          </a>
+        </div>
+      </footer>
     </>
   );
 }
