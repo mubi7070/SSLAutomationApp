@@ -206,6 +206,7 @@ export default function SSLConverter() {
 
   return (
     <>
+    <main className={styles.body}>
       <Head>
         <title>SSL Converter</title>
         <link rel="icon" href="./ssl2white.svg" />
@@ -532,6 +533,7 @@ export default function SSLConverter() {
           </button>
         </div>
       </div>
+      </main>
 
       <footer className={styles.footer}>
         <div className={styles.footerRow}>

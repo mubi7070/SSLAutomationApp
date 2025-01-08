@@ -105,6 +105,7 @@ export default function SSLInstaller() {
 
   return (
     <>
+    <main className={styles.body}>
       <Head>
         <title>SSL Installer</title>
         <link rel="icon" href="./ssl2white.svg" />
@@ -220,6 +221,7 @@ export default function SSLInstaller() {
           <Link href="/">Back to Home</Link>
         </button>
       </div>
+      </main>
 
       <footer className={styles.footer}>
         <div className={styles.footerRow}>
@@ -253,6 +255,7 @@ export default function SSLInstaller() {
           </a>
         </div>
       </footer>
+      
     </>
   );
 }
