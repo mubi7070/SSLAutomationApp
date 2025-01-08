@@ -228,7 +228,39 @@ background-color:#045abc ;
   height: 2em;
 }
 
+.footer {
+  text-align: center;
+  padding: 1rem 0;
+  background-color: #f8f9fa;
+  width: 100%;
+  height: 100px;
+  border-top: 1px solid #eaeaea;
+  display: flex;
+  flex-direction: column; /* Arrange items in a column */
+  justify-content: center;
+  align-items: center;
+}
+.footer img {
+  margin-left: 0.5rem;
+}
+.footer a {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+}
 
+.footerRow {
+  margin-bottom: 1rem; /* Add spacing between rows */
+  margin-left: 1rem;
+  
+}
+
+.logonew {
+  height: 1.2rem; /* Adjust logo size */
+  margin-left: 0.5rem; /* Add spacing between text and logo */
+}
 
 
 

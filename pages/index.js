@@ -17,10 +17,6 @@ export default function Home() {
            SSL Automation Tool
         </h1>
 
-        <h2 className={styles.description}>
-          By: Mubashir Ahmed (DevOps)
-        </h2>
-
         <div className={styles.grid}>
           <Link href="/files/CSRGenerator" className={styles.card} >
             <h3>CSR Generator &rarr;</h3>
@@ -55,15 +51,27 @@ export default function Home() {
         </div>
       </main>
 
-      <footer>
-        <a
-          href="https://www.globalnorthstar.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '} Northstar Technologies
-          <img src="/northstar.jpg" alt="Northstar" className={styles.logo} />
-        </a>
+      <footer className={styles.footer}>
+        <div className={styles.footerRow}>
+          <a
+            href="https://www.globalnorthstar.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Powered by{' '} Northstar Technologies
+            <img src="/northstar.jpg" alt="Northstar" className={styles.logonew} />
+          </a>
+        </div>
+        <div className={styles.footerRow}>
+          <a
+            href="https://github.com/mubi7070/SSLAutomationApp/tree/master"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            By: Mubashir Ahmed (DevOps)
+            <img src="/dev.svg" alt="DevOps" className={styles.logonew} />
+          </a>
+        </div>
       </footer>
 
       <style jsx>{`
@@ -76,24 +84,7 @@ export default function Home() {
           align-items: center;
           background-color:rgb(236, 236, 236);
         }
-        footer {
-          width: 100%;
-          height: 100px;
-          border-top: 1px solid #eaeaea;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-        footer img {
-          margin-left: 0.5rem;
-        }
-        footer a {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          text-decoration: none;
-          color: inherit;
-        }
+        
         code {
           background: #fafafa;
           border-radius: 5px;
