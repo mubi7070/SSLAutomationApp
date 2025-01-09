@@ -51,7 +51,7 @@ export default function Home() {
               <h3>SSL Server Test &rarr;</h3>
               <p>Go to the website and test the SSL and ciphers health.</p>
           </Link>
-          
+             
         </div>
       </main>
 
@@ -90,7 +90,7 @@ export default function Home() {
 
       <style jsx>{`
         main {
-          padding: 3rem 0;
+          padding: 20px;
           flex: 1;
           display: flex;
           flex-direction: column;

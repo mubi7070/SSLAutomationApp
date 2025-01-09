@@ -202,13 +202,13 @@ background-color:#045abc ;
   flex-wrap: wrap;
 
   max-width: 100%;
-  margin-top: 10px;
+  margin-top: 5px;
 }
 
 .card {
-  margin: 1rem;
-  flex-basis: 25%;
-  padding: 1.5rem;
+  margin: 0.8rem;
+  flex-basis: 28%;
+  padding: 1.2rem;
   text-align: left;
   color: inherit;
   text-decoration: none;
