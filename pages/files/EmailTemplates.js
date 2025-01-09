@@ -4,7 +4,7 @@ import styles from '/styles/Home.module.css';
 import Link from 'next/link';
 
 const defaultClubName = "Club Name";
-const defaultExpiryDate = "January 19, 2025";
+const defaultExpiryDate = "Expiry Date";
 
 const emailTemplates = [
   {
@@ -137,61 +137,72 @@ const EmailTemplates = () => {
         <title>Email Templates</title>
         <link rel="icon" href="./ssl2white.svg" />
     </Head>
-    <div style={{ padding: "20px" }}>
+    <div style={{ padding: "20px", fontFamily: "Times New Roman" }}>
       <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', display: 'flex', justifyContent: 'center' }}>Email Templates</h1>
 
       {/* Input Fields */}
-      <div style={{ marginBottom: "20px" }}>
-        <div style={{ marginBottom: "10px" }}>
-          <label className={styles.description}>
+      <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
+        <div>
+            <label className={styles.description}>
             Club Name:
-            <input className={styles.styledselecttempmargin}
-              type="text"
-              //value={clubName}
-              onChange={(e) => setClubName(e.target.value)}
-              placeholder="Enter Club Name"
-              style={{
-                marginLeft: "16px",
+            <input
+                className={styles.styledselecttempmargin}
+                type="text"
+                onChange={(e) => setClubName(e.target.value)}
+                placeholder="Enter Club Name"
+                style={{
+                marginLeft: "5px",
                 padding: "5px",
                 width: "200px",
-              }}
+                fontFamily: "Times New Roman",
+                }}
             />
-          </label>
+            </label>
         </div>
-        <div style={{ marginBottom: "10px" }}>
-          <label className={styles.description}>
+        <div style={{ marginLeft: "20px" }}>
+            <label className={styles.description}>
             Expiry Date:
-            <input className={styles.styledselecttempmargin}
-              type="date"
-              onChange={(e) =>
+            <input
+                className={styles.styledselecttempmargin}
+                type="date"
+                onChange={(e) =>
                 setExpiryDate(
-                  new Date(e.target.value).toLocaleDateString("en-US", {
+                    new Date(e.target.value).toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
-                  })
+                    })
                 )
-              }
-              style={{
-                marginLeft: "10px",
+                }
+                style={{
+                marginLeft: "5px",
                 padding: "5px",
                 width: "200px",
-              }}
+                fontFamily: "Times New Roman",
+                }}
             />
-          </label>
+            </label>
         </div>
-        {error && <p style={{ color: "red" }}>{error}</p>}
-        <button className={styles.btndescription}
-          onClick={handleGenerate}
+        </div>
+        {error && <p style={{ color: "red", textAlign: "center" }}>{error}</p>}
+
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: "20px" }}>
+        <button
+            className={styles.btndescription}
+            onClick={handleGenerate}
+            style={{ marginRight: "10px" }}
         >
-          Generate
+            Generate
         </button>
-        <button type="button" onClick={handleClear} className={styles.clearbtn} style={{
-                marginLeft: "10px",
-              }}>
+        <button
+            type="button"
+            onClick={handleClear}
+            className={styles.clearbtn}
+        >
             Clear
         </button>
-      </div>
+        </div>
+
 
       {/* Templates */}
       {templates.map((template, index) => (
@@ -216,9 +227,9 @@ const EmailTemplates = () => {
               backgroundColor: "#f9f9f9",
             }}
           >
-            <h4 style={{ color: 'rgb(16, 31, 118)'}}>Email Subject</h4>
+            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email Subject</h3>
             <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <p style={{ margin: 0 }}>{template.subject}</p>
+              <p style={{ margin: 0, fontFamily:'Times New Roman' }}>{template.subject}</p>
               <button
                 onClick={() => handleCopy(template.subject, index, "subject")}
                 style={{
@@ -250,13 +261,15 @@ const EmailTemplates = () => {
               backgroundColor: "#f9f9f9",
             }}
           >
-            <h4 style={{ color: 'rgb(16, 31, 118)'}}>Email Content</h4>
+            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email Content</h3>
             <pre
               style={{
                 whiteSpace: "pre-wrap",
                 wordWrap: "break-word",
                 margin: 0,
-              }}
+                marginBottom: "-10px",
+                fontFamily:'Times New Roman',
+              }} 
             >
               {template.content}
             </pre>
