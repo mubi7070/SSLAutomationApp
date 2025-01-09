@@ -42,7 +42,6 @@ const convertKeystoreToP12 = async ({ keystoreName, keystorePassword }) => {
   const p12FileName = `${baseFileName}.p12`;
   const p12FilePath = path.join(filesDir, p12FileName);
 
-  // Convert keystore to .p12
   const keytoolArgs = [
     '-importkeystore',
     '-srckeystore',

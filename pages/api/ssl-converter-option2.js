@@ -44,7 +44,6 @@ const convertKeystoreToPem = async ({ keystoreName, keystorePassword }) => {
   const p12FilePath = path.join(filesDir, p12FileName);
   const pemFilePath = path.join(filesDir, pemFileName);
 
-  // Step 1: Convert keystore to .p12
   const keytoolArgs = [
     '-importkeystore',
     '-srckeystore',
@@ -64,7 +63,6 @@ const convertKeystoreToPem = async ({ keystoreName, keystorePassword }) => {
 
     console.log('Keytool Output:', keytoolOutput);
 
-    // Step 2: Convert .p12 to .pem
     const opensslArgs = [
       'pkcs12',
       '-in',

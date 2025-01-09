@@ -33,7 +33,6 @@ const generateTomcatCSR = (domain, password) =>
       keystoreFile,
     ]);
 
-    // Provide user-provided password
     keytoolGen.stdin.write(`${password}\n`); // Keystore password
     keytoolGen.stdin.write(`${password}\n`); // Confirm password
     keytoolGen.stdin.write(`${domain}\n`);   // CN (Common Name)
@@ -42,7 +41,7 @@ const generateTomcatCSR = (domain, password) =>
     keytoolGen.stdin.write(`Alpharetta\n`);  // L (City)
     keytoolGen.stdin.write(`Georgia\n`);     // S (State)
     keytoolGen.stdin.write(`US\n`);          // C (Country)
-    keytoolGen.stdin.write(`yes\n`);         // Confirm correctness
+    keytoolGen.stdin.write(`yes\n`);         // Confirmation 
     keytoolGen.stdin.end();
 
     keytoolGen.on('close', (code) => {
@@ -50,7 +49,6 @@ const generateTomcatCSR = (domain, password) =>
         return reject(new Error(`Failed to generate keystore for ${domain}. Kindly recheck if the same CSR already exists in the directory!`));
       }
 
-      // Generate CSR using the same password
       const keytoolReq = spawn('keytool', [
         '-certreq',
         '-keyalg',
@@ -63,7 +61,7 @@ const generateTomcatCSR = (domain, password) =>
         keystoreFile,
       ]);
 
-      keytoolReq.stdin.write(`${password}\n`); // Provide password for CSR generation
+      keytoolReq.stdin.write(`${password}\n`); 
       keytoolReq.stdin.end();
 
       keytoolReq.on('close', (code) => {
