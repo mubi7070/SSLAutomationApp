@@ -11,7 +11,6 @@ export default function Home() {
       </Head>
 
       <main>
-        
       <h1 className={styles.titlenew}>
         <img src="./ssl2.svg" alt="SSL Icon" className={styles.icon} />
            SSL Automation Tool
@@ -25,15 +24,20 @@ export default function Home() {
 
           <Link href="/files/SSLInstaller" className={styles.card} >
             <h3>SSL Installer &rarr;</h3>
-            <p>Just update the certificates path and get the installed keystore</p>
+            <p>Just update the certificates path and get the installed keystore.</p>
           </Link>
 
           <Link href="/files/SSLConverter" className={styles.card} >
             <h3>SSL Converter &rarr;</h3>
             <p>Convert the file formats by just updating the paths and file names.</p>
           </Link>
+
+          <Link href="/files/EmailTemplates" className={styles.card} >
+            <h3>Email Templates &rarr;</h3>
+            <p>The email templates for the SSL renewal emails.</p>
+          </Link>
           
-          <Link href="https://docs.google.com/spreadsheets/d/1xOoiO96sFfYB8uFnOgn3xom-wzL7XntPiEJkRk5TOC4/edit?gid=1355153592#gid=1355153592" className={styles.card} target="_blank" rel="noopener noreferrer">
+          <Link href="https://docs.google.com/spreadsheets/d/1xOoiO96sFfYB8uFnOgn3xom-wzL7XntPiEJkRk5TOC4/edit?gid=2074345631#gid=2074345631" className={styles.card} target="_blank" rel="noopener noreferrer">
             <h3>SSL Renewal Sheet &rarr;</h3>
             <p>Go to the google sheet to check the yearly renewals.</p>
           </Link>
