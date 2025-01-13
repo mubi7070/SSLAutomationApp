@@ -42,6 +42,11 @@ export default function Home() {
             <p>Go to the google sheet to check the yearly renewals.</p>
           </Link>
 
+          <Link href="https://www.thesslstore.com/client/orders.aspx?status=-1&ro=true" className={styles.card} target="_blank" rel="noopener noreferrer">
+            <h3>The SSL Store &rarr;</h3>
+            <p>Go to the website and purchase the required SSL certificates.</p>
+          </Link>
+
           <Link href="https://www.sslshopper.com/certificate-key-matcher.html" className={styles.card} target="_blank" rel="noopener noreferrer">
               <h3>CSR Certificate Matcher &rarr;</h3>
               <p>Go to the website and check if the CSR and the certificate matches.</p>
