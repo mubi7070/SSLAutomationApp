@@ -5,12 +5,6 @@ import Link from 'next/link';
 
 const defaultClubName = "Club Name";
 const defaultExpiryDate = "Expiry Date";
-const defaultDNS = "";
-const defaultHostName = "";
-const defaultValue = "";
-const defaultDomain = "";
-
-
 
 const emailTemplates = [
   {
@@ -22,9 +16,9 @@ I hope this email finds you well! I just wanted to give you a heads-up that the 
 
 To get started, could you please share the below CNAME records with the club's IT Administrator? They'll need to add these to their DNS for SSL validation:
 
-DNS: ${defaultDNS}
-Alias / Host Name: ${defaultHostName}
-Value:  ${defaultValue}
+DNS: 
+Alias / Host Name: 
+Value:  
 Record Type: CNAME
 
 Once the records are added, please let us know so we can complete the validation on our end.
@@ -40,7 +34,7 @@ I hope this email finds you well! I just wanted to give you a heads-up that the 
 
 To get started, could you please share the below attached CSR (Certificate Signing Request) with the club's IT Administrator? They'll need to generate SSL certificates against this CSR.
 
-Domain: ${defaultDomain}
+Domain: 
 
 Please share the SSL certificates with us once you receive them.
 
@@ -56,10 +50,10 @@ I hope this email finds you well! I just wanted to give you a heads-up that the 
 To get started, could you please share the below attached CSR (Certificate Signing Request) with the club's IT Administrator? They'll need to generate SAN SSL certificates against this CSR and also include the below mentioned domains in it.
 
 Additional Domains,
-DNS Name: -- Add SAN Domains Here --
-DNS Name: -- Add SAN Domains Here --
-DNS Name: -- Add SAN Domains Here --
-DNS Name: -- Add SAN Domains Here --
+DNS Name: 
+DNS Name: 
+DNS Name: 
+DNS Name: 
 
 Please share the SSL certificates with us once you receive them.
 
@@ -74,11 +68,11 @@ I hope this email finds you well! I just wanted to give you a heads-up that the 
 
 To get started, could you please share the below CNAME records with the club's IT Administrator? They'll need to add these to their DNS for SSL validation:
 
-Domain: ${defaultDomain}
+Domain: 
 
-DNS: ${defaultDNS}
-Alias / Host Name: ${defaultHostName}
-Value:  ${defaultValue}
+DNS: 
+Alias / Host Name: 
+Value: 
 Record Type: CNAME
 
 Once the records are added, please let us know so we can complete the validation on our end.
@@ -94,31 +88,26 @@ const handleClear = () => {
 const EmailTemplates = () => {
   const [templates, setTemplates] = useState(emailTemplates);
   const [clubName, setClubName] = useState(defaultClubName);
-
-  const [dns, setdns] = useState(defaultDNS);
-  const [HostName, setHostName] = useState(defaultHostName);
-  const [Value, setValue] = useState(defaultValue);
-  const [Domain, setDomain] = useState(defaultDomain);
-
   const [expiryDate, setExpiryDate] = useState(defaultExpiryDate);
   const [copied, setCopied] = useState(null);
   const [error, setError] = useState("");
 
   const handleGenerate = () => {
+    if (!clubName.trim() || !expiryDate.trim()) {
+      setError("Both Club Name and Expiry Date are required.");
+      return;
+    }
+
+    setError("");
     const updatedTemplates = emailTemplates.map((template) => ({
       ...template,
       subject: template.subject
-        .replace(defaultClubName, clubName || defaultClubName)
-        .replace(defaultExpiryDate, expiryDate || defaultExpiryDate),
+        .replace(defaultClubName, clubName)
+        .replace(defaultExpiryDate, expiryDate),
       content: template.content
-        .replace(defaultClubName, clubName || defaultClubName)
-        .replace(defaultExpiryDate, expiryDate || defaultExpiryDate)
-        .replace(defaultDNS, dns || defaultDNS)
-        .replace(defaultHostName, HostName || defaultHostName)
-        .replace(defaultValue, Value || defaultValue)
-        .replace(defaultDomain, Domain || defaultDomain),
+        .replace(defaultClubName, clubName)
+        .replace(defaultExpiryDate, expiryDate),
     }));
-  
     setTemplates(updatedTemplates);
   };
 
@@ -154,7 +143,9 @@ const EmailTemplates = () => {
       {/* Input Fields */}
       <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
         <div>
-            <label className={styles.description}>
+            <label className={styles.description} style={{
+                marginLeft: "150px",
+                }}>
             Club Name:
             <input
                 className={styles.styledselecttempmargin}
@@ -200,13 +191,13 @@ const EmailTemplates = () => {
         <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
         <div>
             <label className={styles.description} style={{
-                marginLeft: "50px",
+                marginLeft: "200px",
                 }}>
             DNS: 
             <input
                 className={styles.styledselecttempmargin}
                 type="text"
-                onChange={(e) => setdns(e.target.value)}
+                onChange={(e) => setClubName(e.target.value)}
                 placeholder="Enter Domain Name"
                 style={{
                 marginLeft: "5px",
@@ -223,7 +214,7 @@ const EmailTemplates = () => {
             <input
                 className={styles.styledselecttempmargin}
                 type="text"
-                onChange={(e) => setHostName(e.target.value)}
+                onChange={(e) => setClubName(e.target.value)}
                 placeholder="Enter Host Name"
                 style={{
                 marginLeft: "5px",
@@ -238,13 +229,13 @@ const EmailTemplates = () => {
         <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
         <div style={{ marginLeft: "20px" }}>
             <label className={styles.description} style={{
-                marginLeft: "25px",
+                marginLeft: "175px",
                 }}>
             Value:  
             <input
                 className={styles.styledselecttempmargin}
                 type="text"
-                onChange={(e) => setValue(e.target.value)}
+                onChange={(e) => setClubName(e.target.value)}
                 placeholder="Enter Value"
                 style={{
                 marginLeft: "5px",
@@ -261,7 +252,7 @@ const EmailTemplates = () => {
             <input
                 className={styles.styledselecttempmargin}
                 type="text"
-                onChange={(e) => setDomain(e.target.value)}
+                onChange={(e) => setClubName(e.target.value)}
                 placeholder="Enter Domain Name"
                 style={{
                 marginLeft: "5px",
