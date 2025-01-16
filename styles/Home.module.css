@@ -320,13 +320,7 @@ font-family: 'Times New Roman', Times, serif;
   padding: 10px;
 }
 
-.subjectbox {
-  border: 1px solid #e0e0e0;
-  padding: 10px;
-  border-radius: 5px;
-  margin-bottom: 10px;
-  background-color: #f9f9f9;
-}
+
 
 .handlecopy {
   display: flex;
@@ -352,7 +346,29 @@ font-family: 'Times New Roman', Times, serif;
   font-family: 'Times New Roman', Times, serif;
 }
 
+.subjectbox {
+  border: 1px solid #e0e0e0;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 10px;
+  background-color: #f9f9f9;
+}
 
+.contentbox2 {
+  border: 1px solid #e0e0e0;
+  padding: 10px;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+  margin-bottom: 10px;
+}
+
+.contentboxinside2 {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
+  margin-bottom: -20px;
+  font-family: 'Times New Roman', Times, serif;
+}
 
 
 

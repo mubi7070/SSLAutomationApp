@@ -12,6 +12,16 @@ const defaultValue = "";
 const defaultDomain = "";
 const defaultAdditionalDomains = [""];
 
+const toEmails = [
+    { name: "CST-Compliance", email: "cst.compliance@globalnorthstar.com" },
+    { name: "Rockstars", email: "rockstars@globalnorthstar.com" }
+];
+
+const ccEmails = [
+    { name: "DevOps Team", email: "devops@globalnorthstar.com" }
+];
+
+
 
 let updatedTemplate = null;
 
@@ -68,6 +78,7 @@ export default function SSLConverter() {
 
     if (selectedOption === 'For SSL Managed By NS for CNAME record') {
       updatedTemplate = {
+        to: `To: CST-Compliance <cst.compliance@globalnorthstar.com>, Rockstars <rockstars@globalnorthstar.com>\n\nCC: DevOps Team <devops@globalnorthstar.com>`,
           heading: "For SSL Managed By NS for CNAME record",
           subject: `SSL Renewal - ${clubName} - ${expiryDate}`,
           content: 
@@ -89,6 +100,7 @@ Thank you.`
   } 
   else if (selectedOption === 'For SSL Managed By Club') {
     updatedTemplate = {
+        to: `To: CST-Compliance <cst.compliance@globalnorthstar.com>, Rockstars <rockstars@globalnorthstar.com>\n\nCC: DevOps Team <devops@globalnorthstar.com>`,
       heading: "For SSL Managed By Club",
       subject: `SSL Renewal - ${clubName} - ${expiryDate}`,
       content: 
@@ -109,6 +121,7 @@ Thank you.`
   
     else if (selectedOption === 'For SAN SSL Managed By Club') {
       updatedTemplate = {
+        to: `To: CST-Compliance <cst.compliance@globalnorthstar.com>, Rockstars <rockstars@globalnorthstar.com>\n\nCC: DevOps Team <devops@globalnorthstar.com>`,
         heading: "For SAN SSL Managed By Club",
         subject: `SSL Renewal - ${clubName} - ${expiryDate}`,
         content: 
@@ -134,6 +147,7 @@ Thank you.`
     }
     else if (selectedOption === 'For Print Server SSL Managed By NS') {
       updatedTemplate = {
+        to: `To: CST-Compliance <cst.compliance@globalnorthstar.com>, Rockstars <rockstars@globalnorthstar.com>\n\nCC: DevOps Team <devops@globalnorthstar.com>`,
         heading: "For Print Server SSL Managed By NS",
         subject: `SSL Renewal - Print Server - ${clubName} - ${expiryDate}`,
         content: 
@@ -213,7 +227,7 @@ Thank you.`
                 type="text"
                 onChange={(e) => setClubName(e.target.value)}
                 placeholder="Enter Club Name..."
-                
+                required
             />
             </label>
         </div>
@@ -232,7 +246,7 @@ Thank you.`
                     })
                 )
                 }
-
+                required
             />
             </label>
         </div>
@@ -250,6 +264,7 @@ Thank you.`
                 type="text"
                 onChange={(e) => setdns(e.target.value)}
                 placeholder="Enter Domain Name..."
+                required
             />
             </label>
         </div>
@@ -261,6 +276,7 @@ Thank you.`
                 type="text"
                 onChange={(e) => setHostName(e.target.value)}
                 placeholder="Enter Host Name..."
+                required
             />
             </label>
         </div>
@@ -276,6 +292,7 @@ Thank you.`
                 type="text"
                 onChange={(e) => setValue(e.target.value)}
                 placeholder="Enter Value..."
+                required
             />
             </label>
         </div>
@@ -303,6 +320,31 @@ Thank you.`
     <div className={styles.mainbox}
     >
         <h2 style={{ color: 'rgb(16, 31, 118)'}}>{generatedTemplate.heading}</h2>
+        {/* Email to*/}
+        <div className={styles.contentbox2}
+        >
+            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email to:</h3>
+            <pre className={styles.contentboxinside2}
+            >
+                {generatedTemplate.to}
+            </pre>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button
+                    onClick={() => handleCopy(generatedTemplate.to, "to")}
+                    className={styles.handlecopy}
+                    style={{
+                     color: copied === `to` ? "green" : "black",
+                    }}
+                >
+                    <img
+                        src="/copy-icon.svg"
+                        alt="Copy"
+                        style={{ width: "20px", height: "20px" }}
+                    />
+                    {copied === `to` ? "Copied!" : "Copy"}
+                </button>
+            </div>
+        </div>
 
         {/* Subject Box */}
         <div className={styles.subjectbox}
@@ -340,7 +382,7 @@ Thank you.`
                     onClick={() => handleCopy(generatedTemplate.content, "content")}
                     className={styles.handlecopy}
                     style={{
-                     color: copied === `subject` ? "green" : "black",
+                     color: copied === `content` ? "green" : "black",
                     }}
                 >
                     <img
@@ -378,6 +420,7 @@ Thank you.`
                     type="text"
                     onChange={(e) => setClubName(e.target.value)}
                     placeholder="Enter Club Name..."
+                    required
                 />
                 </label>
             </div>
@@ -396,7 +439,7 @@ Thank you.`
                         })
                     )
                     }
-
+                    required
                 />
                 </label>
             </div>
@@ -413,6 +456,7 @@ Thank you.`
                     type="text"
                     onChange={(e) => setDomain(e.target.value)}
                     placeholder="Enter Domain Name..."
+                    required
                 />
                 </label>
             </div>
@@ -438,6 +482,32 @@ Thank you.`
     <div className={styles.mainbox}
     >
         <h2 style={{ color: 'rgb(16, 31, 118)'}}>{generatedTemplate.heading}</h2>
+        
+        {/* Email to*/}
+        <div className={styles.contentbox2}
+        >
+            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email to:</h3>
+            <pre className={styles.contentboxinside2}
+            >
+                {generatedTemplate.to}
+            </pre>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button
+                    onClick={() => handleCopy(generatedTemplate.to, "to")}
+                    className={styles.handlecopy}
+                    style={{
+                     color: copied === `to` ? "green" : "black",
+                    }}
+                >
+                    <img
+                        src="/copy-icon.svg"
+                        alt="Copy"
+                        style={{ width: "20px", height: "20px" }}
+                    />
+                    {copied === `to` ? "Copied!" : "Copy"}
+                </button>
+            </div>
+        </div>
 
         {/* Subject Box */}
         <div className={styles.subjectbox}
@@ -475,7 +545,7 @@ Thank you.`
                     onClick={() => handleCopy(generatedTemplate.content, "content")}
                     className={styles.handlecopy}
                     style={{
-                     color: copied === `subject` ? "green" : "black",
+                     color: copied === `content` ? "green" : "black",
                     }}
                 >
                     <img
@@ -510,6 +580,7 @@ Thank you.`
                     type="text"
                     onChange={(e) => setClubName(e.target.value)}
                     placeholder="Enter Club Name..."
+                    required
                 />
                 </label>
             </div>
@@ -528,7 +599,7 @@ Thank you.`
                         })
                     )
                     }
-
+                    required
                 />
                 </label>
             </div>
@@ -548,6 +619,7 @@ Thank you.`
                     onChange={(e) => setAdditionalDomains(e.target.value.split("\n"))}
                     placeholder="Enter Addtional DNS Names..."
                     style={{resize: "vertical" }}
+                    required
                 />
                 </div>
                 </label>
@@ -574,6 +646,32 @@ Thank you.`
     <div className={styles.mainbox}
     >
         <h2 style={{ color: 'rgb(16, 31, 118)'}}>{generatedTemplate.heading}</h2>
+
+        {/* Email to*/}
+        <div className={styles.contentbox2}
+        >
+            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email to:</h3>
+            <pre className={styles.contentboxinside2}
+            >
+                {generatedTemplate.to}
+            </pre>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button
+                    onClick={() => handleCopy(generatedTemplate.to, "to")}
+                    className={styles.handlecopy}
+                    style={{
+                     color: copied === `to` ? "green" : "black",
+                    }}
+                >
+                    <img
+                        src="/copy-icon.svg"
+                        alt="Copy"
+                        style={{ width: "20px", height: "20px" }}
+                    />
+                    {copied === `to` ? "Copied!" : "Copy"}
+                </button>
+            </div>
+        </div>
 
         {/* Subject Box */}
         <div className={styles.subjectbox}
@@ -611,7 +709,7 @@ Thank you.`
                     onClick={() => handleCopy(generatedTemplate.content, "content")}
                     className={styles.handlecopy}
                     style={{
-                     color: copied === `subject` ? "green" : "black",
+                     color: copied === `content` ? "green" : "black",
                     }}
                 >
                     <img
@@ -646,6 +744,7 @@ Thank you.`
                     type="text"
                     onChange={(e) => setClubName(e.target.value)}
                     placeholder="Enter Club Name..."
+                    required
                 />
                 </label>
             </div>
@@ -664,7 +763,7 @@ Thank you.`
                         })
                     )
                     }
-
+                    required
                 />
                 </label>
             </div>
@@ -682,6 +781,7 @@ Thank you.`
                     type="text"
                     onChange={(e) => setdns(e.target.value)}
                     placeholder="Enter Domain Name..."
+                    required
                 />
                 </label>
             </div>
@@ -693,6 +793,7 @@ Thank you.`
                     type="text"
                     onChange={(e) => setHostName(e.target.value)}
                     placeholder="Enter Host Name..."
+                    required
                 />
                 </label>
             </div>
@@ -708,7 +809,7 @@ Thank you.`
                     type="text"
                     onChange={(e) => setValue(e.target.value)}
                     placeholder="Enter Value..."
-
+                    required
                 />
                 </label>
             </div>
@@ -720,7 +821,7 @@ Thank you.`
                     type="text"
                     onChange={(e) => setDomain(e.target.value)}
                     placeholder="Enter Domain Name..."
-
+                    required
                 />
                 </label>
             </div>
@@ -728,7 +829,6 @@ Thank you.`
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: "20px" }}>
         <button
             className={styles.btndescription}
-            //onClick={handleGenerate}
             style={{ marginRight: "10px" }}
         >
             Generate
@@ -747,6 +847,31 @@ Thank you.`
     <div className={styles.mainbox}
     >
         <h2 style={{ color: 'rgb(16, 31, 118)'}}>{generatedTemplate.heading}</h2>
+        {/* Email to*/}
+        <div className={styles.contentbox2}
+        >
+            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email to:</h3>
+            <pre className={styles.contentboxinside2}
+            >
+                {generatedTemplate.to}
+            </pre>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button
+                    onClick={() => handleCopy(generatedTemplate.to, "to")}
+                    className={styles.handlecopy}
+                    style={{
+                     color: copied === `to` ? "green" : "black",
+                    }}
+                >
+                    <img
+                        src="/copy-icon.svg"
+                        alt="Copy"
+                        style={{ width: "20px", height: "20px" }}
+                    />
+                    {copied === `to` ? "Copied!" : "Copy"}
+                </button>
+            </div>
+        </div>
 
         {/* Subject Box */}
         <div className={styles.subjectbox}
@@ -784,7 +909,7 @@ Thank you.`
                     onClick={() => handleCopy(generatedTemplate.content, "content")}
                     className={styles.handlecopy}
                     style={{
-                     color: copied === `subject` ? "green" : "black",
+                     color: copied === `content` ? "green" : "black",
                     }}
                 >
                     <img
