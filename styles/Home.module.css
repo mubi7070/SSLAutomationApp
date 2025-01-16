@@ -281,6 +281,90 @@ background-color:#045abc ;
   margin-left: 8px; 
 }
 
+.box1 {
+margin-left: 5px;
+padding: 5px;
+width: 400px;
+outline-color: #6ba9f396;
+border: 1px solid #ccc;
+border-radius: 4px;
+background-color: #fff;
+font-size: 16px;
+color: #333;
+appearance: none; 
+cursor: pointer;
+font-family: 'Times New Roman', Times, serif;
+
+}
+
+.box2 {
+  padding: 5px;
+  width: 500px;
+  outline-color: #6ba9f396;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #fff;
+  font-size: 16px;
+  color: #333;
+  appearance: none; 
+  cursor: pointer;
+  font-family: 'Times New Roman', Times, serif;
+  
+  }
+
+
+.mainbox {
+  margin-bottom: 20px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 10px;
+}
+
+.subjectbox {
+  border: 1px solid #e0e0e0;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 10px;
+  background-color: #f9f9f9;
+}
+
+.handlecopy {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.contentbox {
+  border: 1px solid #e0e0e0;
+  padding: 10px;
+  border-radius: 5px;
+  background-color: #f9f9f9;
+}
+
+.contentboxinside {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
+  margin-bottom: -10px;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

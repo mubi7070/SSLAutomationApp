@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
@@ -6,17 +6,7 @@ import styles from '/styles/Home.module.css';
 
 export default function SSLConverter() {
   const [selectedOption, setSelectedOption] = useState('');
-  const [filteredCerts, setFilteredCerts] = useState([]);
-  const [CertFiles, setCertFiles] = useState([]);
 
-  const [filteredKeys, setfilteredKeys] = useState([]);
-  const [keyFiles, setkeyFiles] = useState([]);
-  
-  const [filteredBundle, setfilteredBundle] = useState([]);
-  const [BundleFiles, setBundleFiles] = useState([]);
-
-  const [filteredkeystore, setfilteredkeystore] = useState([]);
-  const [keystoreFiles, setkeystoreFiles] = useState([]);
   //const [keystoreFiles, setKeystoreFiles] = useState([]);
   const [KeystoreName, setKeystoreName] = useState('');
   const [KeystorePassword, setKeystorePassword] = useState('sibisoft');
@@ -33,47 +23,6 @@ export default function SSLConverter() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [result, setResult] = useState('');
-
-  useEffect(() => {
-    fetch('/api/get-cert')
-      .then((response) => response.json())
-      .then((data) => {
-        setFilteredCerts(data.files || []);
-        setCertFiles(data.files || []);
-      })
-      .catch((error) => console.error('Error fetching Certificate files:', error));
-  }, []);
-
-  useEffect(() => {
-      fetch('/api/get-keys')
-        .then((response) => response.json())
-        .then((data) => {
-          setfilteredKeys(data.files || []);
-          setkeyFiles(data.files || []);
-        })
-        .catch((error) => console.error('Error fetching Certificate files:', error));
-    }, []);
-
-    useEffect(() => {
-      fetch('/api/get-bundle')
-        .then((response) => response.json())
-        .then((data) => {
-          setfilteredBundle(data.files || []);
-          setBundleFiles(data.files || []);
-        })
-        .catch((error) => console.error('Error fetching Certificate files:', error));
-    }, []);
-
-    useEffect(() => {
-      fetch('/api/get-keystore')
-        .then((response) => response.json())
-        .then((data) => {
-          setfilteredkeystore(data.files || []);
-          setkeystoreFiles(data.files || []);
-        })
-        .catch((error) => console.error('Error fetching Certificate files:', error));
-    }, []);
-
 
 
   const handleOptionChange = (option) => {
@@ -244,18 +193,13 @@ export default function SSLConverter() {
                   <label className={styles.description}>Certificate File Name:</label>
                   <input
                     type="text"
-                    value={formData.certFileName}
-                    onChange={(e) => handleInputChange('certFileName', e.target.value)}
+                    //value={formData.certFileName}
+                    //onChange={(e) => handleInputChange('certFileName', e.target.value)}
                     placeholder="Type to search or select"
                     list="CertsOptions"
                     className={styles.styledselecttempmargin}
                     style={{ width: '100%', padding: '7px' }}
                   />
-                  <datalist id="CertsOptions">
-                    {filteredCerts.map((file, index) => (
-                      <option key={index} value={file} />
-                    ))}
-                  </datalist>
                   <label className={styles.notedescription}> Note: </label>
                   <label className={styles.notedescription} style={{ color: 'red' }}>
                     The Cert file should be present in the Certs folder
@@ -268,18 +212,13 @@ export default function SSLConverter() {
                   <label className={styles.description}>Key File Name:</label>
                   <input
                     type="text"
-                    value={formData.keyFileName}
-                    onChange={(e) => handleInputChange('keyFileName', e.target.value)}
+                    //value={formData.keyFileName}
+                    //onChange={(e) => handleInputChange('keyFileName', e.target.value)}
                     placeholder="Type to search or select"
                     list="keyFileSuggestions"
                     className={styles.styledselecttempmargin}
                     style={{ width: '100%', padding: '7px' }}
                   />
-                  <datalist id="keyFileSuggestions">
-                    {filteredKeys.map((file, index) => (
-                      <option key={index} value={file} />
-                    ))}
-                  </datalist>
                   <label className={styles.notedescription}> Note: </label>
                   <label className={styles.notedescription} style={{ color: 'red' }}>
                     The key file should be present in the Files folder
@@ -292,18 +231,14 @@ export default function SSLConverter() {
                   <label className={styles.description}>Bundle File Name:</label>
                   <input
                     type="text"
-                    value={formData.bundleFileName}
-                    onChange={(e) => handleInputChange('bundleFileName', e.target.value)}
+                    //value={formData.bundleFileName}
+                    //onChange={(e) => handleInputChange('bundleFileName', e.target.value)}
                     placeholder="Type to search or select"
                     list="bundleFileSuggestions"
                     className={styles.styledselecttempmargin}
                     style={{ width: '100%', padding: '7px' }}
                   />
-                  <datalist id="bundleFileSuggestions">
-                    {filteredBundle.map((file, index) => (
-                      <option key={index} value={file} />
-                    ))}
-                  </datalist>
+
                   <label className={styles.notedescription}> Note: </label>
                   <label className={styles.notedescription} style={{ color: 'red' }}>
                     The bundle file should be present in the Certs folder
@@ -316,8 +251,8 @@ export default function SSLConverter() {
               <label className={styles.description}>P12 File Name:</label>
               <input
                 type="text"
-                value={formData.p12FileName}
-                onChange={(e) => handleInputChange('p12FileName', e.target.value)}
+                //value={formData.p12FileName}
+                //onChange={(e) => handleInputChange('p12FileName', e.target.value)}
                 placeholder="Type Here..."
                 className={styles.styledselecttempmargin}
                 style={{ width: '100%', padding: '7px' }}
@@ -336,8 +271,8 @@ export default function SSLConverter() {
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Type Here..."
                 //defaultValue={'sibisoft'}
-                value={formData.password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
+                //value={formData.password}
+                //onChange={(e) => handleInputChange('password', e.target.value)}
                 required
                 style={{
                   flex: 1,
@@ -377,19 +312,16 @@ export default function SSLConverter() {
                   <label className={styles.description}>Keystore File Name:</label>
                   <input
                     type="text"
-                    value={KeystoreName}
-                    onChange={(e) => setKeystoreName(e.target.value)}
+                    //value={KeystoreName}
+                    //onChange={(e) => setKeystoreName(e.target.value)}
                     //onChange={(e) => handleInputChange('certFileName', e.target.value)}
                     placeholder="Type to search or select"
                     list="KeystoreOptions"
                     className={styles.styledselecttempmargin}
                     style={{ width: '100%', padding: '7px' }}
                   />
-                  <datalist id="KeystoreOptions">
-                    {filteredkeystore.map((file, index) => (
-                      <option key={index} value={file} />
-                    ))}
-                  </datalist>
+
+
                   <label className={styles.notedescription}> Note: </label>
                   <label className={styles.notedescription} style={{ color: 'red' }}>
                     The keystore file should be present in the Files folder
@@ -403,8 +335,8 @@ export default function SSLConverter() {
                 className={styles.styledselecttempmargin}
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Type Here..."
-                value={KeystorePassword}
-                onChange={(e) => setKeystorePassword(e.target.value)}
+                //value={KeystorePassword}
+                //onChange={(e) => setKeystorePassword(e.target.value)}
                 required
                 style={{
                   flex: 1,
@@ -441,19 +373,15 @@ export default function SSLConverter() {
                   <label className={styles.description}>Keystore File Name:</label>
                   <input
                     type="text"
-                    value={Keystore2Name}
-                    onChange={(e) => setKeystore2Name(e.target.value)}
+                    //value={Keystore2Name}
+                    //onChange={(e) => setKeystore2Name(e.target.value)}
                     //onChange={(e) => handleInputChange('certFileName', e.target.value)}
                     placeholder="Type to search or select"
                     list="KeystoreOptions"
                     className={styles.styledselecttempmargin}
                     style={{ width: '100%', padding: '7px' }}
                   />
-                  <datalist id="KeystoreOptions">
-                    {filteredkeystore.map((file, index) => (
-                      <option key={index} value={file} />
-                    ))}
-                  </datalist>
+
                   <label className={styles.notedescription}> Note: </label>
                   <label className={styles.notedescription} style={{ color: 'red' }}>
                     The keystore file should be present in the Files folder
@@ -467,8 +395,8 @@ export default function SSLConverter() {
                 className={styles.styledselecttempmargin}
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Type Here..."
-                value={Keystore2Password}
-                onChange={(e) => setKeystore2Password(e.target.value)}
+                //value={Keystore2Password}
+                //onChange={(e) => setKeystore2Password(e.target.value)}
                 required
                 style={{
                   flex: 1,
