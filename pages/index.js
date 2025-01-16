@@ -7,12 +7,12 @@ export default function Home() {
     <div className={styles.container}>
       <Head>
         <title>SSL Automation Tool</title>
-        <link rel="icon" href="./ssl2white.svg" />
+        <link rel="icon" href="/ssl2white.svg" />
       </Head>
 
       <main>
       <h1 className={styles.titlenew}>
-        <img src="./ssl2.svg" alt="SSL Icon" className={styles.icon} />
+        <img src="/ssl2.svg" alt="SSL Icon" className={styles.icon} />
            SSL Automation Tool
         </h1>
 

@@ -1,394 +1,140 @@
-import React, { useState } from "react";
+import { useState } from 'react';
 import Head from 'next/head';
-import styles from '/styles/Home.module.css';
 import Link from 'next/link';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import styles from '/styles/Home.module.css';
 
-const defaultClubName = "Club Name";
-const defaultExpiryDate = "Expiry Date";
-const defaultDNS = "";
-const defaultHostName = "";
-const defaultValue = "";
-const defaultDomain = "";
+export default function Home() {
+  const [domains, setDomains] = useState('');
+  const [password, setPassword] = useState('sibisoft');
+  const [option, setOption] = useState('Tomcat');
+  const [result, setResult] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-
-
-const emailTemplates = [
-  {
-    heading: "For SSL Managed By NS for CNAME record",
-    subject: `SSL Renewal - ${defaultClubName} - ${defaultExpiryDate}`,
-    content: `Hello Team,
-
-I hope this email finds you well! I just wanted to give you a heads-up that the SSL cert for "${defaultClubName}" is expiring on ${defaultExpiryDate}. It's important that we renew the certificate as soon as possible.
-
-To get started, could you please share the below CNAME records with the club's IT Administrator? They'll need to add these to their DNS for SSL validation:
-
-DNS: ${defaultDNS}
-Alias / Host Name: ${defaultHostName}
-Value:  ${defaultValue}
-Record Type: CNAME
-
-Once the records are added, please let us know so we can complete the validation on our end.
-
-Thank you.`,
-  },
-  {
-    heading: "For SSL Managed By Club That we need to share CSR with them for the Certs",
-    subject: `SSL Renewal - ${defaultClubName} - ${defaultExpiryDate}`,
-    content: `Hello Team,
-
-I hope this email finds you well! I just wanted to give you a heads-up that the SSL certs for "${defaultClubName}" are expiring on ${defaultExpiryDate}. It's important that we renew the certificate as soon as possible.
-
-To get started, could you please share the below attached CSR (Certificate Signing Request) with the club's IT Administrator? They'll need to generate SSL certificates against this CSR.
-
-Domain: ${defaultDomain}
-
-Please share the SSL certificates with us once you receive them.
-
-Thank you.`,
-  },
-  {
-    heading: "For SAN SSL Managed By Club",
-    subject: `SSL Renewal - ${defaultClubName} - ${defaultExpiryDate}`,
-    content: `Hello Team,
-
-I hope this email finds you well! I just wanted to give you a heads-up that the SAN SSL certs for "${defaultClubName}" are expiring on ${defaultExpiryDate}. It's important that we renew the certificate as soon as possible.
-
-To get started, could you please share the below attached CSR (Certificate Signing Request) with the club's IT Administrator? They'll need to generate SAN SSL certificates against this CSR and also include the below mentioned domains in it.
-
-Additional Domains,
-DNS Name: -- Add SAN Domains Here --
-DNS Name: -- Add SAN Domains Here --
-DNS Name: -- Add SAN Domains Here --
-DNS Name: -- Add SAN Domains Here --
-
-Please share the SSL certificates with us once you receive them.
-
-Thank you.`,
-  },
-  {
-    heading: "For Print Server SSL",
-    subject: `SSL Renewal - Print Server - ${defaultClubName} - ${defaultExpiryDate}`,
-    content: `Hello Team,
-
-I hope this email finds you well! I just wanted to give you a heads-up that the SSL certs for "${defaultClubName}" print server are expiring on ${defaultExpiryDate}. It's important that we renew the certificate as soon as possible.
-
-To get started, could you please share the below CNAME records with the club's IT Administrator? They'll need to add these to their DNS for SSL validation:
-
-Domain: ${defaultDomain}
-
-DNS: ${defaultDNS}
-Alias / Host Name: ${defaultHostName}
-Value:  ${defaultValue}
-Record Type: CNAME
-
-Once the records are added, please let us know so we can complete the validation on our end.
-
-Thank you.`,
-  },
-];
-
-const handleClear = () => {
-    window.location.reload();
-};
-
-const EmailTemplates = () => {
-  const [templates, setTemplates] = useState(emailTemplates);
-  const [clubName, setClubName] = useState(defaultClubName);
-
-  const [dns, setdns] = useState(defaultDNS);
-  const [HostName, setHostName] = useState(defaultHostName);
-  const [Value, setValue] = useState(defaultValue);
-  const [Domain, setDomain] = useState(defaultDomain);
-
-  const [expiryDate, setExpiryDate] = useState(defaultExpiryDate);
-  const [copied, setCopied] = useState(null);
-  const [error, setError] = useState("");
-
-  const handleGenerate = () => {
-    const updatedTemplates = emailTemplates.map((template) => ({
-      ...template,
-      subject: template.subject
-        .replace(defaultClubName, clubName || defaultClubName)
-        .replace(defaultExpiryDate, expiryDate || defaultExpiryDate),
-      content: template.content
-        .replace(defaultClubName, clubName || defaultClubName)
-        .replace(defaultExpiryDate, expiryDate || defaultExpiryDate)
-        .replace(defaultDNS, dns || defaultDNS)
-        .replace(defaultHostName, HostName || defaultHostName)
-        .replace(defaultValue, Value || defaultValue)
-        .replace(defaultDomain, Domain || defaultDomain),
-    }));
-  
-    setTemplates(updatedTemplates);
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
   };
 
-  const handleCopy = (content, index, type) => {
-    const key = `${type}-${index}`;
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(content).then(() => {
-        setCopied(key);
-        setTimeout(() => setCopied(null), 2000);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setResult('');
+
+    const domainArray = domains.split(',').map((d) => d.trim());
+
+    try {
+      const response = await fetch('/api/csr-generator', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domains: domainArray, option, password }),
       });
-    } else {
-      const textArea = document.createElement("textarea");
-      textArea.value = content;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textArea);
-      setCopied(key);
-      setTimeout(() => setCopied(null), 2000);
+
+      const data = await response.json();
+      if (response.ok) {
+        setResult(data.results.join('\n'));
+      } else {
+        setResult(data.error || 'Something went wrong');
+      }
+    } catch (error) {
+      setResult('An error occurred');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleClear = () => {
+    window.location.reload();
   };
 
   return (
     <>
     <main className={styles.body}>
-    <Head>
-        <title>Email Templates</title>
+      <Head>
+        <title>CSR Generator</title>
         <link rel="icon" href="./ssl2white.svg" />
-    </Head>
-    <div style={{ padding: "20px", fontFamily: "Times New Roman" }}>
-      <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', display: 'flex', justifyContent: 'center' }}>Email Templates</h1>
-
-      {/* Input Fields */}
-      <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
-        <div>
+      </Head>
+      <div style={{ padding: '20px' }}>
+        <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', display: 'flex', justifyContent: 'center'}}>CSR and Keystore Generator</h1>
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '10px', paddingLeft: '5%'}}>
             <label className={styles.description}>
-            Club Name:
-            <input
-                className={styles.styledselecttempmargin}
-                type="text"
-                onChange={(e) => setClubName(e.target.value)}
-                placeholder="Enter Club Name"
-                style={{
-                marginLeft: "5px",
-                padding: "5px",
-                width: "400px",
-                fontFamily: "Times New Roman",
-                }}
-            />
+              Domains (comma-separated): 
+              <input className={styles.styledselecttempmargin}
+                type="text" placeholder='Type Here...'
+                value={domains}  
+                onChange={(e) => setDomains(e.target.value)}
+                required  
+                style={{ width: '60%', padding: '7px', margin: '10px 0' }}
+              />
             </label>
-        </div>
-        <div style={{ marginLeft: "70px" }} >
-            <label className={styles.description}>
-            Expiry Date:
-            <input
-                className={styles.styledselecttempmargin}
-                type="date"
-                onChange={(e) =>
-                setExpiryDate(
-                    new Date(e.target.value).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                    })
-                )
-                }
-                style={{
-                marginLeft: "5px",
-                padding: "5px",
-                width: "400px",
-                fontFamily: "Times New Roman",
-                }}
-            />
-            </label>
-        </div>
-        </div>
-
-        {/* DNS & Details Input Fields */}
-        <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
-        <div>
-            <label className={styles.description} style={{
-                marginLeft: "50px",
-                }}>
-            DNS: 
-            <input
-                className={styles.styledselecttempmargin}
-                type="text"
-                onChange={(e) => setdns(e.target.value)}
-                placeholder="Enter Domain Name"
-                style={{
-                marginLeft: "5px",
-                padding: "5px",
-                width: "400px",
-                fontFamily: "Times New Roman",
-                }}
-            />
-            </label>
-        </div>
-        <div style={{ marginLeft: "20px" }}>
-            <label className={styles.description}>
-            Alias / Host Name: 
-            <input
-                className={styles.styledselecttempmargin}
-                type="text"
-                onChange={(e) => setHostName(e.target.value)}
-                placeholder="Enter Host Name"
-                style={{
-                marginLeft: "5px",
-                padding: "5px",
-                width: "400px",
-                fontFamily: "Times New Roman",
-                }}
-            />
-            </label>
-        </div>
-        </div>
-        <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
-        <div style={{ marginLeft: "20px" }}>
-            <label className={styles.description} style={{
-                marginLeft: "25px",
-                }}>
-            Value:  
-            <input
-                className={styles.styledselecttempmargin}
-                type="text"
-                onChange={(e) => setValue(e.target.value)}
-                placeholder="Enter Value"
-                style={{
-                marginLeft: "5px",
-                padding: "5px",
-                width: "400px",
-                fontFamily: "Times New Roman",
-                }}
-            />
-            </label>
-        </div>
-        <div style={{ marginLeft: "100px" }}>
-            <label className={styles.description}>
-            Domain:  
-            <input
-                className={styles.styledselecttempmargin}
-                type="text"
-                onChange={(e) => setDomain(e.target.value)}
-                placeholder="Enter Domain Name"
-                style={{
-                marginLeft: "5px",
-                padding: "5px",
-                width: "400px",
-                fontFamily: "Times New Roman",
-                }}
-            />
-            </label>
-        </div>
-        </div>
-        
-        {error && <p style={{ color: "red", textAlign: "center" }}>{error}</p>}
-
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: "20px" }}>
-        <button
-            className={styles.btndescription}
-            onClick={handleGenerate}
-            style={{ marginRight: "10px" }}
-        >
-            Generate
-        </button>
-        <button
-            type="button"
-            onClick={handleClear}
-            className={styles.clearbtn}
-        >
-            Clear
-        </button>
-        </div>
-
-
-      {/* Templates */}
-      {templates.map((template, index) => (
-        <div
-          key={index}
-          style={{
-            marginBottom: "20px",
-            border: "1px solid #ccc",
-            borderRadius: "5px",
-            padding: "10px",
-          }}
-        >
-          <h2 style={{ color: 'rgb(16, 31, 118)'}}>{template.heading}</h2>
-
-          {/* Subject Box */}
-          <div
-            style={{
-              border: "1px solid #e0e0e0",
-              padding: "10px",
-              borderRadius: "5px",
-              marginBottom: "10px",
-              backgroundColor: "#f9f9f9",
-            }}
-          >
-            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email Subject</h3>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-              <p style={{ margin: 0, fontFamily:'Times New Roman' }}>{template.subject}</p>
-              <button
-                onClick={() => handleCopy(template.subject, index, "subject")}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "5px",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: copied === `subject-${index}` ? "green" : "black",
-                }}
-              >
-                <img
-                  src="/copy-icon.svg"
-                  alt="Copy"
-                  style={{ width: "20px", height: "20px" }}
-                />
-                {copied === `subject-${index}` ? "Copied!" : "Copy"}
-              </button>
-            </div>
+            <label className={styles.notedescription}> Note: </label>
+            <label className={styles.notedescription} style={{ color: 'red' }}> Avoid blank spaces</label>
+            <br />
           </div>
 
-          {/* Content Box */}
-          <div
-            style={{
-              border: "1px solid #e0e0e0",
-              padding: "10px",
-              borderRadius: "5px",
-              backgroundColor: "#f9f9f9",
-            }}
-          >
-            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email Content</h3>
-            <pre
-              style={{
-                whiteSpace: "pre-wrap",
-                wordWrap: "break-word",
-                margin: 0,
-                marginBottom: "-10px",
-                fontFamily:'Times New Roman',
-              }} 
-            >
-              {template.content}
-            </pre>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <button
-                onClick={() => handleCopy(template.content, index, "content")}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "5px",
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: copied === `content-${index}` ? "green" : "black",
-                }}
-              >
-                <img
-                  src="/copy-icon.svg"
-                  alt="Copy"
-                  style={{ width: "20px", height: "20px" }}
+          <div style={{ marginBottom: '10px', paddingLeft: '38%' }}>
+            <label className={styles.description}>
+               Password: 
+                <input className={styles.styledselecttempmargin}
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '7px',
+                    margin: '10px 0',
+                    borderRight: 'none',
+                    borderRadius: '5px 0 0 5px',
+                  }}
                 />
-                {copied === `content-${index}` ? "Copied!" : "Copy"}
-              </button>
-            </div>
+                <button
+                  type="button"
+                  onClick={togglePasswordVisibility}
+                  style={{
+                    padding: '7px',
+                    borderLeft: 'none',
+                    cursor: 'pointer',
+                    backgroundColor: '#f5f5f5',
+                    borderRadius: '0 5px 5px 0',
+                    border: '1px solid #ccc',
+                  }}
+                >
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              
+            </label>
           </div>
-        </div>
-      ))}
-    </div>
-    <div className={styles.Installerhomebtn}>
+
+          <div style={{ marginBottom: '40px', paddingLeft: '45%' }}>
+            <label className={styles.description}>
+              Option: 
+              <select value={option} className={styles.styledselecttempmargin} onChange={(e) => setOption(e.target.value)}>
+                <option value="Tomcat">Tomcat</option>
+                <option value="Apache">Apache</option>
+              </select>
+            </label>
+          </div>
+
+          <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center', gap: '20px' }}>
+            <button type="submit" className={styles.btndescription} disabled={loading}>
+              {loading ? 'Generating...' : 'Generate'}
+            </button>
+            <button type="button" onClick={handleClear} className={styles.clearbtn}>
+              Clear
+            </button>
+          </div>
+        </form>
+
+        {result && (
+          <div style={{ marginTop: '20px', paddingLeft: '5%' }}>
+            <h2>Results:</h2>
+            <pre>{result}</pre>
+          </div>
+        )}
+      </div>
+
+      <div className={styles.Installerhomebtn}>
         <button><Link href="/">Back to Home</Link></button>
       </div>
   
@@ -424,10 +170,7 @@ const EmailTemplates = () => {
           </a>
         </div>
       </footer>
-    </main>
-
+      </main>
     </>
   );
-};
-
-export default EmailTemplates;
+}

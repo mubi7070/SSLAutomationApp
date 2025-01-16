@@ -2,7 +2,6 @@ import { useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import styles from '/styles/Home.module.css';
-import { FaPersonWalkingDashedLineArrowRight } from 'react-icons/fa6';
 
 const defaultClubName = "Club Name";
 const defaultExpiryDate = "Expiry Date";
@@ -185,7 +184,7 @@ Thank you.`
     <main className={styles.body}>
       <Head>
         <title>Email Templates</title>
-        <link rel="icon" href="./ssl2white.svg" />
+        <link rel="icon" href="/ssl2white.svg" />
       </Head>
       <div style={{ padding: '20px' }}>
         <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', textAlign: 'center' }}>

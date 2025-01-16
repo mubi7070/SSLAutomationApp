@@ -108,7 +108,7 @@ export default function SSLInstaller() {
     <main className={styles.body}>
       <Head>
         <title>SSL Installer</title>
-        <link rel="icon" href="./ssl2white.svg" />
+        <link rel="icon" href="/ssl2white.svg" />
       </Head>
       <div style={{ padding: '20px' }}>
         <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', display: 'flex', justifyContent: 'center' }}>
