@@ -1,4 +1,4 @@
-
+@echo off
 
 set AppPath=D:/SSLAutomationApp
 

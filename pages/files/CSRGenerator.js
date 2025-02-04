@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from "react";
 import Head from 'next/head';
 import Link from 'next/link';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
@@ -9,8 +9,19 @@ export default function Home() {
   const [password, setPassword] = useState('sibisoft');
   const [option, setOption] = useState('Tomcat');
   const [result, setResult] = useState('');
+  const [showPopup, setShowPopup] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+
+  useEffect(() => {
+    if (result) {
+      setShowPopup(true);
+      setTimeout(() => {
+        setShowPopup(false);
+      }, 3000); // Hide after 3 seconds
+    }
+  }, [result]);
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
@@ -41,6 +52,7 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+
   };
 
   const handleClear = () => {
@@ -126,12 +138,24 @@ export default function Home() {
           </div>
         </form>
 
+        <div>
+        {/* Results Display */}
         {result && (
           <div style={{ marginTop: '20px', paddingLeft: '5%' }}>
             <h2>Results:</h2>
             <pre>{result}</pre>
           </div>
         )}
+
+        {/* Pop-up Notification */}
+        {showPopup && (
+        <div className={styles.notification}>
+            {result}
+        </div>
+      )}
+        </div>
+
+
       </div>
 
       <div className={styles.Installerhomebtn}>

@@ -6,14 +6,14 @@ export default function Home() {
   return (
     <div className={styles.container}>
       <Head>
-        <title>SSL Automation Tool</title>
+        <title>Northstar SSL Automation Tool</title>
         <link rel="icon" href="/ssl2white.svg" />
       </Head>
 
       <main>
       <h1 className={styles.titlenew}>
         <img src="/ssl2.svg" alt="SSL Icon" className={styles.icon} />
-           SSL Automation Tool
+           Northstar SSL Automation Tool
         </h1>
 
         <div className={styles.grid}>
@@ -53,7 +53,7 @@ export default function Home() {
           </Link>
 
           <Link href="https://www.ssllabs.com/ssltest/" className={styles.card} target="_blank" rel="noopener noreferrer">
-              <h3>SSL Server Test &rarr;</h3>
+              <h3>SSL Labs &rarr;</h3>
               <p>Go to the website and test the SSL and ciphers health.</p>
           </Link>
              

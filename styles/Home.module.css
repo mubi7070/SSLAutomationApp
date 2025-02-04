@@ -370,6 +370,20 @@ font-family: 'Times New Roman', Times, serif;
   font-family: 'Times New Roman', Times, serif;
 }
 
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 5px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  z-index: 1000;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
 
 
 

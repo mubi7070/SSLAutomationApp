@@ -15,11 +15,23 @@ const generateTomcatCSR = (domain, password) =>
   new Promise((resolve, reject) => {
     const filesDir = ensureFilesDirectory();
     const year = new Date().getFullYear();
-    const keystoreFile = path.join(filesDir, `${domain}${year}.keystore`);
-    const csrFile = path.join(filesDir, `${domain}${year}.csr`);
+    let keystoreFile = "";
+    let csrFile = "";
 
+    if (domain.startsWith('*.')) {
+      let tempdomain = domain.substring(2);  // It willl remove "*." from the start
+      keystoreFile = path.join(filesDir, `star.${tempdomain}${year}.keystore`);
+      csrFile = path.join(filesDir, `star.${tempdomain}${year}.csr`);
+    }
+    else {
+      keystoreFile = path.join(filesDir, `${domain}${year}.keystore`);
+      csrFile = path.join(filesDir, `${domain}${year}.csr`);
+    }
+
+    console.log(`The domain is: ${domain}`);
     console.log(`The password is: ${password}`);
-    
+    console.log(`The keystoreFile is: ${keystoreFile}`);
+    console.log(`The CSRFile is: ${csrFile}`);
 
     const keytoolGen = spawn('keytool', [
       '-genkey',
@@ -77,8 +89,20 @@ const generateApacheCSR = (domain, password) =>
   new Promise((resolve, reject) => {
     const filesDir = ensureFilesDirectory();
     const year = new Date().getFullYear();
-    const keyFile = path.join(filesDir, `${domain}${year}.key`);
-    const csrFile = path.join(filesDir, `${domain}${year}.csr`);
+    let keyFile = "";
+    let csrFile = "";
+
+
+    if (domain.startsWith('*.')) {
+      let tempdomain = domain.substring(2);  // It willl remove "*." from the start
+      keyFile = path.join(filesDir, `star.${tempdomain}${year}.key`);
+      csrFile = path.join(filesDir, `star.${tempdomain}${year}.csr`);
+    }
+    else {
+      keyFile = path.join(filesDir, `${domain}${year}.key`);
+      csrFile = path.join(filesDir, `${domain}${year}.csr`);
+    }
+
     const configPath = 'C:/Apache24/conf/openssl.cnf';
 
     const openssl = spawn('openssl', [

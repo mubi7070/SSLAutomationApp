@@ -24,6 +24,8 @@ export default function SSLConverter() {
   const [Keystore2Name, setKeystore2Name] = useState('');
   const [Keystore2Password, setKeystore2Password] = useState('sibisoft');
 
+  const [showPopup, setShowPopup] = useState(false);
+
   const [formData, setFormData] = useState({
     certFileName: '',
     keyFileName: '',
@@ -74,7 +76,14 @@ export default function SSLConverter() {
         .catch((error) => console.error('Error fetching Certificate files:', error));
     }, []);
 
-
+    useEffect(() => {
+      if (result) {
+        setShowPopup(true);
+        setTimeout(() => {
+          setShowPopup(false);
+        }, 3000); // Hide after 3 seconds
+      }
+    }, [result]);
 
   const handleOptionChange = (option) => {
     setSelectedOption(option);
@@ -518,10 +527,19 @@ export default function SSLConverter() {
           </form>
         )}
         <div>
+        <div>
         {result && (
           <div style={{ marginTop: '20px', paddingLeft: '5%' }}>
             <h2>Results:</h2>
             <pre>{result}</pre>
+          </div>
+        )}
+        </div>
+
+        {/* Pop-up Notification */}
+        {showPopup && (
+          <div className={styles.notification}>
+              {result}
           </div>
         )}
         </div>

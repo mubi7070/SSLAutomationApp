@@ -41,6 +41,7 @@ export default function SSLInstaller() {
   const [keystoreFiles, setKeystoreFiles] = useState([]);
   const [filteredFiles, setFilteredFiles] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
+  const [showPopup, setShowPopup] = useState(false);
 
   useEffect(() => {
     fetch('/api/install-ssl')
@@ -51,6 +52,15 @@ export default function SSLInstaller() {
       })
       .catch((error) => console.error('Error fetching keystore files:', error));
   }, []);
+
+  useEffect(() => {
+    if (responseMessage) {
+      setShowPopup(true);
+      setTimeout(() => {
+        setShowPopup(false);
+      }, 3000); // Hide after 3 seconds
+    }
+  }, [responseMessage]);
 
   const handleCertPathChange = (index, value) => {
     const updatedCertPaths = [...formData.certPaths];
@@ -88,10 +98,10 @@ export default function SSLInstaller() {
         setResponseResults(result.results);
         setResponseMessage('');
       } else {
-        setResponseMessage(`Error: ${result.message}`);
+        setResponseMessage(`${result.message}`);
       }
     } catch (error) {
-      setResponseMessage(`Error: ${error.message}`);
+      setResponseMessage(`${error.message}`);
     }
   };
 
@@ -203,6 +213,12 @@ export default function SSLInstaller() {
           </div>
         </form>
         {responseMessage && <p>{responseMessage}</p>}
+        {/* Pop-up Notification */}
+        {showPopup && (
+        <div className={styles.notification}>
+            {responseMessage}
+        </div>
+      )}
         {responseResults.length > 0 && (
           <div style={{ marginTop: '20px' }}>
             <h3 style={{ textAlign: 'left', margin: '20px auto', width: '60%' }}>Installation Results:</h3>
@@ -215,7 +231,20 @@ export default function SSLInstaller() {
             </ul>
           </div>
         )}
+        {/* Pop-up Notification */}
+        {showPopup && (
+        <div className={styles.notification}>
+            {responseResults.map((result, index) => (
+                <li key={index}>
+                  <strong>Alias {result.alias}:</strong> {"Installed"}
+                </li>
+              ))}
+        </div>
+      )}
       </div>
+      
+
+
       <div className={styles.Installerhomebtn}>
         <button>
           <Link href="/">Back to Home</Link>
