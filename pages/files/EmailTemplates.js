@@ -11,20 +11,15 @@ const defaultValue = "";
 const defaultDomain = "";
 const defaultAdditionalDomains = [""];
 
-const toEmails = [
-    { name: "CST-Compliance", email: "cst.compliance@globalnorthstar.com" },
-    { name: "Rockstars", email: "rockstars@globalnorthstar.com" }
-];
+const toEmails = ["cst.compliance@globalnorthstar.com", "rockstars@globalnorthstar.com"];
 
-const ccEmails = [
-    { name: "DevOps Team", email: "devops@globalnorthstar.com" }
-];
+const ccEmails = ["devops@globalnorthstar.com"];
 
 
 
 let updatedTemplate = null;
 
-export default function SSLConverter() {
+export default function EmailTemplateFunction() {
   const [selectedOption, setSelectedOption] = useState('');
   const [clubName, setClubName] = useState(defaultClubName);
 
@@ -46,6 +41,35 @@ export default function SSLConverter() {
   const handleClear = () => {
     window.location.reload();
   };
+
+  const handleSubmitEmail = async () => {
+    if (!generatedTemplate) {
+      alert("No email template generated.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/handleEmail", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(generatedTemplate),
+      });
+
+      if (response.ok) {
+        const { mailtoLink } = await response.json();
+        window.location.href = mailtoLink; // Opens the draft email
+      } else {
+        alert("Failed to create email draft.");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("An error occurred while sending the email.");
+    }
+  };
+
+  
 
   const handleCopy = (content, type) => {
     const key = `${type}`;
@@ -77,7 +101,8 @@ export default function SSLConverter() {
 
     if (selectedOption === 'For SSL Managed By NS for CNAME record') {
       updatedTemplate = {
-        to: `To: CST-Compliance <cst.compliance@globalnorthstar.com>, Rockstars <rockstars@globalnorthstar.com>\n\nCC: DevOps Team <devops@globalnorthstar.com>`,
+          to: `${toEmails}`,
+          cc: `${ccEmails}`,
           heading: "For SSL Managed By NS for CNAME record",
           subject: `SSL Renewal - ${clubName} - ${expiryDate}`,
           content: 
@@ -99,7 +124,8 @@ Thank you.`
   } 
   else if (selectedOption === 'For SSL Managed By Club') {
     updatedTemplate = {
-        to: `To: CST-Compliance <cst.compliance@globalnorthstar.com>, Rockstars <rockstars@globalnorthstar.com>\n\nCC: DevOps Team <devops@globalnorthstar.com>`,
+        to: `${toEmails}`,
+        cc: `${ccEmails}`,
       heading: "For SSL Managed By Club",
       subject: `SSL Renewal - ${clubName} - ${expiryDate}`,
       content: 
@@ -120,7 +146,8 @@ Thank you.`
   
     else if (selectedOption === 'For SAN SSL Managed By Club') {
       updatedTemplate = {
-        to: `To: CST-Compliance <cst.compliance@globalnorthstar.com>, Rockstars <rockstars@globalnorthstar.com>\n\nCC: DevOps Team <devops@globalnorthstar.com>`,
+        to: `${toEmails}`,
+          cc: `${ccEmails}`,
         heading: "For SAN SSL Managed By Club",
         subject: `SSL Renewal - ${clubName} - ${expiryDate}`,
         content: 
@@ -146,7 +173,8 @@ Thank you.`
     }
     else if (selectedOption === 'For Print Server SSL Managed By NS') {
       updatedTemplate = {
-        to: `To: CST-Compliance <cst.compliance@globalnorthstar.com>, Rockstars <rockstars@globalnorthstar.com>\n\nCC: DevOps Team <devops@globalnorthstar.com>`,
+        to: `${toEmails}`,
+        cc: `${ccEmails}`,
         heading: "For Print Server SSL Managed By NS",
         subject: `SSL Renewal - Print Server - ${clubName} - ${expiryDate}`,
         content: 
@@ -176,6 +204,8 @@ Thank you.`
     if (updatedTemplate) {
       setGeneratedTemplate(updatedTemplate);
   }
+
+  
 
   }; 
 
@@ -325,11 +355,13 @@ Thank you.`
             <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email to:</h3>
             <pre className={styles.contentboxinside2}
             >
-                {generatedTemplate.to}
+              <b>To: </b>{generatedTemplate.to}
+                <br />
+            <b>cc: </b> {generatedTemplate.cc}
             </pre>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <button
-                    onClick={() => handleCopy(generatedTemplate.to, "to")}
+                    onClick={() => handleCopy(generatedTemplate.to + "," + generatedTemplate.cc, "to")}
                     className={styles.handlecopy}
                     style={{
                      color: copied === `to` ? "green" : "black",
@@ -393,7 +425,26 @@ Thank you.`
                 </button>
             </div>
         </div>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <button
+            className={styles.btndescription}
+            style={{ marginRight: "10px", marginTop: "10px" }}
+            onClick={handleSubmitEmail}
+        >
+            Send Email
+        </button>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '5px' }}>
+        <label className={styles.notedescription}>
+            <span style={{ color: 'blue' }}>(Attach the CSR & Keystore in separate email for DevOps Team)</span> 
+            <br />
+        </label>
+        </div>
+
+
+
     </div>
+    
 )}
 
         </div>
@@ -488,11 +539,13 @@ Thank you.`
             <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email to:</h3>
             <pre className={styles.contentboxinside2}
             >
-                {generatedTemplate.to}
+                <b>To: </b>{generatedTemplate.to}
+                <br />
+            <b>cc: </b> {generatedTemplate.cc}
             </pre>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <button
-                    onClick={() => handleCopy(generatedTemplate.to, "to")}
+                    onClick={() => handleCopy(generatedTemplate.to + "," + generatedTemplate.cc, "to")}
                     className={styles.handlecopy}
                     style={{
                      color: copied === `to` ? "green" : "black",
@@ -556,6 +609,29 @@ Thank you.`
                 </button>
             </div>
         </div>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <button
+            className={styles.btndescription}
+            style={{ marginRight: "10px", marginTop: "10px" }}
+            onClick={handleSubmitEmail}
+        >
+            Send Email
+        </button>
+        
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '5px' }}>
+        <label className={styles.notedescription}>
+            Note: <span style={{ color: 'red' }}>Make sure to attach the CSR file in this email.</span> 
+            <br />
+        </label>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '5px' }}>
+        <label className={styles.notedescription}>
+            <span style={{ color: 'blue' }}>(Attach the Keystore in separate email for DevOps Team)</span> 
+            <br />
+        </label>
+        </div>
+
     </div>
 )}
 
@@ -652,11 +728,13 @@ Thank you.`
             <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email to:</h3>
             <pre className={styles.contentboxinside2}
             >
-                {generatedTemplate.to}
+                <b>To: </b>{generatedTemplate.to}
+                <br />
+                <b>cc: </b> {generatedTemplate.cc}
             </pre>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <button
-                    onClick={() => handleCopy(generatedTemplate.to, "to")}
+                    onClick={() => handleCopy(generatedTemplate.to + "," + generatedTemplate.cc, "to")}
                     className={styles.handlecopy}
                     style={{
                      color: copied === `to` ? "green" : "black",
@@ -720,6 +798,29 @@ Thank you.`
                 </button>
             </div>
         </div>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <button
+            className={styles.btndescription}
+            style={{ marginRight: "10px", marginTop: "10px" }}
+            onClick={handleSubmitEmail}
+        >
+            Send Email
+        </button>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '5px' }}>
+        <label className={styles.notedescription}>
+            Note: <span style={{ color: 'red' }}>Make sure to attach the CSR file in this email.</span> 
+            <br />
+        </label>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '5px' }}>
+        <label className={styles.notedescription}>
+            <span style={{ color: 'blue' }}>(Attach the Keystore in separate email for DevOps Team)</span> 
+            <br />
+        </label>
+        </div>
+
+        
     </div>
 )}
 
@@ -852,11 +953,13 @@ Thank you.`
             <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email to:</h3>
             <pre className={styles.contentboxinside2}
             >
-                {generatedTemplate.to}
+                <b>To: </b>{generatedTemplate.to}
+                <br />
+                <b>cc: </b> {generatedTemplate.cc}
             </pre>
             <div style={{ display: "flex", justifyContent: "flex-end" }}>
                 <button
-                    onClick={() => handleCopy(generatedTemplate.to, "to")}
+                    onClick={() => handleCopy(generatedTemplate.to + "," + generatedTemplate.cc, "to")}
                     className={styles.handlecopy}
                     style={{
                      color: copied === `to` ? "green" : "black",
@@ -920,6 +1023,23 @@ Thank you.`
                 </button>
             </div>
         </div>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <button
+            className={styles.btndescription}
+            style={{ marginRight: "10px", marginTop: "10px" }}
+            onClick={handleSubmitEmail}
+        >
+            Send Email
+        </button>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '5px' }}>
+        <label className={styles.notedescription}>
+            <span style={{ color: 'blue' }}>(Attach the CSR & Keystore in separate email for DevOps Team)</span> 
+            <br />
+        </label>
+        </div>
+
     </div>
 )}
 
