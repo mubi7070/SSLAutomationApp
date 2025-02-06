@@ -3,8 +3,8 @@ import Head from 'next/head';
 import Link from 'next/link';
 import styles from '/styles/Home.module.css';
 
-const defaultClubName = "Club Name";
-const defaultExpiryDate = "Expiry Date";
+const defaultClubName = "";
+const defaultExpiryDate = "";
 const defaultDNS = "";
 const defaultHostName = "";
 const defaultValue = "";
@@ -36,10 +36,25 @@ export default function EmailTemplateFunction() {
 
   const handleOptionChange = (option) => {
     setSelectedOption(option);
+    setGeneratedTemplate(null);
+    setClubName('');
+    setExpiryDate('');
+    setdns('');
+    setHostName('');
+    setValue('');
+    setDomain('');
+    setAdditionalDomains(defaultAdditionalDomains);
   };
 
   const handleClear = () => {
-    window.location.reload();
+    setGeneratedTemplate(null);
+    setClubName('');
+    setExpiryDate('');
+    setdns('');
+    setHostName('');
+    setValue('');
+    setDomain('');
+    setAdditionalDomains(defaultAdditionalDomains);
   };
 
   const handleSubmitEmail = async () => {
@@ -254,6 +269,7 @@ Thank you.`
             Club Name:
             <input className={styles.box1}
                 type="text"
+                value={clubName}
                 onChange={(e) => setClubName(e.target.value)}
                 placeholder="Enter Club Name..."
                 required
@@ -291,6 +307,7 @@ Thank you.`
             <input
                 className={styles.box1}
                 type="text"
+                value={dns}
                 onChange={(e) => setdns(e.target.value)}
                 placeholder="Enter Domain Name..."
                 required
@@ -303,6 +320,7 @@ Thank you.`
             <input
                 className={styles.box1}
                 type="text"
+                value={HostName}
                 onChange={(e) => setHostName(e.target.value)}
                 placeholder="Enter Host Name..."
                 required
@@ -319,6 +337,7 @@ Thank you.`
             <input
                 className={styles.box1}
                 type="text"
+                value={Value}
                 onChange={(e) => setValue(e.target.value)}
                 placeholder="Enter Value..."
                 required
@@ -468,6 +487,7 @@ Thank you.`
                 <input
                     className={styles.box1}
                     type="text"
+                    value={clubName}
                     onChange={(e) => setClubName(e.target.value)}
                     placeholder="Enter Club Name..."
                     required
@@ -504,6 +524,7 @@ Thank you.`
                 <input
                     className={styles.box1}
                     type="text"
+                    value={Domain}
                     onChange={(e) => setDomain(e.target.value)}
                     placeholder="Enter Domain Name..."
                     required
@@ -653,6 +674,7 @@ Thank you.`
                 <input
                     className={styles.box1}
                     type="text"
+                    value={clubName}
                     onChange={(e) => setClubName(e.target.value)}
                     placeholder="Enter Club Name..."
                     required
@@ -691,6 +713,7 @@ Thank you.`
                     className={styles.box2}
                     rows="5"   // We can update the number of rows which we want
                     type="text"
+                    value={AdditionalDomains.join("\n")}
                     onChange={(e) => setAdditionalDomains(e.target.value.split("\n"))}
                     placeholder="Enter Addtional DNS Names..."
                     style={{resize: "vertical" }}
@@ -842,6 +865,7 @@ Thank you.`
                 <input
                     className={styles.box1}
                     type="text"
+                    value={clubName}
                     onChange={(e) => setClubName(e.target.value)}
                     placeholder="Enter Club Name..."
                     required
@@ -879,6 +903,7 @@ Thank you.`
                 <input
                     className={styles.box1}
                     type="text"
+                    value={dns}
                     onChange={(e) => setdns(e.target.value)}
                     placeholder="Enter Domain Name..."
                     required
@@ -891,6 +916,7 @@ Thank you.`
                 <input
                     className={styles.box1}
                     type="text"
+                    value={HostName}
                     onChange={(e) => setHostName(e.target.value)}
                     placeholder="Enter Host Name..."
                     required
@@ -907,6 +933,7 @@ Thank you.`
                 <input
                     className={styles.box1}
                     type="text"
+                    value={Value}
                     onChange={(e) => setValue(e.target.value)}
                     placeholder="Enter Value..."
                     required
@@ -919,6 +946,7 @@ Thank you.`
                 <input
                     className={styles.box1}
                     type="text"
+                    value={Domain}
                     onChange={(e) => setDomain(e.target.value)}
                     placeholder="Enter Domain Name..."
                     required
