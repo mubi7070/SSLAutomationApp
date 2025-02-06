@@ -84,7 +84,6 @@ export default function EmailTemplateFunction() {
     }
   };
 
-  
 
   const handleCopy = (content, type) => {
     const key = `${type}`;
