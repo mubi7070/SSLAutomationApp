@@ -30,15 +30,34 @@ export default function EmailTemplateFunction() {
   const [Domain, setDomain] = useState(defaultDomain);
   const [AdditionalDomains, setAdditionalDomains] = useState(defaultAdditionalDomains);
   
+  const [sentEmails, setSentEmails] = useState([]); // Array to store sent email subjects
+  const [showPopup, setShowPopup] = useState(false); // State for confirmation popup
 
   const [expiryDate, setExpiryDate] = useState(defaultExpiryDate);
+  const [formattedExpiryDate, setFormattedExpiryDate] = useState('');
   const [copied, setCopied] = useState(null);
+
+  const handleSendClick = () => {
+    setShowPopup(true); // Show the popup
+    handleSubmitEmail();
+    };
+
+    const handlePopupResponse = (response) => {
+        if (response === "yes") {
+            setSentEmails([...sentEmails, generatedTemplate.subject]); // Save email subject
+            console.log(sentEmails);
+            
+            handleClear(); // Clear the form
+        }
+        setShowPopup(false); // Close the popup
+    };
 
   const handleOptionChange = (option) => {
     setSelectedOption(option);
     setGeneratedTemplate(null);
     setClubName('');
     setExpiryDate('');
+    setFormattedExpiryDate('');
     setdns('');
     setHostName('');
     setValue('');
@@ -50,6 +69,7 @@ export default function EmailTemplateFunction() {
     setGeneratedTemplate(null);
     setClubName('');
     setExpiryDate('');
+    setFormattedExpiryDate('');
     setdns('');
     setHostName('');
     setValue('');
@@ -118,11 +138,11 @@ export default function EmailTemplateFunction() {
           to: `${toEmails}`,
           cc: `${ccEmails}`,
           heading: "For SSL Managed By NS for CNAME record",
-          subject: `SSL Renewal - ${clubName} - ${expiryDate}`,
+          subject: `SSL Renewal - ${clubName} - ${formattedExpiryDate}`,
           content: 
 `Hello Team,
   
-I hope this email finds you well! I just wanted to give you a heads-up that the SSL cert for "${clubName}" is expiring on ${expiryDate}. It's important that we renew the certificate as soon as possible.
+I hope this email finds you well! I just wanted to give you a heads-up that the SSL cert for "${clubName}" is expiring on ${formattedExpiryDate}. It's important that we renew the certificate as soon as possible.
   
 To get started, could you please share the below CNAME records with the club's IT Administrator? They'll need to add these to their DNS for SSL validation:
   
@@ -141,11 +161,11 @@ Thank you.`
         to: `${toEmails}`,
         cc: `${ccEmails}`,
       heading: "For SSL Managed By Club",
-      subject: `SSL Renewal - ${clubName} - ${expiryDate}`,
+      subject: `SSL Renewal - ${clubName} - ${formattedExpiryDate}`,
       content: 
 `Hello Team,
   
-I hope this email finds you well! I just wanted to give you a heads-up that the SSL certs for "${clubName}" are expiring on ${expiryDate}. It's important that we renew the certificate as soon as possible.
+I hope this email finds you well! I just wanted to give you a heads-up that the SSL certs for "${clubName}" are expiring on ${formattedExpiryDate}. It's important that we renew the certificate as soon as possible.
   
 To get started, could you please share the below attached CSR (Certificate Signing Request) with the club's IT Administrator? They'll need to generate SSL certificates against this CSR.
   
@@ -163,11 +183,11 @@ Thank you.`
         to: `${toEmails}`,
           cc: `${ccEmails}`,
         heading: "For SAN SSL Managed By Club",
-        subject: `SSL Renewal - ${clubName} - ${expiryDate}`,
+        subject: `SSL Renewal - ${clubName} - ${formattedExpiryDate}`,
         content: 
 `Hello Team,
     
-I hope this email finds you well! I just wanted to give you a heads-up that the SAN SSL certs for "${clubName}" are expiring on ${expiryDate}. It's important that we renew the certificate as soon as possible.
+I hope this email finds you well! I just wanted to give you a heads-up that the SAN SSL certs for "${clubName}" are expiring on ${formattedExpiryDate}. It's important that we renew the certificate as soon as possible.
     
 To get started, could you please share the below attached CSR (Certificate Signing Request) with the club's IT Administrator? They'll need to generate SAN SSL certificates against this CSR and also include the below mentioned domains in it.
     
@@ -190,11 +210,11 @@ Thank you.`
         to: `${toEmails}`,
         cc: `${ccEmails}`,
         heading: "For Print Server SSL Managed By NS",
-        subject: `SSL Renewal - Print Server - ${clubName} - ${expiryDate}`,
+        subject: `SSL Renewal - Print Server - ${clubName} - ${formattedExpiryDate}`,
         content: 
 `Hello Team,
     
-I hope this email finds you well! I just wanted to give you a heads-up that the SSL certs for "${clubName}" print server are expiring on ${expiryDate}. It's important that we renew the certificate as soon as possible.
+I hope this email finds you well! I just wanted to give you a heads-up that the SSL certs for "${clubName}" print server are expiring on ${formattedExpiryDate}. It's important that we renew the certificate as soon as possible.
     
 To get started, could you please share the below CNAME records with the club's IT Administrator? They'll need to add these to their DNS for SSL validation:
     
@@ -281,15 +301,19 @@ Thank you.`
             <input
                 className={styles.box1}
                 type="date"
-                onChange={(e) =>
-                setExpiryDate(
-                    new Date(e.target.value).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
+                value={expiryDate}
+
+                onChange={(e) => {
+                    const rawDate = e.target.value;
+                    setExpiryDate(rawDate);
+                    setFormattedExpiryDate(
+                    new Date(rawDate).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
                     })
-                )
-                }
+                    );
+                }}
                 required
             />
             </label>
@@ -447,7 +471,7 @@ Thank you.`
         <button
             className={styles.btndescription}
             style={{ marginRight: "10px", marginTop: "10px" }}
-            onClick={handleSubmitEmail}
+            onClick={handleSendClick}
         >
             Send Email
         </button>
@@ -497,19 +521,23 @@ Thank you.`
                 <label className={styles.description}>
                 Expiry Date:
                 <input
-                    className={styles.box1}
-                    type="date"
-                    onChange={(e) =>
-                    setExpiryDate(
-                        new Date(e.target.value).toLocaleDateString("en-US", {
+                className={styles.box1}
+                type="date"
+                value={expiryDate}
+
+                onChange={(e) => {
+                    const rawDate = e.target.value;
+                    setExpiryDate(rawDate);
+                    setFormattedExpiryDate(
+                    new Date(rawDate).toLocaleDateString("en-US", {
                         year: "numeric",
                         month: "long",
                         day: "numeric",
-                        })
-                    )
-                    }
-                    required
-                />
+                    })
+                    );
+                }}
+                required
+            />
                 </label>
             </div>
             </div>
@@ -531,6 +559,8 @@ Thank you.`
                 </label>
             </div>
             </div>
+
+            
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: "20px" }}>
         <button
             className={styles.btndescription}
@@ -684,18 +714,22 @@ Thank you.`
                 <label className={styles.description}>
                 Expiry Date:
                 <input
-                    className={styles.box1}
-                    type="date"
-                    onChange={(e) =>
-                    setExpiryDate(
-                        new Date(e.target.value).toLocaleDateString("en-US", {
+                className={styles.box1}
+                type="date"
+                value={expiryDate}
+
+                onChange={(e) => {
+                    const rawDate = e.target.value;
+                    setExpiryDate(rawDate);
+                    setFormattedExpiryDate(
+                    new Date(rawDate).toLocaleDateString("en-US", {
                         year: "numeric",
                         month: "long",
                         day: "numeric",
-                        })
-                    )
-                    }
-                    required
+                    })
+                    );
+                }}
+                required
                 />
                 </label>
             </div>
@@ -875,18 +909,22 @@ Thank you.`
                 <label className={styles.description}>
                 Expiry Date:
                 <input
-                    className={styles.box1}
-                    type="date"
-                    onChange={(e) =>
-                    setExpiryDate(
-                        new Date(e.target.value).toLocaleDateString("en-US", {
+                className={styles.box1}
+                type="date"
+                value={expiryDate}
+
+                onChange={(e) => {
+                    const rawDate = e.target.value;
+                    setExpiryDate(rawDate);
+                    setFormattedExpiryDate(
+                    new Date(rawDate).toLocaleDateString("en-US", {
                         year: "numeric",
                         month: "long",
                         day: "numeric",
-                        })
-                    )
-                    }
-                    required
+                    })
+                    );
+                }}
+                required
                 />
                 </label>
             </div>
@@ -1079,7 +1117,17 @@ Thank you.`
 
           </form>
         )}
-        
+        {showPopup && (
+            <div className={styles.popupContainer}>
+                <div className={styles.popupBox}>
+                    <p>Have you sent the email to support (Attaching the CSR and Keystore Files)?</p>
+                    <div className={styles.popupButtons}>
+                        <button onClick={() => handlePopupResponse("yes")} className={styles.yesButton}>Yes</button>
+                        <button onClick={() => handlePopupResponse("no")} className={styles.noButton}>No</button>
+                    </div>
+                </div>
+            </div>
+        )}
         
         <br />
         <div className={styles.Installerhomebtn} style={{ marginTop: '20px' }}>
