@@ -37,6 +37,13 @@ export default function EmailTemplateFunction() {
   const [formattedExpiryDate, setFormattedExpiryDate] = useState('');
   const [copied, setCopied] = useState(null);
 
+
+  const handleSheetUpdate = async () => {
+    
+
+    
+    };
+
   const handleSendClick = () => {
     setShowPopup(true); // Show the popup
     handleSubmitEmail();
@@ -46,6 +53,7 @@ export default function EmailTemplateFunction() {
         if (response === "yes") {
             setSentEmails([...sentEmails, generatedTemplate.subject]); // Save email subject
             console.log(sentEmails);
+            handleSheetUpdate();
             
             handleClear(); // Clear the form
         }
@@ -95,6 +103,19 @@ export default function EmailTemplateFunction() {
       if (response.ok) {
         const { mailtoLink } = await response.json();
         window.location.href = mailtoLink; // Opens the draft email
+
+        await fetch("/api/googleSheet", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                clubName,
+                formattedExpiryDate,
+                emailSubject: generatedTemplate.subject,
+                currentDate: new Date().toLocaleDateString("en-US"),
+            }),
+        });
+        
+
       } else {
         alert("Failed to create email draft.");
       }

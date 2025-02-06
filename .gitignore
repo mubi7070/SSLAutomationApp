@@ -3,6 +3,8 @@
 /.pnp
 .pnp.js
 
+google-service-account.json
+
 # testing
 /coverage
 
