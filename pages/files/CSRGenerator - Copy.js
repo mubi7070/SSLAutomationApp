@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
-import Head from "next/head";
-import Link from "next/link";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
-import { HelpCircle } from "lucide-react";
-import Tooltip from "/pages/components/Tooltip.js"; // Import Tooltip
-import styles from "/styles/Home.module.css";
+import Head from 'next/head';
+import Link from 'next/link';
+import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import styles from '/styles/Home.module.css';
 
 export default function Home() {
   const [domains, setDomains] = useState('');
@@ -14,6 +12,7 @@ export default function Home() {
   const [showPopup, setShowPopup] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
 
   useEffect(() => {
     if (result) {
@@ -72,9 +71,7 @@ export default function Home() {
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '10px', paddingLeft: '5%'}}>
             <label className={styles.description}>
-            Domains (comma-separated):{" "} 
-            </label>
-
+              Domains (comma-separated): 
               <input className={styles.styledselecttempmargin}
                 type="text" placeholder='Type comma-separated domains here...'
                 value={domains}  
@@ -82,15 +79,7 @@ export default function Home() {
                 required  
                 style={{ width: '60%', padding: '7px', margin: '10px 0' }}
               />
-            {/* Help Icon with Tooltip */}
-            <Tooltip text="Enter all domains (comma-separated), select the required type, and click 'Generate'. Click for more details.">
-              <Link href="/help" legacyBehavior>
-                <a className={styles.tooltip}>
-                  <HelpCircle size={20} />
-                </a>
-              </Link>
-            </Tooltip>
-
+            </label>
             <label className={styles.notedescription}> Note: </label>
             <label className={styles.notedescription} style={{ color: 'red' }}> Avoid blank spaces</label>
             <br />
