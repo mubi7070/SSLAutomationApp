@@ -20,14 +20,14 @@ export default async function handler(req, res) {
 
         const sheets = google.sheets({ version: "v4", auth });
 
-        const { clubName, formattedExpiryDate, emailSubject, currentDate } = req.body;
+        const { clubName, formattedExpiryDate, emailSubject, senderName, senderEmail, currentDate } = req.body;
 
-        if (!clubName || !formattedExpiryDate || !emailSubject || !currentDate) {
+        if (!clubName || !formattedExpiryDate || !emailSubject || !senderName || !senderEmail || !currentDate) {
             return res.status(400).json({ error: "Missing required fields" });
         }
 
         const spreadsheetId = "1yVCinTBlCnvv1CYWFjSsfpLjvUcQONJAuBLRoBc4rfE"; // Replace with your actual sheet ID
-        const range = "SSL!A:D"; // Data will be stored in columns A to D
+        const range = "SSL!A:F"; // Data will be stored in columns A to D
 
         await sheets.spreadsheets.values.append({
             spreadsheetId,
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
             valueInputOption: "RAW",
             insertDataOption: "INSERT_ROWS",
             requestBody: {
-                values: [[clubName, formattedExpiryDate, emailSubject, currentDate]],
+                values: [[clubName, formattedExpiryDate, emailSubject, senderName, senderEmail, currentDate]],
             },
         });
 

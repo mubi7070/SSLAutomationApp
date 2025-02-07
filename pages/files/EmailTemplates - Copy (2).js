@@ -15,18 +15,18 @@ const toEmails = ["cst.compliance@globalnorthstar.com", "rockstars@globalnorthst
 
 const ccEmails = ["devops@globalnorthstar.com"]; // We can add more cc: Emails Here.
 
-const EmailSender = [   // We can add more DevOps Folks Names Here.
-    { name: "Mubashir Ahmed", email: "mubashir.ahmed@globalnorthstar.com" },
-    { name: "Syed Shahzaib Hussain", email: "shahzaib.hussain@globalnorthstar.com" },
-    { name: "Arsalan Ahmed", email: "arsalanjamil.ahmed@globalnorthstar.com" },
-    { name: "Taimur Alvi", email: "taimur.alvi@globalnorthstar.com" },
-    { name: "Hamza Iqbal", email: "hamza.iqbal@globalnorthstar.com" },
-    { name: "Muhammad Abdullah Waseem", email: "abdullah.waseem@globalnorthstar.com" },
-    { name: "Abdul Samad Qureshi", email: "abdul.samad@globalnorthstar.com" },
-    { name: "Abdullah Arif", email: "abdullah.arif@globalnorthstar.com" },
-    { name: "Jibran Ghafoor", email: "jibran.ghafoor@globalnorthstar.com" }
+const EmailSender = [
+    { name: "Mubashir Ahmed", email: "mubi@gmail.com" },
+    { name: "Syed Shahzaib Hussain", email: "shahzaib@gmail.com" },
+    { name: "Arsalan Ahmed", email: "arsalan@gmail.com" },
+    { name: "Taimur Alvi", email: "taimur@gmail.com" },
+    { name: "Hamza Iqbal", email: "hamza@gmail.com" },
+    { name: "Abdullah Waseem", email: "abdullahw@gmail.com" },
+    { name: "Abdul Samad Qureshi", email: "samad@gmail.com" },
+    { name: "Abdullah Arif", email: "abdullaharif@gmail.com" },
+    { name: "Jibran Ghafoor", email: "jibran@gmail.com" }
   ];
-    
+    // We can add more DevOps Folks Names Here.
 
 let updatedTemplate = null;
 
@@ -62,7 +62,7 @@ export default function EmailTemplateFunction() {
         if (response === "yes") {
             setSentEmails([...sentEmails, generatedTemplate.subject]); // Save email subject
             console.log(sentEmails);
-            handleUpdateGoogleSheet(senderName, senderEmail);
+            
             handleClear(); // Clear the form
         }
         setShowPopup(false); // Close the popup
@@ -78,7 +78,6 @@ export default function EmailTemplateFunction() {
     setHostName('');
     setValue('');
     setDomain('');
-    setSelectedSender('');
     setAdditionalDomains(defaultAdditionalDomains);
   };
 
@@ -91,16 +90,15 @@ export default function EmailTemplateFunction() {
     setHostName('');
     setValue('');
     setDomain('');
-    setSelectedSender('');
     setAdditionalDomains(defaultAdditionalDomains);
   };
 
-  const handleSubmitEmail = async () => {
+  const handleSubmitEmail = async (senderName, senderEmail) => {
     if (!generatedTemplate) {
       alert("No email template generated.");
       return;
     }
-  
+
     try {
       const response = await fetch("/api/handleEmail", {
         method: "POST",
@@ -109,10 +107,25 @@ export default function EmailTemplateFunction() {
         },
         body: JSON.stringify(generatedTemplate),
       });
-  
+
       if (response.ok) {
         const { mailtoLink } = await response.json();
         window.location.href = mailtoLink; // Opens the draft email
+
+        await fetch("/api/googleSheet", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                clubName,
+                formattedExpiryDate,
+                emailSubject: generatedTemplate.subject,
+                senderName, 
+                senderEmail,
+                currentDate: new Date().toLocaleDateString("en-US"),
+            }),
+        });
+        
+
       } else {
         alert("Failed to create email draft.");
       }
@@ -121,34 +134,6 @@ export default function EmailTemplateFunction() {
       alert("An error occurred while sending the email.");
     }
   };
-  
-  const handleUpdateGoogleSheet = async (senderName, senderEmail) => {
-    if (!senderName || !senderEmail) {
-      alert("Please select an Email Sender.");
-      return;
-    }
-  
-    try {
-      await fetch("/api/googleSheet", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          clubName,
-          formattedExpiryDate,
-          emailSubject: generatedTemplate.subject,
-          senderName, 
-          senderEmail,
-          currentDate: new Date().toLocaleDateString("en-US"),
-        }),
-      });
-  
-      console.log("Google Sheet updated successfully.");
-    } catch (error) {
-      console.error("Error updating Google Sheet:", error);
-      alert("An error occurred while updating the Google Sheet.");
-    }
-  };
-  
 
 
   const handleCopy = (content, type) => {
@@ -709,7 +694,7 @@ Thank you.`
         <button
             className={styles.btndescription}
             style={{ marginRight: "10px", marginTop: "10px" }}
-            onClick={handleSendClick}
+            onClick={handleSubmitEmail}
         >
             Send Email
         </button>
@@ -904,7 +889,7 @@ Thank you.`
         <button
             className={styles.btndescription}
             style={{ marginRight: "10px", marginTop: "10px" }}
-            onClick={handleSendClick}
+            onClick={handleSubmitEmail}
         >
             Send Email
         </button>
@@ -1138,7 +1123,7 @@ Thank you.`
         <button
             className={styles.btndescription}
             style={{ marginRight: "10px", marginTop: "10px" }}
-            onClick={handleSendClick}
+            onClick={handleSubmitEmail}
         >
             Send Email
         </button>
