@@ -149,8 +149,6 @@ export default function EmailTemplateFunction() {
     }
   };
   
-
-
   const handleCopy = (content, type) => {
     const key = `${type}`;
     if (navigator.clipboard && navigator.clipboard.writeText) {
