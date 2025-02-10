@@ -3,6 +3,8 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import styles from '/styles/Home.module.css';
+import { HelpCircle } from "lucide-react";
+import Tooltip from "/pages/components/Tooltip.js"; // Import Tooltip
 
 export default function SSLInstaller() {
   const [formData, setFormData] = useState({
@@ -128,6 +130,14 @@ export default function SSLInstaller() {
           {formData.certPaths.map((cert, index) => (
             <div key={cert.alias} style={{ marginBottom: '10px', paddingLeft: '15%' }}>
               <label className={styles.description}>{cert.label}</label>
+              {/* Help Icon with Tooltip */}
+              <Tooltip text="You need add the certificate file paths on the relevent Alias to add that in the keystore. Click for more details.">
+                <Link href="/files/help" legacyBehavior>
+                  <a className={styles.tooltip}>
+                    <HelpCircle size={20} />
+                  </a>
+                </Link>
+              </Tooltip>
               <input
                 className={styles.styledselecttempmargin}
                 type="text"
@@ -148,7 +158,18 @@ export default function SSLInstaller() {
             </div>
           ))}
           <div style={{ marginBottom: '10px', paddingLeft: '15%' }}>
-            <label className={styles.description}>Keystore File Name:</label> <br />
+            <label className={styles.description}>Keystore File Name:</label> 
+            
+            {/* Help Icon with Tooltip */}
+            <Tooltip text="Here, you have to select the keystore file name that is already present in the app in which you want to install the SSL certificates.">
+              <Link href="/files/help" legacyBehavior>
+                <a className={styles.tooltip}>
+                  <HelpCircle size={20} />
+                </a>
+              </Link>
+            </Tooltip>
+            
+            <br />
             <input
               className={styles.styledselecttempmargin}
               type="text"
@@ -163,14 +184,26 @@ export default function SSLInstaller() {
               {filteredFiles.map((file, index) => (
                 <option key={index} value={file} />
               ))}
-            </datalist>
+            </datalist> 
             <label className={styles.notedescription}> Note: </label>
             <label className={styles.notedescription} style={{ color: 'red' }}>
               The keystore file should be present in the Files folder
             </label>
           </div>
           <div style={{ marginBottom: '20px', paddingLeft: '15%' }}>
-            <label className={styles.description}>Keystore password:</label> <br />
+            <label className={styles.description}>Keystore password:</label> 
+
+            {/* Help Icon with Tooltip */}
+            <Tooltip text="Please enter the password you set when creating the CSR and keystore.">
+              <Link href="/files/help" legacyBehavior>
+                <a className={styles.tooltip}>
+                  <HelpCircle size={20} />
+                </a>
+              </Link>
+            </Tooltip>
+            
+            
+            <br />
             <div style={{ display: 'flex', alignItems: 'center', width: '50%' }}>
               <input
                 className={styles.styledselecttempmargin}

@@ -84,7 +84,7 @@ export default function Home() {
               />
             {/* Help Icon with Tooltip */}
             <Tooltip text="Enter all domains (comma-separated), select the required type, and click 'Generate'. Click for more details.">
-              <Link href="/help" legacyBehavior>
+              <Link href="/files/help" legacyBehavior>
                 <a className={styles.tooltip}>
                   <HelpCircle size={20} />
                 </a>

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import styles from '/styles/Home.module.css';
+import { HelpCircle } from "lucide-react";
+import Tooltip from "/pages/components/Tooltip.js"; // Import Tooltip
 
 const defaultClubName = "";
 const defaultExpiryDate = "";
@@ -312,7 +314,16 @@ Thank you.`
             <option value="For SAN SSL Managed By Club">For SAN SSL Managed By Club</option>
             <option value="For Print Server SSL Managed By NS">For Print Server SSL Managed By NS</option>
           </select>
+          {/* Help Icon with Tooltip */}
+            <Tooltip text="Choose the necessary template and complete all the fields. Along with creating the email template, it also adds a record to the Google Sheet.">
+                <Link href="/files/help" legacyBehavior>
+                    <a className={styles.tooltip}>
+                    <HelpCircle size={20} />
+                    </a>
+                </Link>
+            </Tooltip>
         </div>
+        
 
         {selectedOption && (
           <form onSubmit={handleSubmit} >

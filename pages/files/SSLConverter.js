@@ -3,6 +3,8 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import styles from '/styles/Home.module.css';
+import { HelpCircle } from "lucide-react";
+import Tooltip from "/pages/components/Tooltip.js"; // Import Tooltip
 
 export default function SSLConverter() {
   const [selectedOption, setSelectedOption] = useState('');
@@ -251,6 +253,16 @@ export default function SSLConverter() {
                 <h2 className={styles.headingnew}>P12 Creation (Apache → Tomcat)</h2>
                 <div className={styles.inputGroup}>
                   <label className={styles.description}>Certificate File Name:</label>
+                  {/* Help Icon with Tooltip */}
+                  <Tooltip text="Select the certificate file name (which you must copy and paste into the Certs directory).">
+                    <Link href="/files/help" legacyBehavior>
+                      <a className={styles.tooltip}>
+                        <HelpCircle size={20} />
+                      </a>
+                    </Link>
+                  </Tooltip>
+
+
                   <input
                     type="text"
                     value={formData.certFileName}
@@ -275,6 +287,15 @@ export default function SSLConverter() {
 
                 <div className={styles.inputGroup}>
                   <label className={styles.description}>Key File Name:</label>
+                  {/* Help Icon with Tooltip */}
+                  <Tooltip text="You must select the key file name that is already present in the app that you generated during the CSR creation.">
+                    <Link href="/files/help" legacyBehavior>
+                      <a className={styles.tooltip}>
+                        <HelpCircle size={20} />
+                      </a>
+                    </Link>
+                  </Tooltip>
+
                   <input
                     type="text"
                     value={formData.keyFileName}
@@ -299,6 +320,15 @@ export default function SSLConverter() {
 
                 <div className={styles.inputGroup}>
                   <label className={styles.description}>Bundle File Name:</label>
+                  {/* Help Icon with Tooltip */}
+                  <Tooltip text="Select the bundle file name (which you must copy and paste into the Certs directory).">
+                    <Link href="/files/help" legacyBehavior>
+                      <a className={styles.tooltip}>
+                        <HelpCircle size={20} />
+                      </a>
+                    </Link>
+                  </Tooltip>
+
                   <input
                     type="text"
                     value={formData.bundleFileName}
@@ -323,6 +353,15 @@ export default function SSLConverter() {
 
                 <div className={styles.inputGroup}>
               <label className={styles.description}>P12 File Name:</label>
+                {/* Help Icon with Tooltip */}
+                <Tooltip text="Enter the P12 File name which you want to create.">
+                    <Link href="/files/help" legacyBehavior>
+                      <a className={styles.tooltip}>
+                        <HelpCircle size={20} />
+                      </a>
+                    </Link>
+                  </Tooltip>
+
               <input
                 type="text"
                 value={formData.p12FileName}
@@ -338,7 +377,17 @@ export default function SSLConverter() {
             </div>
             <br />
             <div className={styles.inputGroup}>
-            <label className={styles.description}>Password:</label> <br />
+            <label className={styles.description}>Password:</label> 
+            {/* Help Icon with Tooltip */}
+            <Tooltip text="Enter the password for the P12 file that you want to create.">
+              <Link href="/files/help" legacyBehavior>
+                <a className={styles.tooltip}>
+                  <HelpCircle size={20} />
+                </a>
+              </Link>
+            </Tooltip>
+
+            <br />
             <div style={{ display: 'flex', alignItems: 'center', width: '50%' }}>
               <input
                 className={styles.styledselecttempmargin}
@@ -384,6 +433,14 @@ export default function SSLConverter() {
 
               <div className={styles.inputGroup}>
                   <label className={styles.description}>Keystore File Name:</label>
+                  {/* Help Icon with Tooltip */}
+                  <Tooltip text="You must select the keystore file name that is already present in the app that you generated during the CSR creation.">
+                    <Link href="/files/help" legacyBehavior>
+                      <a className={styles.tooltip}>
+                        <HelpCircle size={20} />
+                      </a>
+                    </Link>
+                  </Tooltip>
                   <input
                     type="text"
                     value={KeystoreName}
@@ -406,7 +463,16 @@ export default function SSLConverter() {
                   <br />
                   <br />
             <div className={styles.inputGroup}>
-            <label className={styles.description}>Password:</label> <br />
+            <label className={styles.description}>Password:</label> 
+            {/* Help Icon with Tooltip */}
+            <Tooltip text="Enter the password for the PEM file that you want to create.">
+              <Link href="/files/help" legacyBehavior>
+                <a className={styles.tooltip}>
+                  <HelpCircle size={20} />
+                </a>
+              </Link>
+            </Tooltip>
+            <br />
             <div style={{ display: 'flex', alignItems: 'center', width: '50%' }}>
               <input
                 className={styles.styledselecttempmargin}
@@ -448,6 +514,14 @@ export default function SSLConverter() {
               <h2 className={styles.headingnew}>Keystore → P12</h2>
               <div className={styles.inputGroup}>
                   <label className={styles.description}>Keystore File Name:</label>
+                  {/* Help Icon with Tooltip */}
+                  <Tooltip text="You must select the keystore file name that is already present in the app that you generated during the CSR creation.">
+                    <Link href="/files/help" legacyBehavior>
+                      <a className={styles.tooltip}>
+                        <HelpCircle size={20} />
+                      </a>
+                    </Link>
+                  </Tooltip>
                   <input
                     type="text"
                     value={Keystore2Name}
@@ -470,7 +544,17 @@ export default function SSLConverter() {
                   <br />
                   <br />
             <div className={styles.inputGroup}>
-            <label className={styles.description}>Password:</label> <br />
+            <label className={styles.description}>Password:</label>
+            {/* Help Icon with Tooltip */}
+            <Tooltip text="Enter the password for the P12 file that you want to create.">
+              <Link href="/files/help" legacyBehavior>
+                <a className={styles.tooltip}>
+                  <HelpCircle size={20} />
+                </a>
+              </Link>
+            </Tooltip>
+
+             <br />
             <div style={{ display: 'flex', alignItems: 'center', width: '50%' }}>
               <input
                 className={styles.styledselecttempmargin}
