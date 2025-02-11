@@ -5,6 +5,8 @@ import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { HelpCircle } from "lucide-react";
 import Tooltip from "/pages/components/Tooltip.js"; // Import Tooltip
 import styles from "/styles/Home.module.css";
+import DownloadFiles from "/pages/components/DownloadFiles.js"; 
+
 
 export default function Home() {
   const [domains, setDomains] = useState('');
@@ -14,6 +16,7 @@ export default function Home() {
   const [showPopup, setShowPopup] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [files, setFiles] = useState([]);
 
   useEffect(() => {
     if (result) {
@@ -56,6 +59,7 @@ export default function Home() {
   
       // Ensure results exists and is array
       if (Array.isArray(data.results)) {
+        setFiles(data.files);
         setResult(data.results.join('\n'));
       } else {
         //setResult(data.error || 'Something went wrong');
@@ -178,6 +182,10 @@ export default function Home() {
             {result}
         </div>
       )}
+
+      <div>
+        <DownloadFiles filePaths={files} /> {/* Auto-downloads all files */}
+      </div>
         </div>
 
 

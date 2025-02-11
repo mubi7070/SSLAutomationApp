@@ -2,6 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import DownloadFiles from "../components/DownloadFiles";
+
 
 const ensureFilesDirectory = () => {
   const dirPath = path.join(process.cwd(), 'Files');
@@ -203,6 +205,24 @@ export default async function handler(req, res) {
 
       const messages = generationResults.map(r => r.message);
       const allFiles = generationResults.flatMap(r => r.files);
+      const allFilesNew = generationResults.flatMap(r => r.files.map(file => path.basename(file))); // Extracts only the filename
+
+      console.log(`All files are:
+        ${allFiles}
+        `);
+      
+        // ✅ Ensure all files are completely written before responding
+        await Promise.all(allFiles.map(file => {
+          return new Promise((resolve, reject) => {
+            const interval = setInterval(() => {
+              if (fs.existsSync(file)) {
+                clearInterval(interval);
+                resolve();
+              }
+            }, 500); // Check every 500ms
+          });
+        }));
+
 
       try {
         await Promise.all(allFiles.map(file => uploadToS3(file)));
@@ -215,7 +235,8 @@ export default async function handler(req, res) {
     // In the success case
     res.status(200).json({ 
       success: true,
-      results: messages  // Array of success messages
+      results: messages, // Array of success messages
+      files: allFilesNew // Sending files back to frontend
     });
   } catch (error) {
     // In error cases
