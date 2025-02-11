@@ -211,7 +211,7 @@ export default async function handler(req, res) {
         ${allFiles}
         `);
       
-        // ✅ Ensure all files are completely written before responding
+        // Ensure all files are completely written before responding
         await Promise.all(allFiles.map(file => {
           return new Promise((resolve, reject) => {
             const interval = setInterval(() => {
