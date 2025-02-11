@@ -43,27 +43,13 @@ export default function Home() {
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        // Handle HTTP error statuses (4xx/5xx)
-        throw new Error(data.error || 'Server error occurred');
-      }
-  
-      if (!data.success) {
-        // Handle business logic errors
-        throw new Error(data.error || 'Request failed');
-      }
-  
-      // Ensure results exists and is array
-      if (Array.isArray(data.results)) {
+      if (response.ok) {
         setResult(data.results.join('\n'));
       } else {
-        //setResult(data.error || 'Something went wrong');
-        throw new Error('Invalid response format from server. Something went wrong');
+        setResult(data.error || 'Something went wrong');
       }
     } catch (error) {
-      // Handle all errors in one place
-      setResult(error.message || 'An error occurred');
+      setResult('An error occurred');
     } finally {
       setLoading(false);
     }

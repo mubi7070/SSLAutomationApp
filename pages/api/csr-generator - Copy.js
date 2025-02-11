@@ -212,16 +212,8 @@ export default async function handler(req, res) {
         messages.push('Warning: Some files could not be backed up to S3.');
       }
 
-    // In the success case
-    res.status(200).json({ 
-      success: true,
-      results: messages  // Array of success messages
-    });
+    res.status(200).json({ message: 'Success', messages });
   } catch (error) {
-    // In error cases
-    res.status(500).json({ 
-      success: false,
-      error: error.message 
-    });
+    res.status(500).json({ error: error.message });
   }
 }
