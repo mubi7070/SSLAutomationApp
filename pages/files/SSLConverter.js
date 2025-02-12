@@ -11,7 +11,7 @@ export default function SSLConverter() {
   const [selectedOption, setSelectedOption] = useState('');
   const [filteredCerts, setFilteredCerts] = useState([]);
   const [CertFiles, setCertFiles] = useState([]);
-
+  const [loading, setLoading] = useState(false);
   const [filteredKeys, setfilteredKeys] = useState([]);
   const [keyFiles, setkeyFiles] = useState([]);
   
@@ -122,6 +122,7 @@ export default function SSLConverter() {
     // Add submission logic here.
     e.preventDefault();
     setResult('');
+    setLoading(true);
     console.log(`selectedoption: ${selectedOption}`);
     if (selectedOption === 'P12Creation') {
       try {
@@ -149,7 +150,9 @@ export default function SSLConverter() {
         }
       } catch (error) {
         setResult('An error occurred');
-      } 
+      } finally {
+        setLoading(false);
+      }
     } 
     else if (selectedOption === 'KeystoreToKey') {
       try {
@@ -178,12 +181,17 @@ export default function SSLConverter() {
           setResult(Array.isArray(data.results) ? data.results.join('\n') : data.results);
 
           setFiles([`${data.file}`]);
+
+          console.log(`The file data is: ${data.file}`);
+
         } else {
           setResult(data.error || 'Something went wrong. Kindly recheck the password or the same name file is already present in the Files Folder and try again');
         }
       } catch (error) {
         console.error('Error occurred:', error);
         setResult('An error occurred while processing your request');
+      } finally {
+        setLoading(false);
       }
     }
     
@@ -220,6 +228,8 @@ export default function SSLConverter() {
       } catch (error) {
         console.error('Error occurred: ', error);
         setResult('An error occurred while processing your request');
+      } finally {
+        setLoading(false);
       }
     }
     else{
@@ -614,8 +624,12 @@ export default function SSLConverter() {
             <br />
 
             <div style={{ textAlign: 'center', marginTop: '20px' }}>
-              <button type="submit" className={styles.btndescription}>
+              {/* <button type="submit" className={styles.btndescription}>
                 Convert
+              </button> */}
+
+              <button type="submit" className={styles.btndescription} disabled={loading}>
+                {loading ? 'Converting...' : 'Convert'}
               </button>
               <button
                 type="button"
