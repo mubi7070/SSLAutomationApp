@@ -41,7 +41,7 @@ const createP12 = ({ certFileName, keyFileName, bundleFileName, p12FileName, pas
       if (code !== 0) {
         return reject(new Error(`OpenSSL process exited with code ${code}`));
       }
-      resolve(`P12 file created successfully: ${p12FileName}.p12`);
+      resolve({ message: `P12 file created successfully: ${p12FileName}.p12`, filePath: p12FilePath });
     });
   });
 
@@ -50,19 +50,39 @@ export default async function handler(req, res) {
     const { certFileName, keyFileName, bundleFileName, p12FileName, password } = req.body;
 
         if (!certFileName || !keyFileName || !bundleFileName || !p12FileName || !password) {
-            res.status(400).json({ error: 'All fields are required' });
+            return res.status(400).json({ error: 'All fields are required' });
         }
         try {
             const results = await createP12({ certFileName, keyFileName, bundleFileName, p12FileName, password });
-            console.log(`THe Results: ${results}`);
+            console.log(`The Results: ${results.message}`);
             
-            //return res.status(200).json({ results });
-            return res.status(200).json({ results: [results] });
-            //return res.status(200).json({ results });
+            
+            await new Promise((resolve, reject) => {
+              const interval = setInterval(() => {
+                if (fs.existsSync(results.filePath)) {
+                  clearInterval(interval);
+                  resolve();
+                }
+              }, 500); // Check every 500ms
+            });
+            
+            console.log(`Here See: ${path.basename(results.filePath)}`);
+            
+            return res.status(200).json({ 
+              success: true, 
+              results: results.message,
+              file: path.basename(results.filePath) 
+            });
+            
+            
+            
         } catch (error) {
-          let temp = "Kindly recheck the password and try again";
-          //res.status(500).json({error: error.message });
-          res.status(500).json({temp});
+          // let temp = "Kindly recheck the password and try again";
+          // //res.status(500).json({error: error.message });
+          // res.status(500).json({temp});
+
+          console.error(error);
+          return res.status(500).json({ error: error.message });
         }
         } 
     else {

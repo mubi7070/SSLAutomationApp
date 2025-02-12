@@ -5,6 +5,7 @@ import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import styles from '/styles/Home.module.css';
 import { HelpCircle } from "lucide-react";
 import Tooltip from "/pages/components/Tooltip.js"; // Import Tooltip
+import DownloadFiles from "/pages/components/DownloadFiles.js"; 
 
 export default function SSLConverter() {
   const [selectedOption, setSelectedOption] = useState('');
@@ -19,7 +20,9 @@ export default function SSLConverter() {
 
   const [filteredkeystore, setfilteredkeystore] = useState([]);
   const [keystoreFiles, setkeystoreFiles] = useState([]);
+  
   //const [keystoreFiles, setKeystoreFiles] = useState([]);
+  
   const [KeystoreName, setKeystoreName] = useState('');
   const [KeystorePassword, setKeystorePassword] = useState('sibisoft');
 
@@ -27,6 +30,7 @@ export default function SSLConverter() {
   const [Keystore2Password, setKeystore2Password] = useState('sibisoft');
 
   const [showPopup, setShowPopup] = useState(false);
+  const [files, setFiles] = useState([]);
 
   const [formData, setFormData] = useState({
     certFileName: '',
@@ -83,7 +87,7 @@ export default function SSLConverter() {
         setShowPopup(true);
         setTimeout(() => {
           setShowPopup(false);
-        }, 3000); // Hide after 3 seconds
+        }, 5000); // Hide after 5 seconds
       }
     }, [result]);
 
@@ -96,6 +100,10 @@ export default function SSLConverter() {
       p12FileName: '',
       password: 'sibisoft',
     });
+
+    setKeystoreName('');
+    setKeystore2Name('');
+    setResult('');
   };
 
   const handleInputChange = (field, value) => {
@@ -126,12 +134,17 @@ export default function SSLConverter() {
           body: JSON.stringify(formData),
         });
         
-        console.log(`The response: ${response}`);
+        //console.log(`The response: ${response}`);
         const data = await response.json();
-        console.log('API Response:', data);
+        //console.log('API Response:', data);
         if (response.ok) {
           //setResult(data.results.join('\n'));
+          console.log("P12 File Created:", data.file);
+          setFiles([`${data.file}`]);
           setResult(Array.isArray(data.results) ? data.results.join('\n') : data.results);
+          
+          console.log(`The file data is: ${data.file}`);
+          
         } else {
           setResult(data.error || 'Something went wrong. Kindly recheck the password or the same name file is already present in the Files Folder and try again');
         }
@@ -160,7 +173,12 @@ export default function SSLConverter() {
         const data = await response.json();
     
         if (response.ok) {
-          setResult(Array.isArray(data.results) ? data.results.join('\n') : data.results.message);
+          console.log(`
+            Message in file 2 is: ${data.results}
+            `);
+          setResult(Array.isArray(data.results) ? data.results.join('\n') : data.results);
+
+          setFiles([`${data.file}`]);
         } else {
           setResult(data.error || 'Something went wrong. Kindly recheck the password or the same name file is already present in the Files Folder and try again');
         }
@@ -193,7 +211,8 @@ export default function SSLConverter() {
         const data = await response.json();
     
         if (response.ok) {
-          setResult(Array.isArray(data.results) ? data.results.join('\n') : data.results.message);
+          setResult(Array.isArray(data.results) ? data.results.join('\n') : data.results);
+          setFiles([`${data.file}`]);
         } else {
           console.log(`Data error: ${data.error}`);
           
@@ -236,7 +255,7 @@ export default function SSLConverter() {
           >
             <option value="Select">-- Select --</option>
             <option value="P12Creation">P12 Creation (Apache → Tomcat)</option>
-            <option value="KeystoreToKey">Keystore → Key (Tomcat → Apache)</option>
+            <option value="KeystoreToKey">Keystore → PEM (Tomcat → Apache)</option>
             <option value="KeystoreToP12">Keystore → P12</option>
           </select>
         </div>
@@ -429,7 +448,7 @@ export default function SSLConverter() {
 
             {selectedOption === 'KeystoreToKey' && (
               <>
-                <h2 className={styles.headingnew}>Keystore → Key (Tomcat → Apache)</h2>
+                <h2 className={styles.headingnew}>Keystore → PEM (Tomcat → Apache)</h2>
 
               <div className={styles.inputGroup}>
                   <label className={styles.description}>Keystore File Name:</label>
@@ -626,6 +645,10 @@ export default function SSLConverter() {
               {result}
           </div>
         )}
+
+          <div>
+            <DownloadFiles filePaths={files} /> {/* Auto-downloads all files */}
+          </div>
         </div>
         
         <br />

@@ -78,18 +78,24 @@ const convertKeystoreToPem = async ({ keystoreName, keystorePassword }) => {
     const opensslOutput = await executeCommand('openssl', opensslArgs);
     console.log('OpenSSL Output:', opensslOutput);
 
-    return {
-      keytoolOutput,
-      opensslOutput,
-      message: `PEM file created successfully: ${pemFileName}`,
+    return { 
+      message: `PEM file created successfully: ${pemFileName}`, 
+      filePath: pemFilePath 
     };
+    // return {
+    //   keytoolOutput,
+    //   opensslOutput,
+    //   message: `PEM file created successfully: ${pemFileName}`,
+    //   filePath: pemFilePath
+    // };
   } catch (error) {
     console.error('Error during conversion:', error.message);
     if (error.message.includes('Import command completed')) {
       return {
-        keytoolOutput: error.message,
-        opensslOutput: 'No certificates were found, but the process completed successfully.',
+        // keytoolOutput: error.message,
+        // opensslOutput: 'No certificates were found, but the process completed successfully.',
         message: `PEM file created successfully (with warnings): ${pemFileName}`,
+        filePath: pemFilePath
       };
     }
     throw error;
@@ -105,8 +111,26 @@ export default async function handler(req, res) {
     }
 
     try {
-      const result = await convertKeystoreToPem({ keystoreName, keystorePassword });
-      res.status(200).json({ results: result });
+      const results = await convertKeystoreToPem({ keystoreName, keystorePassword });
+
+      //console.log(`Here See: ${path.basename(result.filePath)}`);
+
+      await new Promise((resolve, reject) => {
+              const interval = setInterval(() => {
+                if (fs.existsSync(results.filePath)) {
+                  clearInterval(interval);
+                  resolve();
+                }
+              }, 500); // Check every 500ms
+            });
+
+      //res.status(200).json({ results: result });
+      return res.status(200).json({ 
+        success: true, 
+        results: results.message,
+        file: path.basename(results.filePath) 
+      });
+
     } catch (error) {
         let temp = "Kindly recheck the password and try again";
         //res.status(500).json({error: error.message });

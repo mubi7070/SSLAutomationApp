@@ -65,6 +65,7 @@ const convertKeystoreToP12 = async ({ keystoreName, keystorePassword }) => {
     return {
       keytoolOutput,
       message: `P12 file created successfully: ${p12FileName}`,
+      filePath: p12FilePath
     };
   } catch (error) {
     console.error('Error during conversion:', error.message);
@@ -72,6 +73,7 @@ const convertKeystoreToP12 = async ({ keystoreName, keystorePassword }) => {
       return {
         keytoolOutput: error.message,
         message: `P12 file created successfully (with warnings): ${p12FileName}`,
+        filePath: p12FilePath
       };
     }
     throw error;
@@ -87,8 +89,25 @@ export default async function handler(req, res) {
     }
 
     try {
-      const result = await convertKeystoreToP12({ keystoreName, keystorePassword });
-      res.status(200).json({ results: result });
+      const results = await convertKeystoreToP12({ keystoreName, keystorePassword });
+
+      await new Promise((resolve, reject) => {
+        const interval = setInterval(() => {
+          if (fs.existsSync(results.filePath)) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 500); // Check every 500ms
+      });
+
+      return res.status(200).json({ 
+        success: true, 
+        results: results.message,
+        file: path.basename(results.filePath) 
+      });
+
+
+      //res.status(200).json({ results: result });
     } catch (error) {
         let temp = "Kindly recheck the password and try again";
       //res.status(500).json({error: error.message });
