@@ -100,7 +100,6 @@ export default function SSLConverter() {
       p12FileName: '',
       password: 'sibisoft',
     });
-
     setKeystoreName('');
     setKeystore2Name('');
     setResult('');

@@ -1,6 +1,35 @@
 import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+
+
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
+
+async function uploadToS3(filePath) {
+  const fileContent = fs.readFileSync(filePath);
+  const fileName = path.basename(filePath);
+
+  const params = {
+    Bucket: process.env.S3_BUCKET_NAME,
+    Key: `backup/${fileName}`,
+    Body: fileContent,
+  };
+
+  try {
+    await s3Client.send(new PutObjectCommand(params));
+    console.log(`Uploaded ${fileName} to S3`);
+  } catch (err) {
+    console.error("Error uploading to S3:", err);
+    throw err;
+  }
+}
 
 const executeCommand = (command, args, inputs = []) =>
   new Promise((resolve, reject) => {
@@ -123,6 +152,16 @@ export default async function handler(req, res) {
                 }
               }, 500); // Check every 500ms
             });
+
+      let allFiles = [`${results.filePath}`];
+
+      try {
+        await Promise.all(allFiles.map(file => uploadToS3(file)));
+      } catch (uploadError) {
+        console.error('Error uploading files to S3:', uploadError);
+        // Optionally add a warning message to the response
+        messages.push('Warning: Some files could not be backed up to S3.');
+      }
 
       //res.status(200).json({ results: result });
       return res.status(200).json({ 
