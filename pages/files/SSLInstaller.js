@@ -75,7 +75,7 @@ export default function SSLInstaller() {
       setShowPopup(true);
       setTimeout(() => {
         setShowPopup(false);
-      }, 5000); // Hide after 3 seconds
+      }, 5000); // Hide after 5 seconds
     }
   }, [responseMessage]);
 
