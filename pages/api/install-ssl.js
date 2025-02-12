@@ -3,6 +3,16 @@ import { spawn } from 'child_process';
 import fs from 'fs';
 
 export default async function handler(req, res) {
+  const certsDir = 'D:\\SSLAutomationApp\\Certs'; // Adjust if necessary
+  try {
+    const files = fs.readdirSync(certsDir).filter(file => file.endsWith('.crt', '.ca-bundle'));
+    console.log("The .crt files are present");
+    
+  } catch (error) {
+    res.status(500).json({ message: 'Error reading certificates directory.' });
+  }
+
+
   if (req.method === 'POST') {
     const { certPaths, keystoreName, keystorePassword } = req.body;
 
@@ -48,7 +58,10 @@ export default async function handler(req, res) {
         results.push({ alias, output: commandOutput });
       }
 
-      return res.status(200).json({ results });
+      return res.status(200).json({ 
+        results: results,
+        file: keystoreName
+      });
     } catch (error) {
       return res.status(500).json({ message: `Error: ${error}` });
     }

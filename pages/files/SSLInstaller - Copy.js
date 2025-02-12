@@ -5,7 +5,6 @@ import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import styles from '/styles/Home.module.css';
 import { HelpCircle } from "lucide-react";
 import Tooltip from "/pages/components/Tooltip.js"; // Import Tooltip
-import DownloadFiles from "/pages/components/DownloadFiles.js";
 
 const baseCertDir = 'D:\\SSLAutomationApp\\Certs\\';
 
@@ -49,7 +48,7 @@ export default function SSLInstaller() {
   const [showPopup, setShowPopup] = useState(false);
   const [filteredcerts, setfilteredcerts] = useState([]);
   const [CertFiles, setCertFiles] = useState([]);
-  const [files, setFiles] = useState([]);
+
   useEffect(() => {
     fetch('/api/install-ssl')
       .then((response) => response.json())
@@ -80,9 +79,8 @@ export default function SSLInstaller() {
   }, [responseMessage]);
 
   const handleCertPathChange = (index, value) => {
-    const fullPath = baseCertDir + value;
     const updatedCertPaths = [...formData.certPaths];
-    updatedCertPaths[index].path = fullPath;
+    updatedCertPaths[index].path = value;
     setFormData({ ...formData, certPaths: updatedCertPaths });
   };
 
@@ -114,8 +112,6 @@ export default function SSLInstaller() {
       const result = await response.json();
       if (response.ok) {
         setResponseResults(result.results);
-        console.log(`The keystore return name is: ${result.file}`);
-        setFiles([`${result.file}`]);
         setResponseMessage('');
       } else {
         setResponseMessage(`${result.message}`);
@@ -160,10 +156,9 @@ export default function SSLInstaller() {
                 className={styles.styledselecttempmargin}
                 type="text"
                 placeholder="Type Here..."
-                value={cert.path.replace(baseCertDir, '')}
+                value={cert.path}
                 onChange={(e) => handleCertPathChange(index, e.target.value)}
                 required={cert.enabled}
-                list="certOptions" // Add datalist reference
                 style={{ width: '70%', padding: '7px', margin: '10px 0' }}
               />
               <label className={styles.customCheckbox}>
@@ -176,12 +171,6 @@ export default function SSLInstaller() {
               </label>
             </div>
           ))}
-          <datalist id="certOptions">
-            {CertFiles.map((file, index) => (
-              <option key={index} value={file} />
-            ))}
-          </datalist>
-
           <div style={{ marginBottom: '10px', paddingLeft: '15%' }}>
             <label className={styles.description}>Keystore File Name:</label> 
             
@@ -299,10 +288,6 @@ export default function SSLInstaller() {
               ))}
         </div>
       )}
-
-      <div>
-        <DownloadFiles filePaths={files} /> {/* Auto-downloads all files */}
-      </div>
       </div>
       
 
