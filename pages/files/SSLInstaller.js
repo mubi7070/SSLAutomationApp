@@ -290,12 +290,14 @@ export default function SSLInstaller() {
           </div>
         </form>
         {responseMessage && <p>{responseMessage}</p>}
-        {/* Pop-up Notification */}
+        {/* 
+        Pop-up Notification
         {showPopup && (
         <div className={styles.notification}>
             {responseMessage}
         </div>
       )}
+        */}
         {responseResults.length > 0 && (
           <div style={{ marginTop: '20px' }}>
             <h3 style={{ textAlign: 'left', margin: '20px auto', width: '60%' }}>Installation Results:</h3>
@@ -310,14 +312,19 @@ export default function SSLInstaller() {
         )}
         {/* Pop-up Notification */}
         {showPopup && (
-        <div className={styles.notification}>
-            {responseResults.map((result, index) => (
-                <li key={index}>
-                  <strong>Alias {result.alias}:</strong> {"Installed"}
-                </li>
-              ))}
-        </div>
-      )}
+          <div className={styles.notification}>
+            {responseMessage}
+            {responseResults.length > 0 && (
+              <ul>
+                {responseResults.map((result, index) => (
+                  <li key={index}>
+                    <strong>Alias {result.alias}:</strong> {"Installed"}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
 
       <div>
         <DownloadFiles filePaths={files} /> {/* Auto-downloads all files */}
