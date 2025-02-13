@@ -15,25 +15,25 @@ export default function SSLInstaller() {
     certPaths: [
       {
         alias: 'root',
-        label: 'Enter Path Here (alias: Root, i.e. AAACertificateServices):',
+        label: 'Certificate 1 (alias: Root, i.e. AAACertificateServices):',
         path: 'D:\\SSLAutomationApp\\Certs\\AAACertificateServices.crt',
         enabled: true,
       },
       {
         alias: 'cross',
-        label: 'Enter Path Here (alias: Cross, i.e. USERTrustRSAAAACA):',
+        label: 'Certificate 2 (alias: Cross, i.e. USERTrustRSAAAACA):',
         path: 'D:\\SSLAutomationApp\\Certs\\USERTrustRSAAAACA.crt',
         enabled: true,
       },
       {
         alias: 'intermed',
-        label: 'Enter Path Here (alias: Intermed, i.e. SectigoRSADomainValidationSecureServerCA):',
+        label: 'Certificate 3 (alias: Intermed, i.e. SectigoRSADomainValidationSecureServerCA):',
         path: 'D:\\SSLAutomationApp\\Certs\\SectigoRSADomainValidationSecureServerCA.crt',
         enabled: true,
       },
       {
         alias: 'godaddy',
-        label: 'Enter Path Here (alias: Godaddy, i.e. Main Certificate):',
+        label: 'Certificate 4 (alias: Godaddy, i.e. Main Certificate):',
         path: 'D:\\SSLAutomationApp\\Certs\\',
         enabled: true,
       },
@@ -231,7 +231,7 @@ export default function SSLInstaller() {
             </datalist> 
             <label className={styles.notedescription}> Note: </label>
             <label className={styles.notedescription} style={{ color: 'red' }}>
-              The keystore file should be present in the Files folder
+              The keystore file should be present in the Application
             </label>
           </div>
           <div style={{ marginBottom: '20px', paddingLeft: '15%' }}>

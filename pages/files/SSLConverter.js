@@ -6,6 +6,7 @@ import styles from '/styles/Home.module.css';
 import { HelpCircle } from "lucide-react";
 import Tooltip from "/pages/components/Tooltip.js"; // Import Tooltip
 import DownloadFiles from "/pages/components/DownloadFiles.js"; 
+import FileUpload from "/pages/components/FileUpload.js";
 
 export default function SSLConverter() {
   const [selectedOption, setSelectedOption] = useState('');
@@ -107,6 +108,16 @@ export default function SSLConverter() {
 
   const handleInputChange = (field, value) => {
     setFormData({ ...formData, [field]: value });
+  };
+
+  const refreshCertificates = () => {
+    fetch('/api/get-bundle')
+      .then((response) => response.json())
+      .then((data) => {
+        setFilteredCerts(data.files || []);
+        setCertFiles(data.files || []);
+      })
+      .catch((error) => console.error('Error refreshing certificates:', error));
   };
 
   const handleClear = () => {
@@ -279,7 +290,18 @@ export default function SSLConverter() {
             {selectedOption === 'P12Creation' && (
               <>
                 <h2 className={styles.headingnew}>P12 Creation (Apache → Tomcat)</h2>
+                
                 <div className={styles.inputGroup}>
+                  <div style={{ marginLeft: '-108px' }}>
+                    {/* Add FileUpload component here */}
+                    <FileUpload 
+                      styles={styles}
+                      setResponseMessage={setResult}
+                      setShowPopup={setShowPopup}
+                      refreshCertificates={refreshCertificates}
+                    />
+                  </div>
+                  
                   <label className={styles.description}>Certificate File Name:</label>
                   {/* Help Icon with Tooltip */}
                   <Tooltip text="Select the certificate file name (which you must copy and paste into the Certs directory).">

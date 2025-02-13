@@ -1,5 +1,9 @@
 import { useState } from 'react';
 import styles from '/styles/Home.module.css';
+import Tooltip from "/pages/components/Tooltip.js"; // Import Tooltip
+import Link from 'next/link';
+import { HelpCircle } from "lucide-react";
+
 
 const allowedExtensions = ['.crt', '.pem', '.ca-bundle', '.cer'];
 
@@ -47,12 +51,16 @@ export default function FileUpload({ styles, setResponseMessage, setShowPopup, r
     } finally {
       setIsUploading(false);
       e.target.value = ''; // Clear file input
+      setTimeout(() => {
+        setResponseMessage('');
+      }, 5000); // Hide after 5 seconds
     }
   };
 
   return (
     <div style={{ marginBottom: '20px', paddingLeft: '15%' }}>
       <label className={styles.customfileupload}>
+      <label className={styles.description}>Upload Certificate Files: </label>
         <input
           type="file"
           multiple
@@ -67,9 +75,18 @@ export default function FileUpload({ styles, setResponseMessage, setShowPopup, r
           onClick={() => document.querySelector('input[type="file"]').click()}
           disabled={isUploading}
         >
-          {isUploading ? 'Uploading...' : 'Upload Certificate Files'}
+          {isUploading ? 'Uploading...' : 'Upload'}
         </button>
       </label>
+        <Tooltip text="
+        You need to add the certificates files which you want to install. It only allows you to add the files with extension: .crt, .pem, .ca-bundle, .cer
+        ">
+            <Link href="/files/help" legacyBehavior>
+                <a className={styles.tooltip}>
+                <HelpCircle size={20} />
+                </a>
+            </Link>
+        </Tooltip>
     </div>
   );
 }
