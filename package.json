@@ -10,6 +10,7 @@
     "aws-sdk": "^2.1692.0",
     "axios": "^1.7.9",
     "file-saver": "^2.0.5",
+    "formidable": "^3.5.2",
     "google-spreadsheets": "^2.0.0",
     "googleapis": "^144.0.0",
     "lucide-react": "^0.474.0",

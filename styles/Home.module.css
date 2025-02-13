@@ -575,8 +575,37 @@ font-family: 'Times New Roman', Times, serif;
 
 
 
+.uploadBtn {
+  background-color: #4CAF50;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  margin: 10px 0;
+  transition: background-color 0.3s;
+}
 
+.uploadBtn:hover {
+  background-color: #357c38;
+}
 
+.uploadBtnDisabled {
+  background-color: #cccccc;
+  color: #666666;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: not-allowed;
+  font-size: 16px;
+  margin: 10px 0;
+}
+
+.customfileupload {
+  display: inline-block;
+  cursor: pointer;
+}
 
 
 

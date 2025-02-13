@@ -6,6 +6,7 @@ import styles from '/styles/Home.module.css';
 import { HelpCircle } from "lucide-react";
 import Tooltip from "/pages/components/Tooltip.js"; // Import Tooltip
 import DownloadFiles from "/pages/components/DownloadFiles.js";
+import FileUpload from "/pages/components/FileUpload.js";
 
 const baseCertDir = 'D:\\SSLAutomationApp\\Certs\\';
 
@@ -86,6 +87,16 @@ export default function SSLInstaller() {
     setFormData({ ...formData, certPaths: updatedCertPaths });
   };
 
+  const refreshCertificates = () => {
+    fetch('/api/get-bundle')
+      .then((response) => response.json())
+      .then((data) => {
+        setfilteredcerts(data.files || []);
+        setCertFiles(data.files || []);
+      })
+      .catch((error) => console.error('Error refreshing certificates:', error));
+  };
+
   const toggleCertEnabled = (index) => {
     const updatedCertPaths = [...formData.certPaths];
     updatedCertPaths[index].enabled = !updatedCertPaths[index].enabled;
@@ -145,6 +156,14 @@ export default function SSLInstaller() {
           SSL Installer
         </h1>
         <form onSubmit={handleSubmit} style={{ margin: '10px auto' }}>
+          {/* Add FileUpload component here */}
+          <FileUpload 
+            styles={styles}
+            setResponseMessage={setResponseMessage}
+            setShowPopup={setShowPopup}
+            refreshCertificates={refreshCertificates}
+          />
+
           {formData.certPaths.map((cert, index) => (
             <div key={cert.alias} style={{ marginBottom: '10px', paddingLeft: '15%' }}>
               <label className={styles.description}>{cert.label}</label>
