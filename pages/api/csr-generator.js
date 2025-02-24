@@ -124,6 +124,9 @@ const generateApacheCSR = (domain, password) =>
   new Promise((resolve, reject) => {
     const filesDir = ensureFilesDirectory();
     const year = new Date().getFullYear();
+    
+    const configPath = path.join('/etc', 'ssl', 'openssl.cnf'); // Default Linux OpenSSL config
+    
     let keyFile = "";
     let csrFile = "";
 
@@ -138,7 +141,7 @@ const generateApacheCSR = (domain, password) =>
       csrFile = path.join(filesDir, `${domain}${year}.csr`);
     }
 
-    const configPath = 'C:/Apache24/conf/openssl.cnf';
+    // const configPath = 'C:/Apache24/conf/openssl.cnf';
 
     const openssl = spawn('openssl', [
       'req',
