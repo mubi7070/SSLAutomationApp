@@ -8,7 +8,7 @@ import Tooltip from "/pages/components/Tooltip.js"; // Import Tooltip
 import DownloadFiles from "/pages/components/DownloadFiles.js";
 import FileUpload from "/pages/components/FileUpload.js";
 
-const baseCertDir = 'D:\\SSLAutomationApp\\Certs\\';
+const baseCertDir = 'Certs/';
 
 export default function SSLInstaller() {
   const [formData, setFormData] = useState({
@@ -16,25 +16,25 @@ export default function SSLInstaller() {
       {
         alias: 'root',
         label: 'Certificate 1 (alias: Root, i.e. AAACertificateServices):',
-        path: 'D:\\SSLAutomationApp\\Certs\\AAACertificateServices.crt',
+        path: 'AAACertificateServices.crt',
         enabled: true,
       },
       {
         alias: 'cross',
         label: 'Certificate 2 (alias: Cross, i.e. USERTrustRSAAAACA):',
-        path: 'D:\\SSLAutomationApp\\Certs\\USERTrustRSAAAACA.crt',
+        path: 'USERTrustRSAAAACA.crt',
         enabled: true,
       },
       {
         alias: 'intermed',
         label: 'Certificate 3 (alias: Intermed, i.e. SectigoRSADomainValidationSecureServerCA):',
-        path: 'D:\\SSLAutomationApp\\Certs\\SectigoRSADomainValidationSecureServerCA.crt',
+        path: 'SectigoRSADomainValidationSecureServerCA.crt',
         enabled: true,
       },
       {
         alias: 'godaddy',
         label: 'Certificate 4 (alias: Godaddy, i.e. Main Certificate):',
-        path: 'D:\\SSLAutomationApp\\Certs\\',
+        path: '',
         enabled: true,
       },
     ],
@@ -80,10 +80,10 @@ export default function SSLInstaller() {
     }
   }, [responseMessage]);
 
+
   const handleCertPathChange = (index, value) => {
-    const fullPath = baseCertDir + value;
     const updatedCertPaths = [...formData.certPaths];
-    updatedCertPaths[index].path = fullPath;
+    updatedCertPaths[index].path = value;
     setFormData({ ...formData, certPaths: updatedCertPaths });
   };
 
@@ -179,7 +179,7 @@ export default function SSLInstaller() {
                 className={styles.styledselecttempmargin}
                 type="text"
                 placeholder="Type Here..."
-                value={cert.path.replace(baseCertDir, '')}
+                value={cert.path}
                 onChange={(e) => handleCertPathChange(index, e.target.value)}
                 required={cert.enabled}
                 list="certOptions" // Add datalist reference

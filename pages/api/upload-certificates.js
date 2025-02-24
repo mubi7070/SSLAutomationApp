@@ -2,7 +2,8 @@ import fs from 'fs';
 import path from 'path';
 import { IncomingForm } from 'formidable';
 
-const certsDir = 'D:\\SSLAutomationApp\\Certs';
+// Use environment variable or default to project-relative path
+const certsDir = process.env.CERTS_DIR || path.join(process.cwd(), 'Certs');
 
 export const config = {
   api: {
