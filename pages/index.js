@@ -1,140 +1,91 @@
-import Head from 'next/head';
+import { useState } from 'react';
+import { useRouter } from 'next/router';
 import styles from '../styles/Home.module.css';
 import Link from 'next/link';
+import Head from 'next/head';
 
-export default function Home() {
+const users = [
+  { username: 'devops', password: 'sibisoft2025' },
+  { username: 'admin', password: 'PasswordTemp5' },
+  { username: 'nssupport', password: 'nssupport2025' },
+];
+
+export default function Login() {
+  const router = useRouter();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    const user = users.find(u => u.username === username && u.password === password);
+    if (user) {
+      localStorage.setItem('authenticated', 'true');
+      router.push('/home');
+    } else {
+      setError('Invalid username or password');
+    }
+  };
+
   return (
     <div className={styles.container}>
       <Head>
-        <title>Northstar SSL Automation Tool</title>
+        <title>Northstar SSL Automation Tool - Login</title>
         <link rel="icon" href="/ssl2white.svg" />
       </Head>
 
       <main>
-      <h1 className={styles.titlenew}>
-        <img src="/ssl2.svg" alt="SSL Icon" className={styles.icon} />
-           Northstar SSL Automation Tool
+        <h1 className={styles.titlenew}>
+          <img src="/ssl2.svg" alt="SSL Icon" className={styles.icon} />
+          Northstar SSL Automation Tool
         </h1>
 
         <div className={styles.grid}>
-          <Link href="/files/CSRGenerator" className={styles.card} >
-            <h3>CSR Generator &rarr;</h3>
-            <p>Generate CSR & Keystore by adding the domain names.</p>
-          </Link>
+          <div className={styles.card} style={{ padding: '2rem', maxWidth: '400px' }}>
+            <form onSubmit={handleLogin}>
+              <div style={{ marginBottom: '1rem' }}>
+                <label htmlFor="username" style={{ display: 'block', marginBottom: '0.5rem' }}>Username</label>
+                <input
+                  type="text"
+                  id="username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className={styles.styledinput}
+                  required
+                  style={{ width: '100%' }}
+                />
+              </div>
 
-          <Link href="/files/SSLInstaller" className={styles.card} >
-            <h3>SSL Installer &rarr;</h3>
-            <p>Just update the certificates path and get the installed keystore.</p>
-          </Link>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label htmlFor="password" style={{ display: 'block', marginBottom: '0.5rem' }}>Password</label>
+                <input
+                  type="password"
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className={styles.styledinput}
+                  required
+                  style={{ width: '100%' }}
+                />
+              </div>
 
-          <Link href="/files/SSLConverter" className={styles.card} >
-            <h3>SSL Converter &rarr;</h3>
-            <p>Convert the file formats by just updating the paths and file names.</p>
-          </Link>
+              {error && <div style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
 
-          <Link href="/files/EmailTemplates" className={styles.card} >
-            <h3>Email Templates &rarr;</h3>
-            <p>The email templates for the SSL renewal emails.</p>
-          </Link>
-          
-          <Link href="https://docs.google.com/spreadsheets/d/1xOoiO96sFfYB8uFnOgn3xom-wzL7XntPiEJkRk5TOC4/edit?gid=2074345631#gid=2074345631" className={styles.card} target="_blank" rel="noopener noreferrer">
-            <h3>SSL Renewal Sheet &rarr;</h3>
-            <p>Go to the google sheet to check the yearly renewals.</p>
-          </Link>
-
-          <Link href="https://www.thesslstore.com/client/orders.aspx?status=-1&ro=true" className={styles.card} target="_blank" rel="noopener noreferrer">
-            <h3>The SSL Store &rarr;</h3>
-            <p>Go to the website and purchase the required SSL certificates.</p>
-          </Link>
-
-          <Link href="https://www.sslshopper.com/certificate-key-matcher.html" className={styles.card} target="_blank" rel="noopener noreferrer">
-              <h3>CSR Certificate Matcher &rarr;</h3>
-              <p>Go to the website and check if the CSR and the certificate matches.</p>
-          </Link>
-
-          <Link href="https://www.ssllabs.com/ssltest/" className={styles.card} target="_blank" rel="noopener noreferrer">
-              <h3>SSL Labs &rarr;</h3>
-              <p>Go to the website and test the SSL and ciphers health.</p>
-          </Link>
-             
+              <button
+                type="submit"
+                className={styles.btndescription}
+                style={{ width: '100%', fontSize: '1.1rem' }}
+              >
+                Login
+              </button>
+            </form>
+          </div>
         </div>
       </main>
 
       <footer className={styles.footer}>
-        <div className={styles.footerRow}>
-          <a
-            href="https://www.globalnorthstar.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Powered by{' '} Northstar Technologies
-            <img src="/northstar.jpg" alt="Northstar" className={styles.logonew} />
-          </a>
-          
-        </div>
-        <div className={styles.footerRow}>
-        <a
-            href="https://www.globalnorthstar.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            |
-          </a>
-        </div>
-        <div className={styles.footerRow}>
-          <a
-            href="https://github.com/mubi7070/SSLAutomationApp/tree/master"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By: Mubashir Ahmed (DevOps)
-            <img src="/dev.svg" alt="DevOps" className={styles.logonew} />
-          </a>
-        </div>
+        {/* Keep your existing footer content */}
       </footer>
-
-      <style jsx>{`
-        main {
-          padding: 20px;
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          background-color:rgb(236, 236, 236);
-        }
-        
-        code {
-          background: #fafafa;
-          border-radius: 5px;
-          padding: 0.75rem;
-          font-size: 1.1rem;
-
-        }
-      `}</style>
-
-      <style jsx global>{`
-        html,
-        body {
-          padding: 0;
-          margin: 0;
-          font-family:
-            -apple-system,
-            BlinkMacSystemFont,
-            Segoe UI,
-            Roboto,
-            Oxygen,
-            Ubuntu,
-            Cantarell,
-            Fira Sans,
-            Droid Sans,
-            Helvetica Neue,
-            sans-serif;
-        }
-        * {
-          box-sizing: border-box;
-        }
-      `}</style>
     </div>
   );
 }

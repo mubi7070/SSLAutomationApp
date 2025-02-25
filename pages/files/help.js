@@ -139,7 +139,7 @@ const HelpPage = () => {
       </div>
 
       <div className={styles.Installerhomebtn}>
-        <button><Link href="/">Back to Home</Link></button>
+        <button><Link href="/home">Back to Home</Link></button>
       </div>
 
       <footer className={styles.footer}>

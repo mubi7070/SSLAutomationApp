@@ -608,7 +608,32 @@ font-family: 'Times New Roman', Times, serif;
 }
 
 
+/* Add these to your existing CSS */
+.loginContainer {
+  max-width: 400px;
+  margin: 0 auto;
+  padding: 2rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
 
+.loginForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.formLabel {
+  font-size: 1rem;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
 
 
 

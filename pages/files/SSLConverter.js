@@ -689,7 +689,7 @@ export default function SSLConverter() {
         <br />
         <div className={styles.Installerhomebtn} style={{ marginTop: '20px' }}>
           <button>
-            <Link href="/">Back to Home</Link>
+            <Link href="/home">Back to Home</Link>
           </button>
         </div>
       </div>

@@ -294,7 +294,7 @@ export default function SSLInstaller() {
 
       <div className={styles.Installerhomebtn}>
         <button>
-          <Link href="/">Back to Home</Link>
+          <Link href="/home">Back to Home</Link>
         </button>
       </div>
       </main>
