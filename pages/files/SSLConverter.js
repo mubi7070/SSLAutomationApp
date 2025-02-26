@@ -7,6 +7,7 @@ import { HelpCircle } from "lucide-react";
 import Tooltip from "/pages/components/Tooltip.js"; // Import Tooltip
 import DownloadFiles from "/pages/components/DownloadFiles.js"; 
 import FileUpload from "/pages/components/FileUpload.js";
+import Layout from '/pages/components/Layout.js';
 
 export default function SSLConverter() {
   const [selectedOption, setSelectedOption] = useState('');
@@ -261,6 +262,7 @@ export default function SSLConverter() {
         <title>SSL Converter</title>
         <link rel="icon" href="/ssl2white.svg" />
       </Head>
+      <Layout>
       <div style={{ padding: '20px' }}>
         <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', textAlign: 'center' }}>
           SSL Converter
@@ -693,6 +695,7 @@ export default function SSLConverter() {
           </button>
         </div>
       </div>
+      </Layout>
       </main>
 
       <footer className={styles.footer}>

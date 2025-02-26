@@ -6,6 +6,7 @@ import { HelpCircle } from "lucide-react";
 import Tooltip from "/pages/components/Tooltip.js"; // Import Tooltip
 import styles from "/styles/Home.module.css";
 import DownloadFiles from "/pages/components/DownloadFiles.js"; 
+import Layout from '/pages/components/Layout.js';
 
 
 export default function Home() {
@@ -85,6 +86,7 @@ export default function Home() {
         <title>CSR Generator</title>
         <link rel="icon" href="/ssl2white.svg" />
       </Head>
+      <Layout>
       <div style={{ padding: '20px' }}>
         <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', display: 'flex', justifyContent: 'center'}}>CSR and Keystore Generator</h1>
         <form onSubmit={handleSubmit}>
@@ -227,6 +229,7 @@ export default function Home() {
           </a>
         </div>
       </footer>
+      </Layout>
       </main>
     </>
   );

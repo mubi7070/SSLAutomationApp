@@ -4,6 +4,7 @@ import Link from 'next/link';
 import styles from '/styles/Home.module.css';
 import { HelpCircle } from "lucide-react";
 import Tooltip from "/pages/components/Tooltip.js"; // Import Tooltip
+import Layout from '/pages/components/Layout.js';
 
 const defaultClubName = "";
 const defaultExpiryDate = "";
@@ -296,6 +297,7 @@ Thank you.`
         <title>Email Templates</title>
         <link rel="icon" href="/ssl2white.svg" />
       </Head>
+      <Layout>
       <div style={{ padding: '20px' }}>
         <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', textAlign: 'center' }}>
         Email Templates
@@ -1223,6 +1225,7 @@ Thank you.`
           </button>
         </div>
       </div>
+      </Layout>
       </main>
 
       <footer className={styles.footer}>

@@ -7,6 +7,7 @@ import { HelpCircle } from "lucide-react";
 import Tooltip from "/pages/components/Tooltip.js"; // Import Tooltip
 import DownloadFiles from "/pages/components/DownloadFiles.js";
 import FileUpload from "/pages/components/FileUpload.js";
+import Layout from '/pages/components/Layout.js';
 
 const baseCertDir = 'Certs/';
 
@@ -151,6 +152,7 @@ export default function SSLInstaller() {
         <title>SSL Installer</title>
         <link rel="icon" href="/ssl2white.svg" />
       </Head>
+      <Layout>
       <div style={{ padding: '20px' }}>
         <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', display: 'flex', justifyContent: 'center' }}>
           SSL Installer
@@ -338,6 +340,7 @@ export default function SSLInstaller() {
           <Link href="/home">Back to Home</Link>
         </button>
       </div>
+      </Layout>
       </main>
 
       <footer className={styles.footer}>
