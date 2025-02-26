@@ -663,10 +663,55 @@ font-family: 'Times New Roman', Times, serif;
 }
 
 .logoText {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: rgb(16, 31, 118);
+  overflow: hidden;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+  border-right: 2px solid transparent;
   font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,sans-serif;
+  color: rgb(16, 31, 118);
+  font-weight: 600 !important;
+  font-size: large;
+}
+
+.cursor {
+  animation: blinkCursor 0.75s step-end infinite;
+  border-right: 2px solid rgba(16, 31, 118, 0.75);
+}
+
+.activeNavLink {
+  color: rgb(16, 31, 118) !important;
+  position: relative;
+  font-weight: 600 !important;
+}
+
+.activeNavLink::after {
+  content: '';
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: rgb(16, 31, 118);
+  animation: underlineSlide 0.3s ease-out;
+}
+
+@keyframes underlineSlide {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* Adjust logo container for animation */
+.logoContainer {
+  min-width: 380px; /* Prevent layout shift during animation */
+}
+
+@media (max-width: 768px) {
+  .logoContainer {
+    min-width: auto;
+  }
+  .logoText {
+    font-size: 1.1rem !important;
+  }
 }
 
 .nav {
@@ -682,6 +727,7 @@ font-family: 'Times New Roman', Times, serif;
   padding: 0.5rem 1rem;
   border-radius: 4px;
   transition: all 0.3s ease;
+  font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,sans-serif;
 }
 
 .navLink:hover {
@@ -716,6 +762,17 @@ font-family: 'Times New Roman', Times, serif;
   .mainWithHeader {
     margin-top: 120px; /* Increased for mobile header height */
   }
+}
+
+
+@keyframes typing {
+  from { width: 0 }
+  to { width: 100% }
+}
+
+@keyframes blinkCursor {
+  from { border-right-color: rgba(16, 31, 118, 0.75); }
+  to { border-right-color: transparent; }
 }
 
 
