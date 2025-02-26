@@ -72,7 +72,6 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-
   };
 
   const handleClear = () => {
