@@ -16,6 +16,7 @@ export default function Header() {
     { name: 'SSL Installer', path: '/files/SSLInstaller' },
     { name: 'SSL Converter', path: '/files/SSLConverter' },
     { name: 'Email Templates', path: '/files/EmailTemplates' },
+    { name: 'Help', path: '/files/help' },
   ];
 
   useEffect(() => {

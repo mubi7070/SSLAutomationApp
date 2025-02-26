@@ -2,6 +2,7 @@ import React from 'react';
 import Head from "next/head";
 import Link from "next/link";
 import styles from "/styles/Home.module.css";
+import Layout from '/pages/components/Layout.js';
 
 const HelpPage = () => {
   return (
@@ -10,7 +11,7 @@ const HelpPage = () => {
         <title>Help</title>
         <link rel="icon" href="/ssl2white.svg" />
       </Head>
-      
+      <Layout>
     <div>
     <div className={styles.helpcontainer}>
       <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', display: 'flex', justifyContent: 'center'}}>SSL Automation Tool - Help / Documentation</h1>
@@ -141,6 +142,7 @@ const HelpPage = () => {
       <div className={styles.Installerhomebtn}>
         <button><Link href="/home">Back to Home</Link></button>
       </div>
+      
 
       <footer className={styles.footer}>
         <div className={styles.footerRow}>
@@ -175,6 +177,7 @@ const HelpPage = () => {
         </div>
       </footer>
     </div>
+    </Layout>
     </main>
   );
 };
