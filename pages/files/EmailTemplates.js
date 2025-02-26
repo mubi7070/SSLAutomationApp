@@ -278,6 +278,36 @@ Thank you.`
       }
       
     }
+    else if (selectedOption === 'For Cloudflare On BackOffice') {
+        updatedTemplate = {
+            to: `${toEmails}`,
+            cc: `${ccEmails}`,
+          heading: "For Cloudflare On BackOffice",
+          subject: `Cloudflare Implementation - ${clubName} - ${formattedExpiryDate}`,
+          content: 
+`Hello Team,
+      
+We hope this email finds you well! We want to move the club's BackOffice App to our Cloudflare for better security and performance. We need to do this activity as soon as possible.
+      
+Club name: ${clubName}
+Expiry Date: ${formattedExpiryDate}
+      
+Domain: ${Domain}
+      
+Procedure,
+You have to schedule a date for this activity with the club and update us accordingly so that we can make the configurations and the club will make changes on the specified date and time.
+      
+Steps,
+- Kindly delete the current entry of A record of "${Domain}" from DNS
+- Then, kindly have the domain: "${Domain}" created as A record and mapped to our Cloudflare IP: 104.24.9.63
+      
+Note: Kindly ask the club to avoid making uninformed changes as it can cause irrelevant downtime.
+      
+Thank you.`
+        };
+    
+      }
+
     else{
       console.log('No Option Selected');
     }
@@ -315,6 +345,7 @@ Thank you.`
             <option value="For SSL Managed By Club">For SSL Managed By Club</option>
             <option value="For SAN SSL Managed By Club">For SAN SSL Managed By Club</option>
             <option value="For Print Server SSL Managed By NS">For Print Server SSL Managed By NS</option>
+            <option value="For Cloudflare On BackOffice">For Cloudflare On BackOffice</option>
           </select>
           {/* Help Icon with Tooltip */}
             <Tooltip text="Choose the necessary template and complete all the fields. Along with creating the email template, it also adds a record to the Google Sheet.">
@@ -1167,6 +1198,188 @@ Thank you.`
 
         </div>
             
+        </div>
+            </>
+            )}
+            {selectedOption === 'For Cloudflare On BackOffice' && (
+              <>
+              <div style={{ padding: "20px", fontFamily: "Times New Roman" }}>
+      
+          {/* Input Fields */}
+          <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
+            <div>
+                <label className={styles.description}>
+                Club Name:
+                <input
+                    className={styles.box1}
+                    type="text"
+                    value={clubName}
+                    onChange={(e) => setClubName(e.target.value)}
+                    placeholder="Enter Club Name..."
+                    required
+                />
+                </label>
+            </div>
+            <div style={{ marginLeft: "70px" }} >
+                <label className={styles.description}>
+                Expiry Date:
+                <input
+                className={styles.box1}
+                type="date"
+                value={expiryDate}
+
+                onChange={(e) => {
+                    const rawDate = e.target.value;
+                    setExpiryDate(rawDate);
+                    setFormattedExpiryDate(
+                    new Date(rawDate).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                    })
+                    );
+                }}
+                required
+            />
+                </label>
+            </div>
+            </div>
+      
+            {/* DNS & Details Input Fields */}
+            <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
+            
+            <div>
+                <label className={styles.description}>
+                Domain:  
+                <input
+                    className={styles.box1}
+                    type="text"
+                    value={Domain}
+                    onChange={(e) => setDomain(e.target.value)}
+                    placeholder="Enter Domain Name..."
+                    required
+                />
+                </label>
+            </div>
+            </div>
+
+            
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: "20px" }}>
+        <button
+            className={styles.btndescription}
+            style={{ marginRight: "10px" }}
+        >
+            Generate
+        </button>
+        <button
+            type="button"
+            onClick={handleClear}
+            className={styles.clearbtn}
+        >
+            Clear
+        </button>
+        </div>
+
+        <div>
+        {generatedTemplate && (
+    <div className={styles.mainbox}
+    >
+        <h2 style={{ color: 'rgb(16, 31, 118)'}}>{generatedTemplate.heading}</h2>
+        
+        {/* Email to*/}
+        <div className={styles.contentbox2}
+        >
+            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email to:</h3>
+            <pre className={styles.contentboxinside2}
+            >
+                <b>To: </b>{generatedTemplate.to}
+                <br />
+            <b>cc: </b> {generatedTemplate.cc}
+            </pre>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button
+                    onClick={() => handleCopy(generatedTemplate.to + "," + generatedTemplate.cc, "to")}
+                    className={styles.handlecopy}
+                    style={{
+                     color: copied === `to` ? "green" : "black",
+                    }}
+                >
+                    <img
+                        src="/copy-icon.svg"
+                        alt="Copy"
+                        style={{ width: "20px", height: "20px" }}
+                    />
+                    {copied === `to` ? "Copied!" : "Copy"}
+                </button>
+            </div>
+        </div>
+
+        {/* Subject Box */}
+        <div className={styles.subjectbox}
+        >
+            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email Subject</h3>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <p style={{ margin: 0, fontFamily:'Times New Roman' }}>{generatedTemplate.subject}</p>
+                <button
+                    onClick={() => handleCopy(generatedTemplate.subject, "subject")}
+                    className={styles.handlecopy}
+                    style={{
+                     color: copied === `subject` ? "green" : "black",
+                    }}
+                >
+                    <img
+                        src="/copy-icon.svg"
+                        alt="Copy"
+                        style={{ width: "20px", height: "20px" }}
+                    />
+                    {copied === `subject` ? "Copied!" : "Copy"}
+                </button>
+            </div>
+        </div>
+
+        {/* Content Box */}
+        <div className={styles.contentbox}
+        >
+            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email Content</h3>
+            <pre className={styles.contentboxinside}
+            >
+                {generatedTemplate.content}
+            </pre>
+            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                <button
+                    onClick={() => handleCopy(generatedTemplate.content, "content")}
+                    className={styles.handlecopy}
+                    style={{
+                     color: copied === `content` ? "green" : "black",
+                    }}
+                >
+                    <img
+                        src="/copy-icon.svg"
+                        alt="Copy"
+                        style={{ width: "20px", height: "20px" }}
+                    />
+                    {copied === `content` ? "Copied!" : "Copy"}
+                </button>
+            </div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <button
+            className={styles.btndescription}
+            style={{ marginRight: "10px", marginTop: "10px" }}
+            onClick={handleSendClick}
+        >
+            Send Email
+        </button>
+        
+        </div>
+        
+
+    </div>
+)}
+
+        </div>
+            
+          
         </div>
             </>
             )}
