@@ -45,12 +45,12 @@ export default function Home() {
 
           <Link href="/files/EmailTemplates" className={styles.card} >
             <h3>Email Templates &rarr;</h3>
-            <p>The email templates for the SSL renewal emails.</p>
+            <p>The email templates for the SSL renewal and cloudflare implementation.</p>
           </Link>
           
           <Link href="https://docs.google.com/spreadsheets/d/1xOoiO96sFfYB8uFnOgn3xom-wzL7XntPiEJkRk5TOC4/edit?gid=2074345631#gid=2074345631" className={styles.card} target="_blank" rel="noopener noreferrer">
             <h3>SSL Renewal Sheet &rarr;</h3>
-            <p>Go to the google sheet to check the yearly renewals.</p>
+            <p>Go to the google sheet to check the yearly ssl renewals.</p>
           </Link>
 
           <Link href="https://www.thesslstore.com/client/orders.aspx?status=-1&ro=true" className={styles.card} target="_blank" rel="noopener noreferrer">
