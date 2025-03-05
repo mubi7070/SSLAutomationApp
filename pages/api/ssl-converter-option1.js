@@ -103,7 +103,7 @@ export default async function handler(req, res) {
             } catch (uploadError) {
               console.error('Error uploading files to S3:', uploadError);
               // Optionally add a warning message to the response
-              results.message.push('Warning: Some files could not be backed up to S3.');
+              // results.message.push('Warning: Some files could not be backed up to S3.');
             }
             
             return res.status(200).json({ 
