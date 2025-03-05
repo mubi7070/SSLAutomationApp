@@ -40,21 +40,61 @@ async function uploadToS3(filePath) {
   }
 }
 
+const escapeRegExp = (string) => {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+};
+
+const renameExistingFiles = (filesDir, baseName, extensions) => {
+  const files = fs.readdirSync(filesDir);
+  let maxVersion = 0;
+
+  const regexPattern = new RegExp(
+    `^${escapeRegExp(baseName)}-old-(\\d+)\\.(${extensions.join('|')})$`
+  );
+
+  files.forEach(file => {
+    const match = file.match(regexPattern);
+    if (match) {
+      const version = parseInt(match[1], 10);
+      if (version > maxVersion) {
+        maxVersion = version;
+      }
+    }
+  });
+
+  const nextVersion = maxVersion + 1;
+
+  extensions.forEach(ext => {
+    const oldPath = path.join(filesDir, `${baseName}.${ext}`);
+    if (fs.existsSync(oldPath)) {
+      const newPath = path.join(filesDir, `${baseName}-old-${nextVersion}.${ext}`);
+      fs.renameSync(oldPath, newPath);
+    }
+  });
+};
+
 const generateTomcatCSR = (domain, password) => 
   new Promise((resolve, reject) => {
     const filesDir = ensureFilesDirectory();
     const year = new Date().getFullYear();
     let keystoreFile = "";
     let csrFile = "";
+    let baseName = "";
 
     if (domain.startsWith('*.')) {
       let tempdomain = domain.substring(2);  // It willl remove "*." from the start
+      baseName = `star.${tempdomain}${year}`;
       keystoreFile = path.join(filesDir, `star.${tempdomain}${year}.keystore`);
       csrFile = path.join(filesDir, `star.${tempdomain}${year}.csr`);
     }
     else {
+      baseName = `${domain}${year}`;
       keystoreFile = path.join(filesDir, `${domain}${year}.keystore`);
       csrFile = path.join(filesDir, `${domain}${year}.csr`);
+    }
+
+    if (fs.existsSync(keystoreFile) || fs.existsSync(csrFile)) {
+      renameExistingFiles(filesDir, baseName, ['keystore', 'csr']);
     }
 
     console.log(`The domain is: ${domain}`);
@@ -126,16 +166,22 @@ const generateApacheCSR = (domain, password) =>
     const year = new Date().getFullYear();
     let keyFile = "";
     let csrFile = "";
-
+    let baseName = "";
 
     if (domain.startsWith('*.')) {
       let tempdomain = domain.substring(2);  // It willl remove "*." from the start
+      baseName = `star.${tempdomain}${year}`;
       keyFile = path.join(filesDir, `star.${tempdomain}${year}.key`);
       csrFile = path.join(filesDir, `star.${tempdomain}${year}.csr`);
     }
     else {
+      baseName = `${domain}${year}`;
       keyFile = path.join(filesDir, `${domain}${year}.key`);
       csrFile = path.join(filesDir, `${domain}${year}.csr`);
+    }
+    
+    if (fs.existsSync(keyFile) || fs.existsSync(csrFile)) {
+      renameExistingFiles(filesDir, baseName, ['key', 'csr']);
     }
 
     const configPath =
