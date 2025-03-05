@@ -184,10 +184,14 @@ const generateApacheCSR = (domain, password) =>
       renameExistingFiles(filesDir, baseName, ['key', 'csr']);
     }
 
-    const configPath =
-      os.platform() === "win32"
+    let configPath = "";
+
+    if (typeof window === "undefined") {
+      const os = require("os"); // Import os only on the server
+      configPath = os.platform() === "win32"
         ? "C:/Apache24/conf/openssl.cnf"
         : "/etc/ssl/openssl.cnf";
+    }
 
     const openssl = spawn('openssl', [
       'req',
