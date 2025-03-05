@@ -1,0 +1,12 @@
+services:
+  sslautomation:
+    build:
+      context: .
+    container_name: sslautomation
+    networks:
+      - SSLAutomationNetwork
+    ports:
+      - "3000:3000"
+
+networks:
+  SSLAutomationNetwork:
