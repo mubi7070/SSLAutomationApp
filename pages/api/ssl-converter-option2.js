@@ -12,6 +12,13 @@ const s3Client = new S3Client({
   },
 });
 
+const deleteExistingFile = (filePath) => {
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+    console.log(`Deleted existing file: ${path.basename(filePath)}`);
+  }
+};
+
 async function uploadToS3(filePath) {
   const fileContent = fs.readFileSync(filePath);
   const fileName = path.basename(filePath);
@@ -63,6 +70,7 @@ const convertKeystoreToPem = async ({ keystoreName, keystorePassword }) => {
   const filesDir = path.join(process.cwd(), 'Files');
   const keystorePath = path.join(filesDir, keystoreName);
 
+
   if (!fs.existsSync(keystorePath)) {
     throw new Error('Keystore file does not exist.');
   }
@@ -72,6 +80,9 @@ const convertKeystoreToPem = async ({ keystoreName, keystorePassword }) => {
   const pemFileName = `${baseFileName}.pem`;
   const p12FilePath = path.join(filesDir, p12FileName);
   const pemFilePath = path.join(filesDir, pemFileName);
+
+  deleteExistingFile(p12FilePath);
+  deleteExistingFile(pemFilePath);
 
   const keytoolArgs = [
     '-importkeystore',

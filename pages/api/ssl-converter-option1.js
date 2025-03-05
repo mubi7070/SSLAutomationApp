@@ -31,6 +31,13 @@ async function uploadToS3(filePath) {
   }
 }
 
+const deleteExistingFile = (filePath) => {
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+    console.log(`Deleted existing file: ${path.basename(filePath)}`);
+  }
+};
+
 const createP12 = ({ certFileName, keyFileName, bundleFileName, p12FileName, password }) =>
   new Promise((resolve, reject) => {
     const certFilePath = path.join(process.cwd(), 'Certs', certFileName);
@@ -38,9 +45,12 @@ const createP12 = ({ certFileName, keyFileName, bundleFileName, p12FileName, pas
     const bundleFilePath = path.join(process.cwd(), 'Certs', bundleFileName);
     const p12FilePath = path.join(process.cwd(), 'Files', `${p12FileName}.p12`);
 
+
     if (!fs.existsSync(certFilePath) || !fs.existsSync(keyFilePath) || !fs.existsSync(bundleFilePath)) {
       return reject(new Error('One or more required files are missing.'));
     }
+
+    deleteExistingFile(p12FilePath);
 
     const openssl = spawn('openssl', [
       'pkcs12',
@@ -103,7 +113,7 @@ export default async function handler(req, res) {
             } catch (uploadError) {
               console.error('Error uploading files to S3:', uploadError);
               // Optionally add a warning message to the response
-              messages.push('Warning: Some files could not be backed up to S3.');
+              // results.message.push('Warning: Some files could not be backed up to S3.');
             }
             
             return res.status(200).json({ 

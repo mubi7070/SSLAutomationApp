@@ -13,6 +13,13 @@ const s3Client = new S3Client({
   },
 });
 
+const deleteExistingFile = (filePath) => {
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+    console.log(`Deleted existing file: ${path.basename(filePath)}`);
+  }
+};
+
 async function uploadToS3(filePath) {
   const fileContent = fs.readFileSync(filePath);
   const fileName = path.basename(filePath);
@@ -31,6 +38,7 @@ async function uploadToS3(filePath) {
     throw err;
   }
 }
+
 
 
 const executeCommand = (command, args, inputs = []) =>
@@ -72,6 +80,8 @@ const convertKeystoreToP12 = async ({ keystoreName, keystorePassword }) => {
   const baseFileName = keystoreName.replace('.keystore', '');
   const p12FileName = `${baseFileName}.p12`;
   const p12FilePath = path.join(filesDir, p12FileName);
+  
+  deleteExistingFile(p12FilePath);
 
   const keytoolArgs = [
     '-importkeystore',

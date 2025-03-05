@@ -32,6 +32,39 @@ export default function Home() {
     setShowPassword(!showPassword);
   };
 
+  const escapeRegExp = (string) => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  };
+  
+  const renameExistingFiles = (filesDir, baseName, extensions) => {
+    const files = fs.readdirSync(filesDir);
+    let maxVersion = 0;
+  
+    const regexPattern = new RegExp(
+      `^${escapeRegExp(baseName)}-old-(\\d+)\\.(${extensions.join('|')})$`
+    );
+  
+    files.forEach(file => {
+      const match = file.match(regexPattern);
+      if (match) {
+        const version = parseInt(match[1], 10);
+        if (version > maxVersion) {
+          maxVersion = version;
+        }
+      }
+    });
+  
+    const nextVersion = maxVersion + 1;
+  
+    extensions.forEach(ext => {
+      const oldPath = path.join(filesDir, `${baseName}.${ext}`);
+      if (fs.existsSync(oldPath)) {
+        const newPath = path.join(filesDir, `${baseName}-old-${nextVersion}.${ext}`);
+        fs.renameSync(oldPath, newPath);
+      }
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
