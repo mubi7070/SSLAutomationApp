@@ -1,6 +1,6 @@
 @echo off
 
-set AppPath=D:/SSLAutomationApp
+set AppPath="D:\SSLAutomationApp-linux"
 
 cd /D %AppPath%
 

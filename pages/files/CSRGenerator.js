@@ -102,7 +102,7 @@ export default function Home() {
                 style={{ width: '60%', padding: '7px', margin: '10px 0' }}
               />
             {/* Help Icon with Tooltip */}
-            <Tooltip text="Enter all domains (comma-separated), select the required type, and click 'Generate'. Click for more details.">
+            <Tooltip text="Enter all domains (comma-separated), select the type, and click 'Generate'. If a CSR for the same domain exists this year, it will be renamed 'abc.com-old-1.csr', and a new one will be generated.">
               <Link href="/files/help" legacyBehavior>
                 <a className={styles.tooltip}>
                   <HelpCircle size={20} />
