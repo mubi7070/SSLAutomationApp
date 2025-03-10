@@ -47,6 +47,11 @@ export default function Home() {
             <h3>Email Templates &rarr;</h3>
             <p>The email templates for the SSL renewal and cloudflare implementation.</p>
           </Link>
+
+          <Link href="/files/LicenseRenewal" className={styles.card} >
+            <h3>License Renewal &rarr;</h3>
+            <p>The feature to get the upcoming license expiry.</p>
+          </Link>
           
           <Link href="https://docs.google.com/spreadsheets/d/1xOoiO96sFfYB8uFnOgn3xom-wzL7XntPiEJkRk5TOC4/edit?gid=2074345631#gid=2074345631" className={styles.card} target="_blank" rel="noopener noreferrer">
             <h3>SSL Renewal Sheet &rarr;</h3>
@@ -72,6 +77,8 @@ export default function Home() {
               <h3>Email Tracking Data &rarr;</h3>
               <p>Go to the sheet to track the ssl renewal email status.</p>
           </Link>
+
+          
         </div>
       </main>
 
