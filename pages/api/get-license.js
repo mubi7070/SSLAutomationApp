@@ -19,7 +19,13 @@ export default async function handler(req, res) {
 
     // Fetch expiring licenses
     const [rows] = await connection.execute(`
-      SELECT client_name FROM clients
+      SELECT client_name, source_key, active_key, key_expire
+      FROM lm_clients
+      WHERE key_expire IN (
+        DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-01'),
+        DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL 2 MONTH), '%Y-%m-01')
+      )
+      ORDER BY key_expire ASC
     `);
 
     if (!rows.length) {
@@ -29,12 +35,19 @@ export default async function handler(req, res) {
       });
     }
 
-    // Update Google Sheet
-    const result = await updateLicenseSheet(rows);
+    // Process data for Google Sheets
+    const sheetData = rows.map(row => ({
+      client_name: row.client_name,
+      source_key: row.source_key,
+      active_key: row.active_key,
+      key_expire: row.key_expire
+    }));
+
+    const result = await updateLicenseSheet(sheetData);
     
     return res.json({ 
       success: true, 
-      message: `Appended ${rows.length} records to License Sheet`,
+      message: `Added ${rows.length} records to License Sheet`,
       details: result
     });
 

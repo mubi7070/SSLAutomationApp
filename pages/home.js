@@ -50,7 +50,7 @@ export default function Home() {
 
           <Link href="/files/LicenseRenewal" className={styles.card} >
             <h3>License Renewal &rarr;</h3>
-            <p>The feature to get the upcoming license expiry.</p>
+            <p>The feature to get the upcoming license expiries in the google sheet.</p>
           </Link>
           
           <Link href="https://docs.google.com/spreadsheets/d/1xOoiO96sFfYB8uFnOgn3xom-wzL7XntPiEJkRk5TOC4/edit?gid=2074345631#gid=2074345631" className={styles.card} target="_blank" rel="noopener noreferrer">

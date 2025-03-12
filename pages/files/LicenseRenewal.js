@@ -1,9 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from "react";
 import axios from 'axios';
+import Layout from '/pages/components/Layout.js';
+import styles from "/styles/Home.module.css";
+
 
 const LicenseRenewal = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [showPopup, setShowPopup] = useState(false);
+
+  useEffect(() => {
+      if (message) {
+        setShowPopup(true);
+        setTimeout(() => {
+          setShowPopup(false);
+        }, 5000); // Hide after 3 seconds
+      }
+    }, [message]);
 
   const handleExecute = async () => {
     setLoading(true);
@@ -25,6 +38,7 @@ const LicenseRenewal = () => {
   };
 
   return (
+    <Layout>
     <div className="license-renewal-container">
       <h2>License Renewal Automation</h2>
       <p className="description">
@@ -44,6 +58,13 @@ const LicenseRenewal = () => {
       {message && (
         <div className={`message ${message.includes('Success') ? 'success' : 'error'}`}>
           {message}
+        </div>
+      )}
+
+      {/* Pop-up Notification */}
+        {showPopup && (
+        <div className={styles.notification}>
+            {message}
         </div>
       )}
 
@@ -87,6 +108,7 @@ const LicenseRenewal = () => {
         }
       `}</style>
     </div>
+    </Layout>
   );
 };
 
