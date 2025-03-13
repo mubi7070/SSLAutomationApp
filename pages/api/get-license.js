@@ -24,7 +24,11 @@ export default async function handler(req, res) {
     ).join(',');
 
     const [rows] = await connection.execute(`
-      SELECT client_name, source_key, active_key, key_expire
+      SELECT 
+        client_name, 
+        source_key, 
+        active_key, 
+        DATE_FORMAT(key_expire, '%Y-%m-%d') as key_expire
       FROM lm_clients
       WHERE key_expire IN (
         ${dateConditions}

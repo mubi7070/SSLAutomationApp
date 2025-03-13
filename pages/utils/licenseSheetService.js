@@ -79,7 +79,12 @@ export const updateLicenseSheet = async (data, months) => {
           [''], // Blank row
           [`${getMonthsHeader(months)} License Expiry`],
           ['Client Name', 'Source Key', 'Active Key', 'Key Expiry Date'],
-          ...data.map(row => Object.values(row))
+          ...data.map(item => [
+            item.client_name,
+            item.source_key,
+            item.active_key,
+            item.key_expire 
+          ])
         ]
       }
     });
