@@ -2,19 +2,24 @@ import { useState, useEffect } from "react";
 import axios from 'axios';
 import Layout from '/pages/components/Layout.js';
 import styles from "/styles/Home.module.css";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { HelpCircle } from "lucide-react";
+import Tooltip from "/pages/components/Tooltip.js"; // Import Tooltip
+import Link from "next/link";
 
 
 const LicenseRenewal = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [showPopup, setShowPopup] = useState(false);
+  const [option, setOption] = useState('1');
 
   useEffect(() => {
       if (message) {
         setShowPopup(true);
         setTimeout(() => {
           setShowPopup(false);
-        }, 5000); // Hide after 3 seconds
+        }, 10000); // Hide after 3 seconds
       }
     }, [message]);
 
@@ -40,26 +45,46 @@ const LicenseRenewal = () => {
   return (
     <Layout>
     <div className="license-renewal-container">
-      <h2>License Renewal Automation</h2>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <h2 style={{ margin: 0 }}>License Renewal Automation</h2>
+    
+        <Tooltip text="Select the No. Of months of which you want to get the license expiry data in the sheet and click of Execute.">
+          <Link href="/files/help" legacyBehavior>
+            <a className={styles.tooltip}>
+              <HelpCircle size={20} />
+            </a>
+          </Link>
+        </Tooltip>
+      </div>
       <p className="description">
         This feature automatically fetches expiring licenses from the database and updates
         the Google Sheet with the latest data. Existing sheet data will be preserved, and
         new records will be appended.
       </p>
+
+      <div style={{ marginBottom: '20px' }}>
+        <label className={styles.description}>
+          No. Of Months: {" "}
+          <select value={option} className={styles.styledselecttempmargin} onChange={(e) => setOption(e.target.value)}>
+            <option value="1">1 Month</option>
+            <option value="2">2 Months</option>
+            <option value="3">3 Months</option>
+            <option value="4">4 Months</option>
+            <option value="5">5 Months</option>
+            <option value="6">6 Months</option>
+          </select>
+        </label>
+      </div>
       
       <button 
         onClick={handleExecute}
         disabled={loading}
-        className="execute-btn"
+        className={styles.btndescription}
+        type="submit"
       >
-        {loading ? 'Processing...' : 'Execute Renewal Update'}
+        {loading ? 'Processing...' : 'Execute'}
       </button>
       
-      {message && (
-        <div className={`message ${message.includes('Success') ? 'success' : 'error'}`}>
-          {message}
-        </div>
-      )}
 
       {/* Pop-up Notification */}
         {showPopup && (
@@ -70,7 +95,7 @@ const LicenseRenewal = () => {
 
       <style jsx>{`
         .license-renewal-container {
-          max-width: 600px;
+          max-width: 1000px;
           margin: 2rem auto;
           padding: 20px;
           border: 1px solid #ddd;
@@ -108,6 +133,38 @@ const LicenseRenewal = () => {
         }
       `}</style>
     </div>
+          <footer className={styles.footer}>
+            <div className={styles.footerRow}>
+              <a
+                href="https://www.globalnorthstar.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Powered by{' '} Northstar Technologies
+                <img src="/northstar.jpg" alt="Northstar" className={styles.logonew} />
+              </a>
+              
+            </div>
+            <div className={styles.footerRow}>
+            <a
+                href="https://www.globalnorthstar.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                |
+              </a>
+            </div>
+            <div className={styles.footerRow}>
+              <a
+                href="https://github.com/mubi7070/SSLAutomationApp/tree/master"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                By: Mubashir Ahmed (DevOps)
+                <img src="/dev.svg" alt="DevOps" className={styles.logonew} />
+              </a>
+            </div>
+          </footer>
     </Layout>
   );
 };
