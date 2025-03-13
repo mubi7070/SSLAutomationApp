@@ -458,14 +458,16 @@ font-family: 'Times New Roman', Times, serif;
 
 .notification {
   position: fixed;
-  top: 20px;
-  right: 20px;
-  background-color: #4CAF50;
-  color: white;
-  padding: 10px 20px;
-  border-radius: 5px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-  z-index: 1000;
+  top: 5rem; /* Push it below the header (adjust if header height changes) */
+  right: 2rem;
+  z-index: 9999; /* Make sure it appears above the header */
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid;
+    border-color: #10b981;
+  background: #f0fdf4;
   white-space: pre-wrap;
   word-wrap: break-word;
 }
@@ -740,6 +742,155 @@ font-family: 'Times New Roman', Times, serif;
   margin-top: 50px; /* Adjust based on header height */
   width: 100%;
 }
+
+/* License Renewal Container */
+.licenseContainer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.licenseContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.licenseVisual {
+  background: #f8f9fa;
+  border-radius: 8px;
+  overflow: hidden;
+  height: 400px;
+}
+
+.licenseImage {
+  width: 100%;
+  object-fit: cover;
+}
+
+.licenseHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.licenseTitle {
+  font-size: 1.8rem;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.licenseDescription {
+  color: #4a5568;
+  line-height: 1.6;
+  font-size: 1.2rem;
+  font-family: 'Times New Roman', Times, serif;
+  margin-bottom: 1rem;
+}
+
+.licenseSelect {
+  padding: 0.5rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: white;
+  font-size: 1rem;
+  width: 200px;
+  margin-left: 0.5rem;
+}
+
+.licenseButton {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: fit-content;
+}
+
+.licenseButton:hover {
+  background: #2563eb;
+}
+
+.licenseButton:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* Notification */
+.licenseNotification {
+  position: fixed;
+  top: 5rem; /* Push it below the header (adjust if header height changes) */
+  right: 2rem;
+  z-index: 9999; /* Make sure it appears above the header */
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  border-left: 4px solid;
+}
+
+/* Keep success/error styles the same */
+.licenseSuccess {
+  border-color: #10b981;
+  background: #f0fdf4;
+}
+
+.licenseError {
+  border-color: #ef4444;
+  background: #fef2f2;
+}
+
+
+/* Footer */
+.licenseFooter {
+  margin-top: 3rem;
+  padding: 2rem;
+  text-align: center;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+}
+
+.licenseFooter a {
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.licenseFooter a:hover {
+  color: #3b82f6;
+}
+
+.licenseLogo {
+  height: 24px;
+  width: auto;
+}
+
+@media (max-width: 768px) {
+  .licenseContainer {
+    grid-template-columns: 1fr;
+    padding: 1.5rem;
+  }
+  
+  .licenseVisual {
+    height: 250px;
+  }
+}
+
 
 /* Responsive Design */
 @media (max-width: 768px) {

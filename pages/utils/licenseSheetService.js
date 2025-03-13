@@ -2,69 +2,54 @@ import { google } from "googleapis";
 import { promises as fs } from "fs";
 import path from "path";
 
-const getNextTwoMonths = () => {
-  const months = [];
+const getMonthsHeader = (months) => {
   const date = new Date();
-  for (let i = 1; i <= 2; i++) {
+  const monthNames = [];
+  
+  for (let i = 1; i <= months; i++) {
     date.setMonth(date.getMonth() + 1);
-    months.push(date.toLocaleString('default', { month: 'long' }));
+    monthNames.push(date.toLocaleString('default', { month: 'long' }));
   }
-  return months.join(' & ');
+  
+  return monthNames.join(', ');
 };
 
-export const updateLicenseSheet = async (data) => {
+export const updateLicenseSheet = async (data, months) => {
   try {
-    const credentialsPath = path.join(process.cwd(), "google-service-account.json");
-    const credentials = JSON.parse(await fs.readFile(credentialsPath, "utf-8"));
-
     const auth = new google.auth.GoogleAuth({
-      credentials: {
-        client_email: credentials.client_email,
-        private_key: credentials.private_key,
-      },
+      keyFile: path.join(process.cwd(), "google-service-account.json"),
       scopes: ["https://www.googleapis.com/auth/spreadsheets"],
     });
 
     const sheets = google.sheets({ version: "v4", auth });
     const spreadsheetId = process.env.GOOGLE_LICENSE_SHEET_ID;
 
-    // Get current sheet data
-    const response = await sheets.spreadsheets.values.get({
+    // Get current data length
+    const { data: sheetData } = await sheets.spreadsheets.values.get({
       spreadsheetId,
       range: 'License!A:A',
     });
 
-    const lastRow = response.data.values ? response.data.values.length : 0;
-    const startRow = lastRow + 2; // Leave blank row after previous data
+    const lastRow = sheetData.values ? sheetData.values.length : 0;
+    const startRow = lastRow + 2;
 
-    // Prepare batch update requests
-    const requests = [
-        // Insert empty rows first
-        {
-          insertDimension: {
-            range: {
-              sheetId: 0,
-              dimension: "ROWS",
-              startIndex: startRow - 1,
-              endIndex: startRow + data.length + 2
-            },
-            inheritFromBefore: false
-          }
-        },
-        // Add header formatting
-        {
+    // Batch update for formatting
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      resource: {
+        requests: [{
           updateCells: {
             range: {
-              sheetId: 0,
+              sheetId: await getSheetId(sheets, spreadsheetId, 'License'),
               startRowIndex: startRow,
-              endRowIndex: startRow + 2,
+              endRowIndex: startRow + data.length + 3,
               startColumnIndex: 0,
               endColumnIndex: 4
             },
             rows: [
               {
                 values: [{
-                  userEnteredValue: { stringValue: `${getNextTwoMonths()} License Expiry` },
+                  userEnteredValue: { stringValue: `${getMonthsHeader(months)} License Expiry` },
                   userEnteredFormat: {
                     textFormat: { bold: true },
                     horizontalAlignment: "CENTER"
@@ -78,45 +63,37 @@ export const updateLicenseSheet = async (data) => {
                 }))
               }
             ],
-            fields: "userEnteredValue,userEnteredFormat.textFormat.bold,userEnteredFormat.horizontalAlignment"
+            fields: "userEnteredValue,userEnteredFormat"
           }
-        }
-      ];
+        }]
+      }
+    });
 
-        // Execute batch update first
-        await sheets.spreadsheets.batchUpdate({
-            spreadsheetId,
-            resource: { requests }
-          });
-      
-          // Now add the data values
-          const dataValues = [
-            [''], // Blank row
-            [`${getNextTwoMonths()} License Expiry`],
-            ['Client Name', 'Source Key', 'Active Key', 'Key Expiry Date'],
-            ...data.map(item => [
-              item.client_name,
-              item.source_key,
-              item.active_key,
-              item.key_expire
-            ])
-          ];
-      
-          await sheets.spreadsheets.values.update({
-            spreadsheetId,
-            range: `License!A${startRow}`,
-            valueInputOption: 'USER_ENTERED',
-            resource: { values: dataValues }
-          });
-      
-          return {
-            success: true,
-            insertedRows: data.length,
-            startRow: startRow + 3 // Account for header rows
-          };
-      
-        } catch (error) {
-          console.error("License Sheet Update Error:", error);
-          throw new Error(`Google Sheet update failed: ${error.message}`);
-        }
-      };
+    // Insert data
+    await sheets.spreadsheets.values.append({
+      spreadsheetId,
+      range: `License!A${startRow}`,
+      valueInputOption: 'USER_ENTERED',
+      resource: {
+        values: [
+          [''], // Blank row
+          [`${getMonthsHeader(months)} License Expiry`],
+          ['Client Name', 'Source Key', 'Active Key', 'Key Expiry Date'],
+          ...data.map(row => Object.values(row))
+        ]
+      }
+    });
+
+    return { success: true, inserted: data.length };
+
+  } catch (error) {
+    console.error("Sheet update error:", error);
+    throw new Error(`Sheet update failed: ${error.message}`);
+  }
+};
+
+const getSheetId = async (sheets, spreadsheetId, sheetName) => {
+  const { data: { sheets: allSheets } } = await sheets.spreadsheets.get({ spreadsheetId });
+  const licenseSheet = allSheets.find(s => s.properties.title === sheetName);
+  return licenseSheet.properties.sheetId;
+};
