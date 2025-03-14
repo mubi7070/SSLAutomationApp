@@ -1,13 +1,13 @@
 .body {
   height: 50%;
-  margin: 0;
+  margin: -8px !important;
   background-color: rgb(236, 236, 236);
   font-family: 'Times New Roman', Times, serif;
 }
 
 .container {
   min-height: 100vh;
-  padding: 0 0.5rem;
+  padding: 0px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -287,7 +287,7 @@ background-color:#045abc ;
   flex-wrap: wrap;
 
   max-width: 100%;
-  margin-top: 5px;
+  margin-block: 20px;
 }
 
 .card {
@@ -739,7 +739,7 @@ font-family: 'Times New Roman', Times, serif;
 
 /* Adjust main content for fixed header */
 .mainWithHeader {
-  margin-top: 50px; /* Adjust based on header height */
+  margin-top: 0px; /* Adjust based on header height */
   width: 100%;
 }
 
@@ -748,8 +748,8 @@ font-family: 'Times New Roman', Times, serif;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4rem;
-  max-width: 1200px;
-  margin: 2rem auto;
+  max-width: 93%;
+  margin: 2rem;
   padding: 2rem;
   background: #ffffff;
   border-radius: 12px;
@@ -763,15 +763,13 @@ font-family: 'Times New Roman', Times, serif;
 }
 
 .licenseVisual {
-  background: #f8f9fa;
-  border-radius: 8px;
-  overflow: hidden;
-  height: 400px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .licenseImage {
-  width: 100%;
-  object-fit: cover;
+  width: 90%;
 }
 
 .licenseHeader {
@@ -879,6 +877,7 @@ font-family: 'Times New Roman', Times, serif;
   height: 24px;
   width: auto;
 }
+
 
 @media (max-width: 768px) {
   .licenseContainer {
