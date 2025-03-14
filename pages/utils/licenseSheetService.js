@@ -97,8 +97,9 @@ export const updateLicenseSheet = async (data, months) => {
   }
 };
 
-const getSheetId = async (sheets, spreadsheetId, sheetName) => {
+const getSheetId = async (sheets, spreadsheetId, targetSheet) => {
   const { data: { sheets: allSheets } } = await sheets.spreadsheets.get({ spreadsheetId });
-  const licenseSheet = allSheets.find(s => s.properties.title === sheetName);
-  return licenseSheet.properties.sheetId;
+  const target = allSheets.find(s => s.properties.title === targetSheet);
+  if (!target) throw new Error(`Sheet ${targetSheet} not found`);
+  return target.properties.sheetId;
 };

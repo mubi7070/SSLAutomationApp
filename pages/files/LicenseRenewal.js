@@ -52,7 +52,8 @@ const LicenseRenewal = () => {
       <div className={styles.licenseContainer}>
         <div className={styles.licenseContent}>
           <div className={styles.licenseHeader}>
-            <h2 className={styles.licenseTitle}>License Renewal Automation</h2>
+            
+            <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', display: 'flex'}}>License Renewal Automation</h1>
             <Tooltip text="Select months range and click execute to update Google Sheet">
               <Link href="/files/help" legacyBehavior>
                 <a className={styles.tooltip}>
@@ -64,7 +65,7 @@ const LicenseRenewal = () => {
           
           <p className={styles.licenseDescription}>
             Automatically fetch and update expiring licenses in Google Sheets 
-            while preserving historical data. Select the monitoring period below:
+            while preserving the previous sheet data. Select the monitoring period below as per your requirement.
           </p>
 
           <div>
