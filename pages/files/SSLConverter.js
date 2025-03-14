@@ -695,8 +695,7 @@ export default function SSLConverter() {
           </button>
         </div>
       </div>
-      </Layout>
-      </main>
+      
 
       <footer className={styles.footer}>
         <div className={styles.footerRow}>
@@ -730,6 +729,8 @@ export default function SSLConverter() {
           </a>
         </div>
       </footer>
+      </Layout>
+      </main>
     </>
   );
 }

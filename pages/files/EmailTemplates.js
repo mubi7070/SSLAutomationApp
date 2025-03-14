@@ -1438,8 +1438,7 @@ Thank you.`
           </button>
         </div>
       </div>
-      </Layout>
-      </main>
+
 
       <footer className={styles.footer}>
         <div className={styles.footerRow}>
@@ -1473,6 +1472,8 @@ Thank you.`
           </a>
         </div>
       </footer>
+      </Layout>
+      </main>
     </>
   );
 }

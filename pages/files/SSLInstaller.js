@@ -335,13 +335,12 @@ export default function SSLInstaller() {
       
 
 
-      <div className={styles.Installerhomebtn}>
+      <div className={styles.Installerhomebtn} style={{ marginBottom: '20px' }}>
         <button>
           <Link href="/home">Back to Home</Link>
         </button>
       </div>
-      </Layout>
-      </main>
+      
 
       <footer className={styles.footer}>
         <div className={styles.footerRow}>
@@ -375,7 +374,8 @@ export default function SSLInstaller() {
           </a>
         </div>
       </footer>
-      
+      </Layout>
+      </main>
     </>
   );
 }

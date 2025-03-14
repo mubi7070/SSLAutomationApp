@@ -45,7 +45,7 @@ const LicenseRenewal = () => {
     <>
     <main className={styles.body}>
       <Head>
-        <title>CSR Generator</title>
+        <title>License Automation</title>
         <link rel="icon" href="/ssl2white.svg" />
       </Head>
     <Layout>
