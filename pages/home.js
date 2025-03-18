@@ -73,9 +73,9 @@ export default function Home() {
               <p>Go to the website and test the SSL and ciphers health.</p>
           </Link>
 
-          <Link href="https://docs.google.com/spreadsheets/d/1yVCinTBlCnvv1CYWFjSsfpLjvUcQONJAuBLRoBc4rfE/edit?gid=0#gid=0" className={styles.card} target="_blank" rel="noopener noreferrer">
-              <h3>Email Tracking Data &rarr;</h3>
-              <p>Go to the sheet to track the ssl renewal email status.</p>
+          <Link href="https://docs.google.com/spreadsheets/d/1yVCinTBlCnvv1CYWFjSsfpLjvUcQONJAuBLRoBc4rfE/edit?gid=575097041#gid=575097041" className={styles.card} target="_blank" rel="noopener noreferrer">
+              <h3>Tracking Data Sheet &rarr;</h3>
+              <p>Go to the google sheet to track the ssl renewal email and license renewal status.</p>
           </Link>
 
           
