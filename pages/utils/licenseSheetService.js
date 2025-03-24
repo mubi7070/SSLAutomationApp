@@ -2,6 +2,8 @@ import { google } from "googleapis";
 import { promises as fs } from "fs";
 import path from "path";
 
+const APPS_SCRIPT_ID = "AKfycbycpLNPCKM8OwlBnR15T_qtG5GOc1mlGzWJHud6x217FYU53SCUTxHKeXciyMQJ2OhArQ";
+
 const getMonthsHeader = (months) => {
   const date = new Date();
   const monthNames = [];
@@ -18,10 +20,17 @@ export const updateLicenseSheet = async (data, months) => {
   try {
     const auth = new google.auth.GoogleAuth({
       keyFile: path.join(process.cwd(), "google-service-account.json"),
-      scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+      scopes: [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/script.external_request",
+        "https://www.googleapis.com/auth/script.scriptapp",
+        "https://www.googleapis.com/auth/cloud-platform" 
+      ],
     });
 
     const sheets = google.sheets({ version: "v4", auth });
+    const script = google.script({ version: 'v1', auth });
+
     const spreadsheetId = process.env.GOOGLE_LICENSE_SHEET_ID;
 
     // Get current data length
@@ -88,6 +97,27 @@ export const updateLicenseSheet = async (data, months) => {
         ]
       }
     });
+
+    setTimeout(async () => {
+      try {
+        const response = await script.scripts.run({
+          scriptId: APPS_SCRIPT_ID,
+          requestBody: {
+            function: 'processNewData',
+            parameters: [], // Add parameters here if needed
+            devMode: false
+          }
+        });
+    
+        if (response.data.error) {
+          console.error('Execution error:', response.data.error.details);
+        } else {
+          console.log('Script executed successfully:', response.data.response);
+        }
+      } catch (error) {
+        console.error('Script trigger error:', error.message);
+      }
+    }, 30000);
 
     return { success: true, inserted: data.length };
 
