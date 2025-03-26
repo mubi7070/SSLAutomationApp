@@ -135,10 +135,11 @@ export default function Home() {
             </div>
 
             <p className={styles.licenseDescription}>
-              Generate CSRs and keystores for your SSL certificates. Enter comma-separated domains,
-              select your server type, and specify a password for the keystore.
+            Enter all domains (comma-separated), select the type, and click  <strong>Generate</strong>. 
+            If a CSR for the same domain exists this year, it will be renamed <strong>abc.com-old-1.csr</strong>, 
+            and a new one will be generated.
             </p>
-
+            
             <form onSubmit={handleSubmit}>
               <div className={styles.licenseDescription}>
                 <label>
@@ -223,7 +224,6 @@ export default function Home() {
                   type="button"
                   onClick={handleClear}
                   className={styles.clearbtn}
-                  style={{ backgroundColor: '#ef4444' }}
                 >
                   Clear
                 </button>

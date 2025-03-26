@@ -111,8 +111,9 @@ background-color:#045abc ;
   border: none;
 }
 .clearbtn:hover{
-  background: #bd0202;
+  background: #bb0303;
 }
+
 .styledselecttempmargin {
   outline-color: #6ba9f396;
   width: 20;
