@@ -2,7 +2,7 @@ import { google } from "googleapis";
 import { promises as fs } from "fs";
 import path from "path";
 
-const APPS_SCRIPT_ID = "AKfycbxurmnd_d2X3Jpq0Zw6gCsh83L3-fJd8tJzxbkxjEkg3EfGx61KjvlNcM7jRUaHAn2Tjg";
+const APPS_SCRIPT_ID = "AKfycbycpLNPCKM8OwlBnR15T_qtG5GOc1mlGzWJHud6x217FYU53SCUTxHKeXciyMQJ2OhArQ";
 
 const getMonthsHeader = (months) => {
   const date = new Date();
@@ -21,9 +21,10 @@ export const updateLicenseSheet = async (data, months) => {
     const auth = new google.auth.GoogleAuth({
       keyFile: path.join(process.cwd(), "google-service-account.json"),
       scopes: [
-        "https://www.googleapis.com/auth/cloud-platform", // Required for API execution
         "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/script.external_request"
+        "https://www.googleapis.com/auth/script.external_request",
+        "https://www.googleapis.com/auth/script.scriptapp",
+        "https://www.googleapis.com/auth/cloud-platform" 
       ],
     });
 
