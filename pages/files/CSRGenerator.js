@@ -125,7 +125,7 @@ export default function Home() {
               <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', display: 'flex' }}>
                 CSR and Keystore Generator
               </h1>
-              <Tooltip text="Enter all domains (comma-separated), select the type, and click 'Generate'. If a CSR for the same domain exists this year, it will be renamed 'abc.com-old-1.csr', and a new one will be generated.">
+              <Tooltip text="You can generate CSRs and Keystores or Keys of any domains' which you want.">
                 <Link href="/files/help" legacyBehavior>
                   <a className={styles.tooltip}>
                     <HelpCircle size={24} color="#64748b" />
