@@ -756,6 +756,20 @@ font-family: 'Times New Roman', Times, serif;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+.CSRContainer {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  max-width: 93%;
+  margin-top: 6rem;
+  margin-left: 1.5rem;
+  margin-bottom: 2rem;
+  padding: 2rem;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
 .licenseContent {
   display: flex;
   flex-direction: column;

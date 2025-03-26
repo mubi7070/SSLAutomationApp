@@ -119,117 +119,143 @@ export default function Home() {
         <link rel="icon" href="/ssl2white.svg" />
       </Head>
       <Layout>
-      <div style={{ padding: '20px' }}>
-        <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', display: 'flex', justifyContent: 'center'}}>CSR and Keystore Generator</h1>
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: '10px', paddingLeft: '5%'}}>
-            <label className={styles.description}>
-            Domains (comma-separated):{" "} 
-            </label>
+        <div className={styles.CSRContainer}>
+          <div className={styles.licenseContent}>
+            <div className={styles.licenseHeader}>
+              <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', display: 'flex' }}>
+                CSR and Keystore Generator
+              </h1>
+              <Tooltip text="Enter all domains (comma-separated), select the type, and click 'Generate'. If a CSR for the same domain exists this year, it will be renamed 'abc.com-old-1.csr', and a new one will be generated.">
+                <Link href="/files/help" legacyBehavior>
+                  <a className={styles.tooltip}>
+                    <HelpCircle size={24} color="#64748b" />
+                  </a>
+                </Link>
+              </Tooltip>
+            </div>
 
-              <input className={styles.styledselecttempmargin}
-                type="text" placeholder='Type comma-separated domains here...'
-                value={domains}  
-                onChange={(e) => setDomains(e.target.value)}
-                required  
-                style={{ width: '60%', padding: '7px', margin: '10px 0' }}
-              />
-            {/* Help Icon with Tooltip */}
-            <Tooltip text="Enter all domains (comma-separated), select the type, and click 'Generate'. If a CSR for the same domain exists this year, it will be renamed 'abc.com-old-1.csr', and a new one will be generated.">
-              <Link href="/files/help" legacyBehavior>
-                <a className={styles.tooltip}>
-                  <HelpCircle size={20} />
-                </a>
-              </Link>
-            </Tooltip>
+            <p className={styles.licenseDescription}>
+              Generate CSRs and keystores for your SSL certificates. Enter comma-separated domains,
+              select your server type, and specify a password for the keystore.
+            </p>
 
-            <label className={styles.notedescription}> Note: </label>
-            <label className={styles.notedescription} style={{ color: 'red' }}> Avoid blank spaces</label>
-            <br />
-          </div>
+            <form onSubmit={handleSubmit}>
+              <div className={styles.licenseDescription}>
+                <label>
+                Enter Domains (comma-separated):{" "}   <br />
+                </label>
+                <input
+                    type="text"
+                    placeholder="example.com, www.example.com"
+                    value={domains}
+                    onChange={(e) => setDomains(e.target.value)}
+                    className={styles.styledselecttempmargin}
+                    required
+                    style={{ width: '98%', padding: '7px', margin: '10px 0' }}
+                  />
+                  {/* Help Icon with Tooltip */}
+                  
+      
+                  <label className={styles.notedescription}> <strong>Note:</strong>  </label>
+                  <label className={styles.notedescription} style={{ color: 'red' }}> Avoid blank spaces</label>
+                  <br />
+              </div>
 
-          <div style={{ marginBottom: '10px', paddingLeft: '38%' }}>
-            <label className={styles.description}>
-               Password: 
-                <input className={styles.styledselecttempmargin}
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  style={{
-                    flex: 1,
-                    padding: '7px',
-                    margin: '10px 0',
-                    borderRight: 'none',
-                    borderRadius: '5px 0 0 5px',
-                  }}
-                />
+              <div className={styles.licenseDescription}>
+                <label>
+                  Password:
+                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className={styles.styledselecttempmargin}
+                      //style={{ flex: 1, borderRight: 'none' }}
+                      style={{
+                        flex: 1,
+                        padding: '8px',
+                        margin: '10px 0',
+                        borderRight: 'none',
+                        borderRadius: '5px 0 0 5px',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={togglePasswordVisibility}
+                      style={{
+                        padding: '8px',
+                        border: '1px solid #ccc',
+                        borderLeft: 'none',
+                        cursor: 'pointer',
+                        backgroundColor: '#f8fafc',
+                        borderRadius: '0 4px 4px 0',
+                      }}
+                    >
+                      {showPassword ? <FaEyeSlash /> : <FaEye />}
+                    </button>
+                  </div>
+                </label>
+              </div>
+
+              <div className={styles.licenseDescription}>
+                <label>
+                  Server Type:
+                  <select
+                    value={option}
+                    onChange={(e) => setOption(e.target.value)}
+                    className={styles.licenseSelect}
+                  >
+                    <option value="Tomcat">Tomcat</option>
+                    <option value="Apache">Apache</option>
+                  </select>
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={styles.btndescription}
+                >
+                  {loading ? 'Generating...' : 'Generate'}
+                </button>
                 <button
                   type="button"
-                  onClick={togglePasswordVisibility}
-                  style={{
-                    padding: '7px',
-                    borderLeft: 'none',
-                    cursor: 'pointer',
-                    backgroundColor: '#f5f5f5',
-                    borderRadius: '0 5px 5px 0',
-                    border: '1px solid #ccc',
-                  }}
+                  onClick={handleClear}
+                  className={styles.clearbtn}
+                  style={{ backgroundColor: '#ef4444' }}
                 >
-                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                  Clear
                 </button>
-              
-            </label>
+              </div>
+            </form>
+
+            {/* Pop-up Notification */}
+            {showPopup && (
+            <div className={styles.notification}>
+                {result}
+            </div>
+          )}
+
+            <div>
+              <DownloadFiles filePaths={files} /> {/* Auto-downloads all files */}
+            </div>
           </div>
 
-          <div style={{ marginBottom: '40px', paddingLeft: '45%' }}>
-            <label className={styles.description}>
-              Option: 
-              <select value={option} className={styles.styledselecttempmargin} onChange={(e) => setOption(e.target.value)}>
-                <option value="Tomcat">Tomcat</option>
-                <option value="Apache">Apache</option>
-              </select>
-            </label>
+          <div className={styles.licenseVisual}>
+            <img 
+              src="/csr-dashboard.png"  // Update with your CSR-related image
+              alt="CSR Generation Preview"
+              className={styles.licenseImage}
+            />
           </div>
-
-          <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center', gap: '20px' }}>
-            <button type="submit" className={styles.btndescription} disabled={loading}>
-              {loading ? 'Generating...' : 'Generate'}
-            </button>
-            <button type="button" onClick={handleClear} className={styles.clearbtn}>
-              Clear
-            </button>
-          </div>
-        </form>
-
-        <div>
-        {/* Results Display */}
-        {result && (
-          <div style={{ marginTop: '20px', paddingLeft: '5%' }}>
-            <h2>Results:</h2>
-            <pre>{result}</pre>
-          </div>
-        )}
-
-        {/* Pop-up Notification */}
-        {showPopup && (
-        <div className={styles.notification}>
-            {result}
-        </div>
-      )}
-
-      <div>
-        <DownloadFiles filePaths={files} /> {/* Auto-downloads all files */}
-      </div>
         </div>
 
+        <div className={styles.Installerhomebtn}>
+          <button style={{ marginBottom: '1rem' }}><Link href="/home">Back to Home</Link></button>
+        </div>
 
-      </div>
-
-      <div className={styles.Installerhomebtn}>
-        <button><Link href="/home">Back to Home</Link></button>
-      </div>
-  
-      <footer className={styles.footer}>
+        <footer className={styles.footer}>
         <div className={styles.footerRow}>
           <a
             href="https://www.globalnorthstar.com/"
@@ -262,7 +288,7 @@ export default function Home() {
         </div>
       </footer>
       </Layout>
-      </main>
+    </main>
     </>
   );
 }
