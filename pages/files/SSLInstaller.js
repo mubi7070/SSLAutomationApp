@@ -28,7 +28,7 @@ export default function SSLInstaller() {
       },
       {
         alias: 'intermed',
-        label: 'Certificate 3 (alias: Intermed, i.e. SectigoRSADomainValidationSecureServerCA):',
+        label: 'Certificate 3 (alias: Intermed, i.e. SectigoRSADomain...):',
         path: 'SectigoRSADomainValidationSecureServerCA.crt',
         enabled: true,
       },
@@ -153,196 +153,200 @@ export default function SSLInstaller() {
         <link rel="icon" href="/ssl2white.svg" />
       </Head>
       <Layout>
-      <div style={{ padding: '20px' }}>
-        <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', display: 'flex', justifyContent: 'center' }}>
-          SSL Installer
-        </h1>
-        <form onSubmit={handleSubmit} style={{ margin: '10px auto' }}>
-          {/* Add FileUpload component here */}
-          <FileUpload 
-            styles={styles}
-            setResponseMessage={setResponseMessage}
-            setShowPopup={setShowPopup}
-            refreshCertificates={refreshCertificates}
-          />
-
-          {formData.certPaths.map((cert, index) => (
-            <div key={cert.alias} style={{ marginBottom: '10px', paddingLeft: '15%' }}>
-              <label className={styles.description}>{cert.label}</label>
-              {/* Help Icon with Tooltip */}
-              <Tooltip text="You need add the certificate file paths on the relevent Alias to add that in the keystore. Click for more details.">
+        <div className={styles.CSRContainer}>
+          <div className={styles.licenseContent}>
+            <div className={styles.licenseHeader}>
+              <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', display: 'flex' }}>
+                SSL Certificate Installer
+              </h1>
+              <Tooltip text="Install SSL certificates into existing keystores. Upload certificates and configure installation parameters.">
                 <Link href="/files/help" legacyBehavior>
                   <a className={styles.tooltip}>
-                    <HelpCircle size={20} />
+                    <HelpCircle size={24} color="#64748b" />
                   </a>
                 </Link>
               </Tooltip>
-              <input
-                className={styles.styledselecttempmargin}
-                type="text"
-                placeholder="Type Here..."
-                value={cert.path}
-                onChange={(e) => handleCertPathChange(index, e.target.value)}
-                required={cert.enabled}
-                list="certOptions" // Add datalist reference
-                style={{ width: '70%', padding: '7px', margin: '10px 0' }}
-              />
-              <label className={styles.customCheckbox}>
-                <input
-                  type="checkbox"
-                  checked={cert.enabled}
-                  onChange={() => toggleCertEnabled(index)}
+            </div>
+
+            <p className={styles.licenseDescription}>
+              Upload your certificate files, configure the installation parameters, and click{' '}
+              <strong>Install Certificates</strong>. Ensure the keystore file exists in the application 
+              and the correct password is provided.
+            </p>
+
+            <form onSubmit={handleSubmit} >
+              <div className={styles.licenseDescription}>
+                <FileUpload 
+                  styles={styles}
+                  setResponseMessage={setResponseMessage}
+                  setShowPopup={setShowPopup}
+                  refreshCertificates={refreshCertificates}
                 />
-                <span className="checkboxLabel">Enable</span>
-              </label>
-            </div>
-          ))}
-          <datalist id="certOptions">
-            {CertFiles.map((file, index) => (
-              <option key={index} value={file} />
-            ))}
-          </datalist>
+              </div>
 
-          <div style={{ marginBottom: '10px', paddingLeft: '15%' }}>
-            <label className={styles.description}>Keystore File Name:</label> 
-            
-            {/* Help Icon with Tooltip */}
-            <Tooltip text="Here, you have to select the keystore file name that is already present in the app in which you want to install the SSL certificates.">
-              <Link href="/files/help" legacyBehavior>
-                <a className={styles.tooltip}>
-                  <HelpCircle size={20} />
-                </a>
-              </Link>
-            </Tooltip>
-            
-            <br />
-            <input
-              className={styles.styledselecttempmargin}
-              type="text"
-              placeholder="Type to search or select"
-              value={formData.keystoreName}
-              onChange={(e) => handleKeystoreChange(e.target.value)}
-              list="keystoreOptions"
-              required
-              style={{ width: '50%', padding: '7px', margin: '10px 0' }}
-            />
-            <datalist id="keystoreOptions">
-              {filteredFiles.map((file, index) => (
-                <option key={index} value={file} />
+              {formData.certPaths.map((cert, index) => (
+                <div key={cert.alias} className={styles.licenseDescription}>
+                  <label className={styles.licenseDescription}>
+                    {cert.label}
+                    <Tooltip text="Certificate file name for this alias. Use uploaded files or existing certificates.">
+                      <Link href="/files/help" legacyBehavior>
+                        <a className={styles.tooltip}>
+                          <HelpCircle size={20} />
+                        </a>
+                      </Link>
+                    </Tooltip>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        placeholder="Type Here..."
+                        value={cert.path}
+                        onChange={(e) => handleCertPathChange(index, e.target.value)}
+                        required={cert.enabled}
+                        list="certOptions"
+                        className={styles.styledselecttempmargin}
+                        style={{ width: '100%', padding: '7px', margin: '10px 0' }}
+                      />
+                      <label className={styles.customCheckbox} style={{ marginLeft: '10px' }}>
+                        <input
+                          type="checkbox"
+                          checked={cert.enabled}
+                          onChange={() => toggleCertEnabled(index)}
+                        />
+                        <span className="checkboxLabel">Enable</span>
+                      </label>
+                    </div>
+                  </label>
+                </div>
               ))}
-            </datalist> 
-            <label className={styles.notedescription}> Note: </label>
-            <label className={styles.notedescription} style={{ color: 'red' }}>
-              The keystore file should be present in the Application
-            </label>
-          </div>
-          <div style={{ marginBottom: '20px', paddingLeft: '15%' }}>
-            <label className={styles.description}>Keystore password:</label> 
-
-            {/* Help Icon with Tooltip */}
-            <Tooltip text="Please enter the password you set when creating the CSR and keystore.">
-              <Link href="/files/help" legacyBehavior>
-                <a className={styles.tooltip}>
-                  <HelpCircle size={20} />
-                </a>
-              </Link>
-            </Tooltip>
-            
-            
-            <br />
-            <div style={{ display: 'flex', alignItems: 'center', width: '50%' }}>
-              <input
-                className={styles.styledselecttempmargin}
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Type Here..."
-                value={formData.keystorePassword}
-                onChange={(e) => setFormData({ ...formData, keystorePassword: e.target.value })}
-                required
-                style={{
-                  flex: 1,
-                  padding: '7px',
-                  margin: '10px 0',
-                  borderRight: 'none',
-                  borderRadius: '5px 0 0 5px',
-                }}
-              />
-              <button
-                type="button"
-                onClick={togglePasswordVisibility}
-                style={{
-                  padding: '7px',
-                  borderLeft: 'none',
-                  cursor: 'pointer',
-                  backgroundColor: '#f5f5f5',
-                  borderRadius: '0 5px 5px 0',
-                  border: '1px solid #ccc',
-                }}
-              >
-                {showPassword ? <FaEyeSlash /> : <FaEye />}
-              </button>
-            </div>
-          </div>
-          <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center', gap: '20px' }}>
-            <button type="submit" className={styles.btndescription}>
-              Install Certificates
-            </button>
-            <button type="button" onClick={handleClear} className={styles.clearbtn}>
-              Clear
-            </button>
-          </div>
-        </form>
-        {responseMessage && <p>{responseMessage}</p>}
-        {/* 
-        Pop-up Notification
-        {showPopup && (
-        <div className={styles.notification}>
-            {responseMessage}
-        </div>
-      )}
-        */}
-        {responseResults.length > 0 && (
-          <div style={{ marginTop: '20px' }}>
-            <h3 style={{ textAlign: 'left', margin: '20px auto', width: '60%' }}>Installation Results:</h3>
-            <ul style={{ textAlign: 'left', margin: '20px auto', width: '60%' }}>
-              {responseResults.map((result, index) => (
-                <li key={index}>
-                  <strong>Alias {result.alias}:</strong> {result.output}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {/* Pop-up Notification */}
-        {showPopup && (
-          <div className={styles.notification}>
-            {responseMessage}
-            {responseResults.length > 0 && (
-              <ul>
-                {responseResults.map((result, index) => (
-                  <li key={index}>
-                    <strong>Alias {result.alias}:</strong> {"Installed"}
-                  </li>
+              <datalist id="certOptions">
+                {CertFiles.map((file, index) => (
+                  <option key={index} value={file} />
                 ))}
-              </ul>
+              </datalist>
+
+              <div className={styles.licenseDescription}>
+                <label>
+                  Keystore File Name:
+                  <Tooltip text="Select or type the name of an existing keystore file">
+                    <Link href="/files/help" legacyBehavior>
+                      <a className={styles.tooltip}>
+                        <HelpCircle size={20} />
+                      </a>
+                    </Link>
+                  </Tooltip>
+                  <input
+                    className={styles.styledselecttempmargin}
+                    type="text"
+                    placeholder="Type to search or select"
+                    value={formData.keystoreName}
+                    onChange={(e) => handleKeystoreChange(e.target.value)}
+                    list="keystoreOptions"
+                    required
+                    style={{ width: '87%', padding: '7px', margin: '10px 0' }}
+                  />
+                  <datalist id="keystoreOptions">
+                    {filteredFiles.map((file, index) => (
+                      <option key={index} value={file} />
+                    ))}
+                  </datalist>
+                </label>
+                <br />
+                <label className={styles.notedescription}>
+                  <strong>Note:</strong>{' '}
+                  <span style={{ color: 'red' }}>Keystore must exist in the application</span>
+                </label>
+              </div>
+
+              <div className={styles.licenseDescription}>
+                <label>
+                  Keystore Password:
+                  <Tooltip text="Enter the password used when creating the keystore">
+                    <Link href="/files/help" legacyBehavior>
+                      <a className={styles.tooltip}>
+                        <HelpCircle size={20} />
+                      </a>
+                    </Link>
+                  </Tooltip>
+                  <div style={{ display: 'flex', alignItems: 'center', width: '89%' }}>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.keystorePassword}
+                      onChange={(e) => setFormData({ ...formData, keystorePassword: e.target.value })}
+                      className={styles.styledselecttempmargin}
+                      style={{
+                        flex: 1,
+                        padding: '8px',
+                        margin: '10px 0',
+                        borderRight: 'none',
+                        borderRadius: '5px 0 0 5px',
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={togglePasswordVisibility}
+                      style={{
+                        padding: '8px',
+                        border: '1px solid #ccc',
+                        borderLeft: 'none',
+                        cursor: 'pointer',
+                        backgroundColor: '#f8fafc',
+                        borderRadius: '0 4px 4px 0',
+                      }}
+                    >
+                      {showPassword ? <FaEyeSlash /> : <FaEye />}
+                    </button>
+                  </div>
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                <button type="submit" className={styles.btndescription}>
+                  Install Certificates
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  className={styles.clearbtn}
+                >
+                  Clear
+                </button>
+              </div>
+            </form>
+
+            {showPopup && (
+              <div className={styles.notification}>
+                {responseMessage}
+                {responseResults.length > 0 && (
+                  <ul style={{ marginTop: '10px' }}>
+                    {responseResults.map((result, index) => (
+                      <li key={index}>
+                        <strong>Alias {result.alias}:</strong> Installed
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             )}
+
+            <div>
+              <DownloadFiles filePaths={files} />
+            </div>
           </div>
-        )}
 
-      <div>
-        <DownloadFiles filePaths={files} /> {/* Auto-downloads all files */}
-      </div>
-      </div>
-      
+          <div className={styles.licenseVisual}>
+            <img 
+              src="/lock3.jpg"  // Update with your SSL installer image
+              alt="SSL Installation Preview"
+              className={styles.licenseImage}
+            />
+          </div>
+        </div>
 
+        <div className={styles.Installerhomebtn}>
+          <button style={{ marginBottom: '1rem' }}><Link href="/home">Back to Home</Link></button>
+        </div>
 
-      <div className={styles.Installerhomebtn} style={{ marginBottom: '20px' }}>
-        <button>
-          <Link href="/home">Back to Home</Link>
-        </button>
-      </div>
-      
-
-      <footer className={styles.footer}>
+        <footer className={styles.footer}>
         <div className={styles.footerRow}>
           <a
             href="https://www.globalnorthstar.com/"
@@ -375,7 +379,7 @@ export default function SSLInstaller() {
         </div>
       </footer>
       </Layout>
-      </main>
+    </main>
     </>
   );
 }

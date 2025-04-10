@@ -58,7 +58,7 @@ export default function FileUpload({ styles, setResponseMessage, setShowPopup, r
   };
 
   return (
-    <div style={{ marginBottom: '20px', paddingLeft: '15%' }}>
+    <div style={{ marginBottom: '20px' }}>
       <label className={style.customfileupload}>
       <label className={style.description}>Upload Certificate Files: </label>
         <input
