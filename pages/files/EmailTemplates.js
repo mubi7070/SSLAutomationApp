@@ -323,1075 +323,613 @@ Thank you.`
   return (
     <>
     <main className={styles.body}>
-      <Head>
-        <title>Email Templates</title>
-        <link rel="icon" href="/ssl2white.svg" />
-      </Head>
-      <Layout>
-      <div style={{ padding: '20px' }}>
-        <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', textAlign: 'center' }}>
-        Email Templates
-        </h1>
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <label className={styles.description}>Select Template:</label>
-          <select
-            value={selectedOption}
-            onChange={(e) => handleOptionChange(e.target.value)}
-            className={styles.styledselecttempmargin}
-            style={{ marginLeft: '10px', padding: '7px' }}
-          >
-            <option value="Select">-- Select --</option>
-            <option value="For SSL Managed By NS for CNAME record">For SSL Managed By NS for CNAME record</option>
-            <option value="For SSL Managed By Club">For SSL Managed By Club</option>
-            <option value="For SAN SSL Managed By Club">For SAN SSL Managed By Club</option>
-            <option value="For Print Server SSL Managed By NS">For Print Server SSL Managed By NS</option>
-            <option value="For Cloudflare On BackOffice">For Cloudflare On BackOffice</option>
-          </select>
-          {/* Help Icon with Tooltip */}
-            <Tooltip text="Choose the necessary template and complete all the fields. Along with creating the email template, it also adds a record to the Google Sheet.">
-                <Link href="/files/help" legacyBehavior>
-                    <a className={styles.tooltip}>
-                    <HelpCircle size={20} />
-                    </a>
-                </Link>
-            </Tooltip>
-        </div>
-        
+        <Head>
+            <title>Email Templates</title>
+            <link rel="icon" href="/ssl2white.svg" />
+        </Head>
+        <Layout>
+            <div className={styles.CSRContainer}>
+                <div className={styles.licenseContent}>
+                    <div className={styles.licenseHeader}>
+                        <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', display: 'flex' }}>
+                            Email Template Generator
+                        </h1>
+                        <Tooltip text="Generate standardized email templates for SSL-related communications">
+                            <Link href="/files/help" legacyBehavior>
+                                <a className={styles.tooltip}>
+                                    <HelpCircle size={24} color="#64748b" />
+                                </a>
+                            </Link>
+                        </Tooltip>
+                    </div>
 
-        {selectedOption && (
-          <form onSubmit={handleSubmit} >
-            {selectedOption === 'Select' && (
-              <>
-              <h2 className={styles.headingnew}>Choose the template you want to generate.</h2>
-              </>
-            )}
-            {selectedOption === 'For SSL Managed By NS for CNAME record' && (
-              <>
-          <div style={{ padding: "20px", fontFamily: "Times New Roman" }}>
+                    <p className={styles.licenseDescription}>
+                        Select template type, provide required information, and click{' '}
+                        <strong>Generate</strong>. Generated emails will include all necessary technical details.
+                    </p>
 
-      {/* Input Fields */}
-      <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
-        <div>
-            <label className={styles.description}>
-            Club Name:
-            <input className={styles.box1}
-                type="text"
-                value={clubName}
-                onChange={(e) => setClubName(e.target.value)}
-                placeholder="Enter Club Name..."
-                required
-            />
-            </label>
-        </div>
-        <div style={{ marginLeft: "70px" }} >
-            <label className={styles.description}>
-            Expiry Date:
-            <input
-                className={styles.box1}
-                type="date"
-                value={expiryDate}
+                    <div className={styles.licenseDescription}>
+                        <label>
+                            Template Type:
+                            <Tooltip text="Select the type of email template you need to generate">
+                                <Link href="/files/help" legacyBehavior>
+                                    <a className={styles.tooltip}>
+                                        <HelpCircle size={20} />
+                                    </a>
+                                </Link>
+                            </Tooltip>
+                            <select
+                                value={selectedOption}
+                                onChange={(e) => handleOptionChange(e.target.value)}
+                                className={styles.styledselecttempmargin}
+                                style={{ width: '100%', margin: '10px 0' }}
+                            >
+                                <option value="Select">-- Select --</option>
+                                <option value="For SSL Managed By NS for CNAME record">For SSL Managed By NS for CNAME record</option>
+                                <option value="For SSL Managed By Club">For SSL Managed By Club</option>
+                                <option value="For SAN SSL Managed By Club">For SAN SSL Managed By Club</option>
+                                <option value="For Print Server SSL Managed By NS">For Print Server SSL Managed By NS</option>
+                                <option value="For Cloudflare On BackOffice">For Cloudflare On BackOffice</option>
+                            </select>
+                        </label>
+                    </div>
 
-                onChange={(e) => {
-                    const rawDate = e.target.value;
-                    setExpiryDate(rawDate);
-                    setFormattedExpiryDate(
-                    new Date(rawDate).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                    })
-                    );
-                }}
-                required
-            />
-            </label>
-        </div>
-        </div>
+                    {selectedOption && (
+                        <form onSubmit={handleSubmit}>
+                            {selectedOption === 'Select' && (
+                            <>
+                            <h2 className={styles.headingnew}>Choose the template you want to generate.</h2>
+                            <br />
+                            </>
+                            )}
 
-        {/* DNS & Details Input Fields */}
-        <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
-        <div>
-            <label className={styles.description} style={{
-                marginLeft: "50px",
-                }}>
-            DNS: 
-            <input
-                className={styles.box1}
-                type="text"
-                value={dns}
-                onChange={(e) => setdns(e.target.value)}
-                placeholder="Enter Domain Name..."
-                required
-            />
-            </label>
-        </div>
-        <div style={{ marginLeft: "20px" }}>
-            <label className={styles.description}>
-            Alias / Host Name: 
-            <input
-                className={styles.box1}
-                type="text"
-                value={HostName}
-                onChange={(e) => setHostName(e.target.value)}
-                placeholder="Enter Host Name..."
-                required
-            />
-            </label>
-        </div>
-        </div>
-        <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
-        <div style={{ marginLeft: "20px" }}>
-            <label className={styles.description} style={{
-                marginLeft: "25px",
-                }}>
-            Value:  
-            <input
-                className={styles.box1}
-                type="text"
-                value={Value}
-                onChange={(e) => setValue(e.target.value)}
-                placeholder="Enter Value..."
-                required
-            />
-            </label>
-        </div>
-        
-        </div>
+                            {selectedOption === 'For SSL Managed By NS for CNAME record' && (
+                            <>
+                            <h2 className={styles.headingnew}>For SSL Managed By NS for CNAME record</h2>
+                            <div className={styles.licenseDescription}>
+                            <label>
+                                Club Name:
+                                <input 
+                                type="text"
+                                value={clubName}
+                                onChange={(e) => setClubName(e.target.value)}
+                                className={styles.styledselecttempmargin}
+                                placeholder="Enter Club Name..."
+                                required
+                                style={{ width: '97.5%' }}
+                                />
+                            </label>
+                            </div>
 
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: "20px" }}>
-        <button
-            className={styles.btndescription}
-            style={{ marginRight: "10px" }}
-        >
-            Generate
-        </button>
-        <button
-            type="button"
-            onClick={handleClear}
-            className={styles.clearbtn}
-        >
-            Clear
-        </button>
-        </div>
+                            <div className={styles.licenseDescription}>
+                            <label>
+                                Expiry Date:
+                                <input
+                                type="date"
+                                value={expiryDate}
+                                onChange={(e) => {
+                                    const rawDate = e.target.value;
+                                    setExpiryDate(rawDate);
+                                    setFormattedExpiryDate(
+                                    new Date(rawDate).toLocaleDateString("en-US", {
+                                        year: "numeric",
+                                        month: "long",
+                                        day: "numeric",
+                                    })
+                                    );
+                                }}
+                                className={styles.styledselecttempmargin}
+                                required
+                                style={{ width: '97.5%' }}
+                                />
+                            </label>
+                            </div>
 
-        <div>
-        {generatedTemplate && (
-    <div className={styles.mainbox}
-    >
-        <h2 style={{ color: 'rgb(16, 31, 118)'}}>{generatedTemplate.heading}</h2>
-        {/* Email to*/}
-        <div className={styles.contentbox2}
-        >
-            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email to:</h3>
-            <pre className={styles.contentboxinside2}
-            >
-              <b>To: </b>{generatedTemplate.to}
-                <br />
-            <b>cc: </b> {generatedTemplate.cc}
-            </pre>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button
-                    onClick={() => handleCopy(generatedTemplate.to + "," + generatedTemplate.cc, "to")}
-                    className={styles.handlecopy}
-                    style={{
-                     color: copied === `to` ? "green" : "black",
-                    }}
-                >
-                    <img
-                        src="/copy-icon.svg"
-                        alt="Copy"
-                        style={{ width: "20px", height: "20px" }}
-                    />
-                    {copied === `to` ? "Copied!" : "Copy"}
-                </button>
-            </div>
-        </div>
+                            <div className={styles.licenseDescription}>
+                                <label>
+                                DNS:
+                                <input
+                                    type="text"
+                                    value={dns}
+                                    onChange={(e) => setdns(e.target.value)}
+                                    className={styles.styledselecttempmargin}
+                                    placeholder="Enter DNS..."
+                                    required
+                                    style={{ width: '97.5%' }}
+                                />
+                                </label>
+                            </div>
+                            <div className={styles.licenseDescription}>
+                                <label>
+                                Alias / Host Name:
+                                <input
+                                    type="text"
+                                    value={HostName}
+                                    onChange={(e) => setHostName(e.target.value)}
+                                    className={styles.styledselecttempmargin}
+                                    placeholder="Enter Host Name..."
+                                    required
+                                    style={{ width: '97.5%' }}
+                                />
+                                </label>
+                            </div>
+                            <div className={styles.licenseDescription}>
+                                <label>
+                                Value:
+                                <input
+                                    type="text"
+                                    value={Value}
+                                    onChange={(e) => setValue(e.target.value)}
+                                    className={styles.styledselecttempmargin}
+                                    placeholder="Enter Value..."
+                                    required
+                                    style={{ width: '97.5%' }}
+                                />
+                                </label>
+                            </div>
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                            <button type="submit" className={styles.btndescription}>
+                                Generate
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleClear}
+                                className={styles.clearbtn}
+                            >
+                                Clear
+                            </button>
+                            </div>
+                            
+                            </>
+                            )}
+                            {selectedOption === 'For SSL Managed By Club' && (
+                            <>
+                            <h2 className={styles.headingnew}>For SSL Managed By Club</h2>
+                            <div className={styles.licenseDescription}>
+                            <label>
+                                Club Name:
+                                <input 
+                                type="text"
+                                value={clubName}
+                                onChange={(e) => setClubName(e.target.value)}
+                                className={styles.styledselecttempmargin}
+                                placeholder="Enter Club Name..."
+                                required
+                                style={{ width: '97.5%' }}
+                                />
+                            </label>
+                            </div>
 
-        {/* Subject Box */}
-        <div className={styles.subjectbox}
-        >
-            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email Subject</h3>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <p style={{ margin: 0, fontFamily:'Times New Roman' }}>{generatedTemplate.subject}</p>
-                <button
-                    onClick={() => handleCopy(generatedTemplate.subject, "subject")}
-                    className={styles.handlecopy}
-                    style={{
-                        color: copied === `subject` ? "green" : "black",
-                    }}
-                >
-                    <img
-                        src="/copy-icon.svg"
-                        alt="Copy"
-                        style={{ width: "20px", height: "20px" }}
-                    />
-                    {copied === `subject` ? "Copied!" : "Copy"}
-                </button>
-            </div>
-        </div>
+                            <div className={styles.licenseDescription}>
+                            <label>
+                                Expiry Date:
+                                <input
+                                type="date"
+                                value={expiryDate}
+                                onChange={(e) => {
+                                    const rawDate = e.target.value;
+                                    setExpiryDate(rawDate);
+                                    setFormattedExpiryDate(
+                                    new Date(rawDate).toLocaleDateString("en-US", {
+                                        year: "numeric",
+                                        month: "long",
+                                        day: "numeric",
+                                    })
+                                    );
+                                }}
+                                className={styles.styledselecttempmargin}
+                                required
+                                style={{ width: '97.5%' }}
+                                />
+                            </label>
+                            </div>
 
-        {/* Content Box */}
-        <div className={styles.contentbox}
-        >
-            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email Content</h3>
-            <pre className={styles.contentboxinside} 
-            >
-                {generatedTemplate.content}
-            </pre>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button
-                    onClick={() => handleCopy(generatedTemplate.content, "content")}
-                    className={styles.handlecopy}
-                    style={{
-                     color: copied === `content` ? "green" : "black",
-                    }}
-                >
-                    <img
-                        src="/copy-icon.svg"
-                        alt="Copy"
-                        style={{ width: "20px", height: "20px" }}
-                    />
-                    {copied === `content` ? "Copied!" : "Copy"}
-                </button>
-            </div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <button
-            className={styles.btndescription}
-            style={{ marginRight: "10px", marginTop: "10px" }}
-            onClick={handleSendClick}
-        >
-            Send Email
-        </button>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '5px' }}>
-        <label className={styles.notedescription}>
-            <span style={{ color: 'blue' }}>(Attach the CSR & Keystore in separate email for DevOps Team)</span> 
-            <br />
-        </label>
-        </div>
+                            <div className={styles.licenseDescription}>
+                                <label>
+                                Domain:
+                                <input
+                                    type="text"
+                                    value={Domain}
+                                    onChange={(e) => setDomain(e.target.value)}
+                                    className={styles.styledselecttempmargin}
+                                    placeholder="Enter Domain Name..."
+                                    required
+                                    style={{ width: '97.5%' }}
+                                />
+                                </label>
+                            </div>
+                            
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                            <button type="submit" className={styles.btndescription}>
+                                Generate
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleClear}
+                                className={styles.clearbtn}
+                            >
+                                Clear
+                            </button>
+                            </div>
+
+                            </>
+                            )}
+                            {selectedOption === 'For SAN SSL Managed By Club' && (
+                            <>
+                            <h2 className={styles.headingnew}>For SAN SSL Managed By Club</h2>
+                            <div className={styles.licenseDescription}>
+                            <label>
+                                Club Name:
+                                <input 
+                                type="text"
+                                value={clubName}
+                                onChange={(e) => setClubName(e.target.value)}
+                                className={styles.styledselecttempmargin}
+                                placeholder="Enter Club Name..."
+                                required
+                                style={{ width: '97.5%' }}
+                                />
+                            </label>
+                            </div>
+
+                            <div className={styles.licenseDescription}>
+                            <label>
+                                Expiry Date:
+                                <input
+                                type="date"
+                                value={expiryDate}
+                                onChange={(e) => {
+                                    const rawDate = e.target.value;
+                                    setExpiryDate(rawDate);
+                                    setFormattedExpiryDate(
+                                    new Date(rawDate).toLocaleDateString("en-US", {
+                                        year: "numeric",
+                                        month: "long",
+                                        day: "numeric",
+                                    })
+                                    );
+                                }}
+                                className={styles.styledselecttempmargin}
+                                required
+                                style={{ width: '97.5%' }}
+                                />
+                            </label>
+                            </div>
+
+                            <div className={styles.licenseDescription}>
+                                <label>
+                                Additional Domains:
+                                <textarea
+                                    className={styles.styledselecttempmargin}
+                                    type="text"
+                                    rows="5"
+                                    value={AdditionalDomains.join("\n")}
+                                    onChange={(e) => setAdditionalDomains(e.target.value.split("\n"))}
+                                    placeholder="Enter Addtional DNS Names..."
+                                    required
+                                    style={{ resize: "vertical", width: '97.5%' }}
+                                />
+                                </label>
+                            </div>
+                            
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                            <button type="submit" className={styles.btndescription}>
+                                Generate
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleClear}
+                                className={styles.clearbtn}
+                            >
+                                Clear
+                            </button>
+                            </div>
+
+                            </>
+                            )}
+                            {selectedOption === 'For Print Server SSL Managed By NS' && (
+                            <>
+                            <h2 className={styles.headingnew}>For Print Server SSL Managed By NS</h2>
+                            <div className={styles.licenseDescription}>
+                            <label>
+                                Club Name:
+                                <input 
+                                type="text"
+                                value={clubName}
+                                onChange={(e) => setClubName(e.target.value)}
+                                className={styles.styledselecttempmargin}
+                                placeholder="Enter Club Name..."
+                                required
+                                style={{ width: '97.5%' }}
+                                />
+                            </label>
+                            </div>
+
+                            <div className={styles.licenseDescription}>
+                            <label>
+                                Expiry Date:
+                                <input
+                                type="date"
+                                value={expiryDate}
+                                onChange={(e) => {
+                                    const rawDate = e.target.value;
+                                    setExpiryDate(rawDate);
+                                    setFormattedExpiryDate(
+                                    new Date(rawDate).toLocaleDateString("en-US", {
+                                        year: "numeric",
+                                        month: "long",
+                                        day: "numeric",
+                                    })
+                                    );
+                                }}
+                                className={styles.styledselecttempmargin}
+                                required
+                                style={{ width: '97.5%' }}
+                                />
+                            </label>
+                            </div>
+
+                            <div className={styles.licenseDescription}>
+                                <label>
+                                DNS:
+                                <input
+                                    type="text"
+                                    value={dns}
+                                    onChange={(e) => setdns(e.target.value)}
+                                    className={styles.styledselecttempmargin}
+                                    placeholder="Enter DNS..."
+                                    required
+                                    style={{ width: '97.5%' }}
+                                />
+                                </label>
+                            </div>
+                            <div className={styles.licenseDescription}>
+                                <label>
+                                Alias / Host Name:
+                                <input
+                                    type="text"
+                                    value={HostName}
+                                    onChange={(e) => setHostName(e.target.value)}
+                                    className={styles.styledselecttempmargin}
+                                    placeholder="Enter Host Name..."
+                                    required
+                                    style={{ width: '97.5%' }}
+                                />
+                                </label>
+                            </div>
+                            <div className={styles.licenseDescription}>
+                                <label>
+                                Value:
+                                <input
+                                    type="text"
+                                    value={Value}
+                                    onChange={(e) => setValue(e.target.value)}
+                                    className={styles.styledselecttempmargin}
+                                    placeholder="Enter Value..."
+                                    required
+                                    style={{ width: '97.5%' }}
+                                />
+                                </label>
+                            </div>
+                            <div className={styles.licenseDescription}>
+                                <label>
+                                Domain:
+                                <input
+                                    type="text"
+                                    value={Domain}
+                                    onChange={(e) => setDomain(e.target.value)}
+                                    className={styles.styledselecttempmargin}
+                                    placeholder="Enter Domain Name..."
+                                    required
+                                    style={{ width: '97.5%' }}
+                                />
+                                </label>
+                            </div>
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                            <button type="submit" className={styles.btndescription}>
+                                Generate
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleClear}
+                                className={styles.clearbtn}
+                            >
+                                Clear
+                            </button>
+                            </div>
+                            
+                            </>
+                            )}
+                            {selectedOption === 'For Cloudflare On BackOffice' && (
+                            <>
+                            <h2 className={styles.headingnew}>For Cloudflare On BackOffice</h2>
+                            <div className={styles.licenseDescription}>
+                            <label>
+                                Club Name:
+                                <input 
+                                type="text"
+                                value={clubName}
+                                onChange={(e) => setClubName(e.target.value)}
+                                className={styles.styledselecttempmargin}
+                                placeholder="Enter Club Name..."
+                                required
+                                style={{ width: '97.5%' }}
+                                />
+                            </label>
+                            </div>
+
+                            <div className={styles.licenseDescription}>
+                            <label>
+                                Expiry Date:
+                                <input
+                                type="date"
+                                value={expiryDate}
+                                onChange={(e) => {
+                                    const rawDate = e.target.value;
+                                    setExpiryDate(rawDate);
+                                    setFormattedExpiryDate(
+                                    new Date(rawDate).toLocaleDateString("en-US", {
+                                        year: "numeric",
+                                        month: "long",
+                                        day: "numeric",
+                                    })
+                                    );
+                                }}
+                                className={styles.styledselecttempmargin}
+                                required
+                                style={{ width: '97.5%' }}
+                                />
+                            </label>
+                            </div>
+
+                            <div className={styles.licenseDescription}>
+                                <label>
+                                Domain:
+                                <input
+                                    type="text"
+                                    value={Domain}
+                                    onChange={(e) => setDomain(e.target.value)}
+                                    className={styles.styledselecttempmargin}
+                                    placeholder="Enter Domain Name..."
+                                    required
+                                    style={{ width: '97.5%' }}
+                                />
+                                </label>
+                            </div>
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
+                            <button type="submit" className={styles.btndescription}>
+                                Generate
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleClear}
+                                className={styles.clearbtn}
+                            >
+                                Clear
+                            </button>
+                            </div>
+                            
+                            </>
+                            )}
 
 
 
-    </div>
-    
-)}
-
-        </div>
 
 
 
-
-    </div>
-        </>
-            )}
-
-            {selectedOption === 'For SSL Managed By Club' && (
-              <>
-              <div style={{ padding: "20px", fontFamily: "Times New Roman" }}>
-      
-          {/* Input Fields */}
-          <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
-            <div>
-                <label className={styles.description}>
-                Club Name:
-                <input
-                    className={styles.box1}
-                    type="text"
-                    value={clubName}
-                    onChange={(e) => setClubName(e.target.value)}
-                    placeholder="Enter Club Name..."
-                    required
-                />
-                </label>
-            </div>
-            <div style={{ marginLeft: "70px" }} >
-                <label className={styles.description}>
-                Expiry Date:
-                <input
-                className={styles.box1}
-                type="date"
-                value={expiryDate}
-
-                onChange={(e) => {
-                    const rawDate = e.target.value;
-                    setExpiryDate(rawDate);
-                    setFormattedExpiryDate(
-                    new Date(rawDate).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                    })
-                    );
-                }}
-                required
-            />
-                </label>
-            </div>
-            </div>
-      
-            {/* DNS & Details Input Fields */}
-            <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
-            
-            <div>
-                <label className={styles.description}>
-                Domain:  
-                <input
-                    className={styles.box1}
-                    type="text"
-                    value={Domain}
-                    onChange={(e) => setDomain(e.target.value)}
-                    placeholder="Enter Domain Name..."
-                    required
-                />
-                </label>
-            </div>
-            </div>
-
-            
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: "20px" }}>
-        <button
-            className={styles.btndescription}
-            style={{ marginRight: "10px" }}
-        >
-            Generate
-        </button>
-        <button
-            type="button"
-            onClick={handleClear}
-            className={styles.clearbtn}
-        >
-            Clear
-        </button>
-        </div>
-
-        <div>
-        {generatedTemplate && (
-    <div className={styles.mainbox}
-    >
-        <h2 style={{ color: 'rgb(16, 31, 118)'}}>{generatedTemplate.heading}</h2>
-        
-        {/* Email to*/}
-        <div className={styles.contentbox2}
-        >
-            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email to:</h3>
-            <pre className={styles.contentboxinside2}
-            >
-                <b>To: </b>{generatedTemplate.to}
-                <br />
-            <b>cc: </b> {generatedTemplate.cc}
-            </pre>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button
-                    onClick={() => handleCopy(generatedTemplate.to + "," + generatedTemplate.cc, "to")}
-                    className={styles.handlecopy}
-                    style={{
-                     color: copied === `to` ? "green" : "black",
-                    }}
-                >
-                    <img
-                        src="/copy-icon.svg"
-                        alt="Copy"
-                        style={{ width: "20px", height: "20px" }}
-                    />
-                    {copied === `to` ? "Copied!" : "Copy"}
-                </button>
-            </div>
-        </div>
-
-        {/* Subject Box */}
-        <div className={styles.subjectbox}
-        >
-            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email Subject</h3>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <p style={{ margin: 0, fontFamily:'Times New Roman' }}>{generatedTemplate.subject}</p>
-                <button
-                    onClick={() => handleCopy(generatedTemplate.subject, "subject")}
-                    className={styles.handlecopy}
-                    style={{
-                     color: copied === `subject` ? "green" : "black",
-                    }}
-                >
-                    <img
-                        src="/copy-icon.svg"
-                        alt="Copy"
-                        style={{ width: "20px", height: "20px" }}
-                    />
-                    {copied === `subject` ? "Copied!" : "Copy"}
-                </button>
-            </div>
-        </div>
-
-        {/* Content Box */}
-        <div className={styles.contentbox}
-        >
-            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email Content</h3>
-            <pre className={styles.contentboxinside}
-            >
-                {generatedTemplate.content}
-            </pre>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button
-                    onClick={() => handleCopy(generatedTemplate.content, "content")}
-                    className={styles.handlecopy}
-                    style={{
-                     color: copied === `content` ? "green" : "black",
-                    }}
-                >
-                    <img
-                        src="/copy-icon.svg"
-                        alt="Copy"
-                        style={{ width: "20px", height: "20px" }}
-                    />
-                    {copied === `content` ? "Copied!" : "Copy"}
-                </button>
-            </div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <button
-            className={styles.btndescription}
-            style={{ marginRight: "10px", marginTop: "10px" }}
-            onClick={handleSendClick}
-        >
-            Send Email
-        </button>
-        
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '5px' }}>
-        <label className={styles.notedescription}>
-            Note: <span style={{ color: 'red' }}>Make sure to attach the CSR file in this email.</span> 
-            <br />
-        </label>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '5px' }}>
-        <label className={styles.notedescription}>
-            <span style={{ color: 'blue' }}>(Attach the Keystore in separate email for DevOps Team)</span> 
-            <br />
-        </label>
-        </div>
-
-    </div>
-)}
-
-        </div>
-            
-          
-        </div>
-            </>
-            )}
-            {selectedOption === 'For SAN SSL Managed By Club' && (
-              <>
-              <div style={{ padding: "20px", fontFamily: "Times New Roman" }}>
-      
-          {/* Input Fields */}
-          <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
-            <div>
-                <label className={styles.description}>
-                Club Name:
-                <input
-                    className={styles.box1}
-                    type="text"
-                    value={clubName}
-                    onChange={(e) => setClubName(e.target.value)}
-                    placeholder="Enter Club Name..."
-                    required
-                />
-                </label>
-            </div>
-            <div style={{ marginLeft: "70px" }} >
-                <label className={styles.description}>
-                Expiry Date:
-                <input
-                className={styles.box1}
-                type="date"
-                value={expiryDate}
-
-                onChange={(e) => {
-                    const rawDate = e.target.value;
-                    setExpiryDate(rawDate);
-                    setFormattedExpiryDate(
-                    new Date(rawDate).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                    })
-                    );
-                }}
-                required
-                />
-                </label>
-            </div>
-            </div>
-      
-            {/* DNS & Details Input Fields */}
-            <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
-            
-            <div>
-                <label className={styles.description}>
-                Additional Domains:  
-              <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-                <textarea
-                    className={styles.box2}
-                    rows="5"   // We can update the number of rows which we want
-                    type="text"
-                    value={AdditionalDomains.join("\n")}
-                    onChange={(e) => setAdditionalDomains(e.target.value.split("\n"))}
-                    placeholder="Enter Addtional DNS Names..."
-                    style={{resize: "vertical" }}
-                    required
-                />
+                        </form>
+                    )}
                 </div>
-                </label>
-            </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: "20px" }}>
-        <button
-            className={styles.btndescription}
-            style={{ marginRight: "10px" }}
-        >
-            Generate
-        </button>
-        <button
-            type="button"
-            onClick={handleClear}
-            className={styles.clearbtn}
-        >
-            Clear
-        </button>
-        </div>
 
-        <div>
-        {generatedTemplate && (
-    <div className={styles.mainbox}
-    >
-        <h2 style={{ color: 'rgb(16, 31, 118)'}}>{generatedTemplate.heading}</h2>
-
-        {/* Email to*/}
-        <div className={styles.contentbox2}
-        >
-            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email to:</h3>
-            <pre className={styles.contentboxinside2}
-            >
-                <b>To: </b>{generatedTemplate.to}
-                <br />
-                <b>cc: </b> {generatedTemplate.cc}
-            </pre>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button
-                    onClick={() => handleCopy(generatedTemplate.to + "," + generatedTemplate.cc, "to")}
-                    className={styles.handlecopy}
-                    style={{
-                     color: copied === `to` ? "green" : "black",
-                    }}
-                >
-                    <img
-                        src="/copy-icon.svg"
-                        alt="Copy"
-                        style={{ width: "20px", height: "20px" }}
+                <div className={styles.licenseVisual}>
+                    <img 
+                        src="/email_template2.png"
+                        alt="Email Template Preview"
+                        className={styles.licenseImage}
                     />
-                    {copied === `to` ? "Copied!" : "Copy"}
-                </button>
-            </div>
-        </div>
-
-        {/* Subject Box */}
-        <div className={styles.subjectbox}
-        >
-            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email Subject</h3>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <p style={{ margin: 0, fontFamily:'Times New Roman' }}>{generatedTemplate.subject}</p>
-                <button
-                    onClick={() => handleCopy(generatedTemplate.subject, "subject")}
-                    className={styles.handlecopy}
-                    style={{
-                     color: copied === `subject` ? "green" : "black",
-                    }}
-                >
-                    <img
-                        src="/copy-icon.svg"
-                        alt="Copy"
-                        style={{ width: "20px", height: "20px" }}
-                    />
-                    {copied === `subject` ? "Copied!" : "Copy"}
-                </button>
-            </div>
-        </div>
-
-        {/* Content Box */}
-        <div className={styles.contentbox}
-        >
-            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email Content</h3>
-            <pre className={styles.contentboxinside}
-            >
-                {generatedTemplate.content}
-            </pre>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button
-                    onClick={() => handleCopy(generatedTemplate.content, "content")}
-                    className={styles.handlecopy}
-                    style={{
-                     color: copied === `content` ? "green" : "black",
-                    }}
-                >
-                    <img
-                        src="/copy-icon.svg"
-                        alt="Copy"
-                        style={{ width: "20px", height: "20px" }}
-                    />
-                    {copied === `content` ? "Copied!" : "Copy"}
-                </button>
-            </div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <button
-            className={styles.btndescription}
-            style={{ marginRight: "10px", marginTop: "10px" }}
-            onClick={handleSendClick}
-        >
-            Send Email
-        </button>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '5px' }}>
-        <label className={styles.notedescription}>
-            Note: <span style={{ color: 'red' }}>Make sure to attach the CSR file in this email.</span> 
-            <br />
-        </label>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '5px' }}>
-        <label className={styles.notedescription}>
-            <span style={{ color: 'blue' }}>(Attach the Keystore in separate email for DevOps Team)</span> 
-            <br />
-        </label>
-        </div>
-
-        
-    </div>
-)}
-
-        </div>
-            
-          
-        </div>
-            </>
-            )}
-            {selectedOption === 'For Print Server SSL Managed By NS' && (
-              <>
-              <div style={{ padding: "20px", fontFamily: "Times New Roman" }}>
-      
-          {/* Input Fields */}
-          <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
-            <div>
-                <label className={styles.description}>
-                Club Name:
-                <input
-                    className={styles.box1}
-                    type="text"
-                    value={clubName}
-                    onChange={(e) => setClubName(e.target.value)}
-                    placeholder="Enter Club Name..."
-                    required
-                />
-                </label>
-            </div>
-            <div style={{ marginLeft: "70px" }} >
-                <label className={styles.description}>
-                Expiry Date:
-                <input
-                className={styles.box1}
-                type="date"
-                value={expiryDate}
-
-                onChange={(e) => {
-                    const rawDate = e.target.value;
-                    setExpiryDate(rawDate);
-                    setFormattedExpiryDate(
-                    new Date(rawDate).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                    })
-                    );
-                }}
-                required
-                />
-                </label>
-            </div>
-            </div>
-      
-            {/* DNS & Details Input Fields */}
-            <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
-            <div>
-                <label className={styles.description} style={{
-                    marginLeft: "50px",
-                    }}>
-                DNS: 
-                <input
-                    className={styles.box1}
-                    type="text"
-                    value={dns}
-                    onChange={(e) => setdns(e.target.value)}
-                    placeholder="Enter Domain Name..."
-                    required
-                />
-                </label>
-            </div>
-            <div style={{ marginLeft: "20px" }}>
-                <label className={styles.description}>
-                Alias / Host Name: 
-                <input
-                    className={styles.box1}
-                    type="text"
-                    value={HostName}
-                    onChange={(e) => setHostName(e.target.value)}
-                    placeholder="Enter Host Name..."
-                    required
-                />
-                </label>
-            </div>
-            </div>
-            <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
-            <div style={{ marginLeft: "20px" }}>
-                <label className={styles.description} style={{
-                    marginLeft: "25px",
-                    }}>
-                Value:  
-                <input
-                    className={styles.box1}
-                    type="text"
-                    value={Value}
-                    onChange={(e) => setValue(e.target.value)}
-                    placeholder="Enter Value..."
-                    required
-                />
-                </label>
-            </div>
-            <div style={{ marginLeft: "100px" }}>
-                <label className={styles.description}>
-                Domain:  
-                <input
-                    className={styles.box1}
-                    type="text"
-                    value={Domain}
-                    onChange={(e) => setDomain(e.target.value)}
-                    placeholder="Enter Domain Name..."
-                    required
-                />
-                </label>
-            </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: "20px" }}>
-        <button
-            className={styles.btndescription}
-            style={{ marginRight: "10px" }}
-        >
-            Generate
-        </button>
-        <button
-            type="button"
-            onClick={handleClear}
-            className={styles.clearbtn}
-        >
-            Clear
-        </button>
-        </div>
-
-        <div>
-        {generatedTemplate && (
-    <div className={styles.mainbox}
-    >
-        <h2 style={{ color: 'rgb(16, 31, 118)'}}>{generatedTemplate.heading}</h2>
-        {/* Email to*/}
-        <div className={styles.contentbox2}
-        >
-            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email to:</h3>
-            <pre className={styles.contentboxinside2}
-            >
-                <b>To: </b>{generatedTemplate.to}
-                <br />
-                <b>cc: </b> {generatedTemplate.cc}
-            </pre>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button
-                    onClick={() => handleCopy(generatedTemplate.to + "," + generatedTemplate.cc, "to")}
-                    className={styles.handlecopy}
-                    style={{
-                     color: copied === `to` ? "green" : "black",
-                    }}
-                >
-                    <img
-                        src="/copy-icon.svg"
-                        alt="Copy"
-                        style={{ width: "20px", height: "20px" }}
-                    />
-                    {copied === `to` ? "Copied!" : "Copy"}
-                </button>
-            </div>
-        </div>
-
-        {/* Subject Box */}
-        <div className={styles.subjectbox}
-        >
-            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email Subject</h3>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <p style={{margin: 0, fontFamily:'Times New Roman' }}>{generatedTemplate.subject}</p>
-                <button
-                    onClick={() => handleCopy(generatedTemplate.subject, "subject")}
-                    className={styles.handlecopy}
-                    style={{
-                     color: copied === `subject` ? "green" : "black",
-                    }}
-                >
-                    <img
-                        src="/copy-icon.svg"
-                        alt="Copy"
-                        style={{ width: "20px", height: "20px" }}
-                    />
-                    {copied === `subject` ? "Copied!" : "Copy"}
-                </button>
-            </div>
-        </div>
-
-        {/* Content Box */}
-        <div className={styles.contentbox}
-        >
-            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email Content</h3>
-            <pre className={styles.contentboxinside}
-            >
-                {generatedTemplate.content}
-            </pre>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button
-                    onClick={() => handleCopy(generatedTemplate.content, "content")}
-                    className={styles.handlecopy}
-                    style={{
-                     color: copied === `content` ? "green" : "black",
-                    }}
-                >
-                    <img
-                        src="/copy-icon.svg"
-                        alt="Copy"
-                        style={{ width: "20px", height: "20px" }}
-                    />
-                    {copied === `content` ? "Copied!" : "Copy"}
-                </button>
-            </div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <button
-            className={styles.btndescription}
-            style={{ marginRight: "10px", marginTop: "10px" }}
-            onClick={handleSendClick}
-        >
-            Send Email
-        </button>
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '5px' }}>
-        <label className={styles.notedescription}>
-            <span style={{ color: 'blue' }}>(Attach the CSR & Keystore in separate email for DevOps Team)</span> 
-            <br />
-        </label>
-        </div>
-
-    </div>
-)}
-
-        </div>
-            
-        </div>
-            </>
-            )}
-            {selectedOption === 'For Cloudflare On BackOffice' && (
-              <>
-              <div style={{ padding: "20px", fontFamily: "Times New Roman" }}>
-      
-          {/* Input Fields */}
-          <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
-            <div>
-                <label className={styles.description}>
-                Club Name:
-                <input
-                    className={styles.box1}
-                    type="text"
-                    value={clubName}
-                    onChange={(e) => setClubName(e.target.value)}
-                    placeholder="Enter Club Name..."
-                    required
-                />
-                </label>
-            </div>
-            <div style={{ marginLeft: "70px" }} >
-                <label className={styles.description}>
-                Expiry Date:
-                <input
-                className={styles.box1}
-                type="date"
-                value={expiryDate}
-
-                onChange={(e) => {
-                    const rawDate = e.target.value;
-                    setExpiryDate(rawDate);
-                    setFormattedExpiryDate(
-                    new Date(rawDate).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                    })
-                    );
-                }}
-                required
-            />
-                </label>
-            </div>
-            </div>
-      
-            {/* DNS & Details Input Fields */}
-            <div style={{ marginBottom: "20px", display: 'flex', justifyContent: 'center' }}>
-            
-            <div>
-                <label className={styles.description}>
-                Domain:  
-                <input
-                    className={styles.box1}
-                    type="text"
-                    value={Domain}
-                    onChange={(e) => setDomain(e.target.value)}
-                    placeholder="Enter Domain Name..."
-                    required
-                />
-                </label>
-            </div>
+                </div>
             </div>
 
-            
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: "20px" }}>
-        <button
-            className={styles.btndescription}
-            style={{ marginRight: "10px" }}
-        >
-            Generate
-        </button>
-        <button
-            type="button"
-            onClick={handleClear}
-            className={styles.clearbtn}
-        >
-            Clear
-        </button>
-        </div>
+            {/* New Template Preview Container */}
+            {generatedTemplate && (
+                            <div className={styles.CSRContainer} style={{ marginTop: '2rem', gridTemplateColumns: '1fr' }}>
+                                <div className={styles.licenseContent}>
+                                    <div className={styles.mainbox}>
+                                        <h2 style={{ color: 'rgb(16, 31, 118)' }}>{generatedTemplate.heading}</h2>
+                                        {/* Email to*/}
+                                        <div className={styles.contentbox2}>
+                                            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px' }}>Email Recipients</h3>
+                                            <pre className={styles.contentboxinside2}>
+                                                <b>To:</b> {generatedTemplate.to}
+                                                <br />
+                                                <b>CC:</b> {generatedTemplate.cc}
+                                            </pre>
+                                            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                                                <button
+                                                    onClick={() => handleCopy(generatedTemplate.to + "," + generatedTemplate.cc, "to")}
+                                                    className={styles.handlecopy}
+                                                    style={{
+                                                        color: copied === `to` ? "green" : "black",
+                                                    }}
+                                                >
+                                                    <img
+                                                        src="/copy-icon.svg"
+                                                        alt="Copy"
+                                                        style={{ width: "20px", height: "20px" }}
+                                                    />
+                                                    {copied === `to` ? "Copied!" : "Copy"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {/* Subject Box */}
+                                        <div className={styles.subjectbox}>
+                                            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px' }}>Email Subject</h3>
+                                            <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                                <p style={{ margin: 0, fontFamily:'Times New Roman' }}>{generatedTemplate.subject}</p>
+                                                <button
+                                                    onClick={() => handleCopy(generatedTemplate.subject, "subject")}
+                                                    className={styles.handlecopy}
+                                                    style={{
+                                                        color: copied === `subject` ? "green" : "black",
+                                                    }}
+                                                >
+                                                    <img
+                                                        src="/copy-icon.svg"
+                                                        alt="Copy"
+                                                        style={{ width: "20px", height: "20px" }}
+                                                    />
+                                                    {copied === `subject` ? "Copied!" : "Copy"}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {/* Content Box */}
+                                        <div className={styles.contentbox}>
+                                            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px' }}>Email Content</h3>
+                                            <pre className={styles.contentboxinside}>
+                                                {generatedTemplate.content}
+                                            </pre>
+                                            <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                                                <button
+                                                    onClick={() => handleCopy(generatedTemplate.content, "content")}
+                                                    className={styles.handlecopy}
+                                                    style={{
+                                                    color: copied === `content` ? "green" : "black",
+                                                    }}
+                                                >
+                                                    <img
+                                                        src="/copy-icon.svg"
+                                                        alt="Copy"
+                                                        style={{ width: "20px", height: "20px" }}
+                                                    />
+                                                    {copied === `content` ? "Copied!" : "Copy"}
+                                                </button>
+                                            </div>
+                                        </div>
 
-        <div>
-        {generatedTemplate && (
-    <div className={styles.mainbox}
-    >
-        <h2 style={{ color: 'rgb(16, 31, 118)'}}>{generatedTemplate.heading}</h2>
-        
-        {/* Email to*/}
-        <div className={styles.contentbox2}
-        >
-            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email to:</h3>
-            <pre className={styles.contentboxinside2}
-            >
-                <b>To: </b>{generatedTemplate.to}
-                <br />
-            <b>cc: </b> {generatedTemplate.cc}
-            </pre>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button
-                    onClick={() => handleCopy(generatedTemplate.to + "," + generatedTemplate.cc, "to")}
-                    className={styles.handlecopy}
-                    style={{
-                     color: copied === `to` ? "green" : "black",
-                    }}
-                >
-                    <img
-                        src="/copy-icon.svg"
-                        alt="Copy"
-                        style={{ width: "20px", height: "20px" }}
-                    />
-                    {copied === `to` ? "Copied!" : "Copy"}
-                </button>
-            </div>
-        </div>
+                                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem', justifyContent: 'center' }}>
+                                            <button
+                                                className={styles.btndescription}
+                                                onClick={handleSendClick}
+                                            >
+                                                Send Email
+                                            </button>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '5px' }}>
+                                        <label className={styles.notedescription}>
+                                            <span style={{ color: 'blue' }}>(Must attach the CSR & Keystore in the email for NS Support & DevOps Team)</span> 
+                                            <br />
+                                        </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            )}
 
-        {/* Subject Box */}
-        <div className={styles.subjectbox}
-        >
-            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email Subject</h3>
-            <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <p style={{ margin: 0, fontFamily:'Times New Roman' }}>{generatedTemplate.subject}</p>
-                <button
-                    onClick={() => handleCopy(generatedTemplate.subject, "subject")}
-                    className={styles.handlecopy}
-                    style={{
-                     color: copied === `subject` ? "green" : "black",
-                    }}
-                >
-                    <img
-                        src="/copy-icon.svg"
-                        alt="Copy"
-                        style={{ width: "20px", height: "20px" }}
-                    />
-                    {copied === `subject` ? "Copied!" : "Copy"}
-                </button>
-            </div>
-        </div>
-
-        {/* Content Box */}
-        <div className={styles.contentbox}
-        >
-            <h3 style={{ color: 'rgb(16, 31, 118)', margin: '0', marginBottom: '15px', marginTop: '5px'}}>Email Content</h3>
-            <pre className={styles.contentboxinside}
-            >
-                {generatedTemplate.content}
-            </pre>
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button
-                    onClick={() => handleCopy(generatedTemplate.content, "content")}
-                    className={styles.handlecopy}
-                    style={{
-                     color: copied === `content` ? "green" : "black",
-                    }}
-                >
-                    <img
-                        src="/copy-icon.svg"
-                        alt="Copy"
-                        style={{ width: "20px", height: "20px" }}
-                    />
-                    {copied === `content` ? "Copied!" : "Copy"}
-                </button>
-            </div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'center' }}>
-        <button
-            className={styles.btndescription}
-            style={{ marginRight: "10px", marginTop: "10px" }}
-            onClick={handleSendClick}
-        >
-            Send Email
-        </button>
-        
-        </div>
-        
-
-    </div>
-)}
-
-        </div>
-            
-          
-        </div>
-            </>
-            )}
-
-
-          </form>
-        )}
-        {showPopup && (
+{showPopup && (
       <div className={styles.popupContainer}>
         <div className={styles.popupBox}>
           <div>
-            <label className={styles.description}>Email Sender:</label>
+            <label className={styles.description}>Sender Name:</label>
             <select
               value={selectedSender}
               onChange={handleSenderChange}
@@ -1430,17 +968,14 @@ Thank you.`
         </div>
       </div>
 )}
-        
-        <br />
-        <div className={styles.Installerhomebtn} style={{ marginTop: '20px' }}>
-          <button>
-            <Link href="/home">Back to Home</Link>
-          </button>
-        </div>
-      </div>
 
+            <div className={styles.Installerhomebtn}>
+                <button style={{ marginBottom: '1rem' }}>
+                    <Link href="/home">Back to Home</Link>
+                </button>
+            </div>
 
-      <footer className={styles.footer}>
+            <footer className={styles.footer}>
         <div className={styles.footerRow}>
           <a
             href="https://www.globalnorthstar.com/"
@@ -1472,8 +1007,8 @@ Thank you.`
           </a>
         </div>
       </footer>
-      </Layout>
-      </main>
+        </Layout>
+    </main>
     </>
-  );
+);
 }
