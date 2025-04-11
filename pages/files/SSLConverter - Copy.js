@@ -260,242 +260,227 @@ export default function SSLConverter() {
         <link rel="icon" href="/ssl2white.svg" />
       </Head>
       <Layout>
-        <div className={styles.CSRContainer}>
-          <div className={styles.licenseContent}>
-            <div className={styles.licenseHeader}>
-              <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', display: 'flex' }}>
-                SSL Converter
-              </h1>
-              <Tooltip text="Convert between different SSL certificate formats and keystore types">
-                <Link href="/files/help" legacyBehavior>
-                  <a className={styles.tooltip}>
-                    <HelpCircle size={24} color="#64748b" />
-                  </a>
-                </Link>
-              </Tooltip>
-            </div>
+      <div style={{ padding: '20px' }}>
+        <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', textAlign: 'center' }}>
+          SSL Converter
+        </h1>
+        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+          <label className={styles.description}>Select Conversion Type:</label>
+          <select
+            value={selectedOption}
+            onChange={(e) => handleOptionChange(e.target.value)}
+            className={styles.styledselecttempmargin}
+            style={{ marginLeft: '10px', padding: '7px' }}
+          >
+            <option value="Select">-- Select --</option>
+            <option value="P12Creation">P12 Creation (Apache → Tomcat)</option>
+            <option value="KeystoreToKey">Keystore → PEM (Tomcat → Apache)</option>
+            <option value="KeystoreToP12">Keystore → P12</option>
+          </select>
+        </div>
 
-            <p className={styles.licenseDescription}>
-              Select conversion type, provide required files and parameters, then click{' '}
-              <strong>Convert</strong>. Ensure all referenced files exist in their respective directories.
-            </p>
+        {selectedOption && (
+          <form onSubmit={handleSubmit} style={{ maxWidth: '600px', margin: '0 auto' }}>
+            {selectedOption === 'Select' && (
+              <>
+              <h2 className={styles.headingnew}>Choose the option you want to convert.</h2>
+              </>
+            )}
+            {selectedOption === 'P12Creation' && (
+              <>
+                <h2 className={styles.headingnew}>P12 Creation (Apache → Tomcat)</h2>
+                
+                <div className={styles.inputGroup}>
+                  <div style={{ marginLeft: '-108px' }}>
+                    {/* Add FileUpload component here */}
+                    <FileUpload 
+                      styles={styles}
+                      setResponseMessage={setResult}
+                      setShowPopup={setShowPopup}
+                      refreshCertificates={refreshCertificates}
+                    />
+                  </div>
+                  
+                  <label className={styles.description}>Certificate File Name:</label>
+                  {/* Help Icon with Tooltip */}
+                  <Tooltip text="Select the certificate file name (which you must copy and paste into the Certs directory).">
+                    <Link href="/files/help" legacyBehavior>
+                      <a className={styles.tooltip}>
+                        <HelpCircle size={20} />
+                      </a>
+                    </Link>
+                  </Tooltip>
 
-            <div className={styles.licenseDescription}>
-              <label className={styles.licenseDescription}>
-                Conversion Type:
-                <Tooltip text="Select the type of conversion you want to perform">
-                  <Link href="/files/help" legacyBehavior>
-                    <a className={styles.tooltip}>
-                      <HelpCircle size={20} />
-                    </a>
-                  </Link>
-                </Tooltip>
-                <select
-                  value={selectedOption}
-                  onChange={(e) => handleOptionChange(e.target.value)}
-                  className={styles.styledselecttempmargin}
-                  style={{ width: '100%', margin: '10px 0' }}
-                >
-                  <option value="Select">-- Select --</option>
-                  <option value="P12Creation">P12 Creation (Apache → Tomcat)</option>
-                  <option value="KeystoreToKey">Keystore → PEM (Tomcat → Apache)</option>
-                  <option value="KeystoreToP12">Keystore → P12</option>
-                </select>
-              </label>
-            </div>
-
-            {selectedOption && (
-              <form onSubmit={handleSubmit}>
-                {selectedOption === 'Select' && (
-                  <>
-                  <h2 className={styles.headingnew}>Choose the option you want to convert.</h2>
-                  <br />
-                  </>
-                )}
-                {selectedOption === 'P12Creation' && (
-                  <>
-                  <h2 className={styles.headingnew}>P12 Creation (Apache → Tomcat)</h2>
-                    <div className={styles.licenseDescription}>
-                      <FileUpload 
-                        styles={styles}
-                        setResponseMessage={setResult}
-                        setShowPopup={setShowPopup}
-                        refreshCertificates={refreshCertificates}
-                      />
-                    </div>
-
-                    <div className={styles.licenseDescription}>
-                      <label>
-                        Certificate File Name:
-                        <Tooltip text="Select certificate file from Certs directory">
-                          <Link href="/files/help" legacyBehavior>
-                            <a className={styles.tooltip}>
-                              <HelpCircle size={20} />
-                            </a>
-                          </Link>
-                        </Tooltip>
-                        <input
-                          type="text"
-                          value={formData.certFileName}
-                          onChange={(e) => handleInputChange('certFileName', e.target.value)}
-                          placeholder="Type to search or select"
-                          list="CertsOptions"
-                          className={styles.styledselecttempmargin}
-                          style={{ width: '97.5%' }}
-                        />
-                        <datalist id="CertsOptions">
-                          {filteredCerts.map((file, index) => (
-                            <option key={index} value={file} />
-                          ))}
-                        </datalist>
-                        <label className={styles.notedescription}>
-                          <strong>Note:</strong>{' '}
-                          <span style={{ color: 'red' }}>The Cert file must exist in Certs folder</span>
-                        </label>
-                      </label>
-                    </div>
-
-                    <div className={styles.licenseDescription}>
-                      <label className={styles.description}>Key File Name:</label>
-                      {/* Help Icon with Tooltip */}
-                      <Tooltip text="You must select the key file name that is already present in the app that you generated during the CSR creation.">
-                        <Link href="/files/help" legacyBehavior>
-                          <a className={styles.tooltip}>
-                            <HelpCircle size={20} />
-                          </a>
-                        </Link>
-                      </Tooltip>
-
-                      <input
-                        type="text"
-                        value={formData.keyFileName}
-                        onChange={(e) => handleInputChange('keyFileName', e.target.value)}
-                        placeholder="Type to search or select"
-                        list="keyFileSuggestions"
-                        className={styles.styledselecttempmargin}
-                        style={{ width: '97.5%' }}
-                      />
-                      <datalist id="keyFileSuggestions">
-                        {filteredKeys.map((file, index) => (
-                          <option key={index} value={file} />
-                        ))}
-                      </datalist>
-                      <label className={styles.notedescription}> Note: </label>
-                      <label className={styles.notedescription} style={{ color: 'red' }}>
-                        The key file should be present in the Files folder
-                      </label>
-                    </div>
-
-                    <div className={styles.licenseDescription}>
-                      <label className={styles.description}>Bundle File Name:</label>
-                      {/* Help Icon with Tooltip */}
-                      <Tooltip text="Select the bundle file name (which you must copy and paste into the Certs directory).">
-                        <Link href="/files/help" legacyBehavior>
-                          <a className={styles.tooltip}>
-                            <HelpCircle size={20} />
-                          </a>
-                        </Link>
-                      </Tooltip>
-
-                      <input
-                        type="text"
-                        value={formData.bundleFileName}
-                        onChange={(e) => handleInputChange('bundleFileName', e.target.value)}
-                        placeholder="Type to search or select"
-                        list="bundleFileSuggestions"
-                        className={styles.styledselecttempmargin}
-                        style={{ width: '97.5%' }}
-                      />
-                      <datalist id="bundleFileSuggestions">
-                        {filteredBundle.map((file, index) => (
-                          <option key={index} value={file} />
-                        ))}
-                      </datalist>
-                      <label className={styles.notedescription}> Note: </label>
-                      <label className={styles.notedescription} style={{ color: 'red' }}>
-                        The bundle file should be present in the Certs folder
-                      </label>
-                      
-                    </div>
-
-                    <div className={styles.licenseDescription}>
-                  <label className={styles.description}>P12 File Name:</label>
-                    {/* Help Icon with Tooltip */}
-                    <Tooltip text="Enter the P12 File name which you want to create.">
-                        <Link href="/files/help" legacyBehavior>
-                          <a className={styles.tooltip}>
-                            <HelpCircle size={20} />
-                          </a>
-                        </Link>
-                      </Tooltip>
 
                   <input
                     type="text"
-                    value={formData.p12FileName}
-                    onChange={(e) => handleInputChange('p12FileName', e.target.value)}
-                    placeholder="Type Here..."
+                    value={formData.certFileName}
+                    onChange={(e) => handleInputChange('certFileName', e.target.value)}
+                    placeholder="Type to search or select"
+                    list="CertsOptions"
                     className={styles.styledselecttempmargin}
-                    style={{ width: '97.5%' }}
+                    style={{ width: '100%', padding: '7px' }}
                   />
+                  <datalist id="CertsOptions">
+                    {filteredCerts.map((file, index) => (
+                      <option key={index} value={file} />
+                    ))}
+                  </datalist>
                   <label className={styles.notedescription}> Note: </label>
-                      <label className={styles.notedescription} style={{ color: 'red' }}>
-                        Do not enter the file extension (.p12) in the file name
-                      </label>
+                  <label className={styles.notedescription} style={{ color: 'red' }}>
+                    The Cert file should be present in the Certs folder
+                  </label>
+                  <br />
+                  <br />
                 </div>
-                
-                <div className={styles.licenseDescription}>
-                <label className={styles.description}>Password:</label> 
-                {/* Help Icon with Tooltip */}
-                <Tooltip text="Enter the password for the P12 file that you want to create.">
-                  <Link href="/files/help" legacyBehavior>
-                    <a className={styles.tooltip}>
-                      <HelpCircle size={20} />
-                    </a>
-                  </Link>
-                </Tooltip>
 
-                
-                <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+                <div className={styles.inputGroup}>
+                  <label className={styles.description}>Key File Name:</label>
+                  {/* Help Icon with Tooltip */}
+                  <Tooltip text="You must select the key file name that is already present in the app that you generated during the CSR creation.">
+                    <Link href="/files/help" legacyBehavior>
+                      <a className={styles.tooltip}>
+                        <HelpCircle size={20} />
+                      </a>
+                    </Link>
+                  </Tooltip>
+
                   <input
+                    type="text"
+                    value={formData.keyFileName}
+                    onChange={(e) => handleInputChange('keyFileName', e.target.value)}
+                    placeholder="Type to search or select"
+                    list="keyFileSuggestions"
                     className={styles.styledselecttempmargin}
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="Type Here..."
-                    //defaultValue={'sibisoft'}
-                    value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    required
-                    style={{
-                      flex: 1,
-                      padding: '7px',
-                      margin: '10px 0',
-                      borderRight: 'none',
-                      borderRadius: '5px 0 0 5px',
-                    }}
+                    style={{ width: '100%', padding: '7px' }}
                   />
-                  <button
-                    type="button"
-                    onClick={togglePasswordVisibility}
-                    style={{
-                      padding: '7px',
-                      borderLeft: 'none',
-                      cursor: 'pointer',
-                      backgroundColor: '#f5f5f5',
-                      borderRadius: '0 5px 5px 0',
-                      border: '1px solid #ccc',
-                    }}
-                  >
-                    {showPassword ? <FaEyeSlash /> : <FaEye />}
-                  </button>
+                  <datalist id="keyFileSuggestions">
+                    {filteredKeys.map((file, index) => (
+                      <option key={index} value={file} />
+                    ))}
+                  </datalist>
+                  <label className={styles.notedescription}> Note: </label>
+                  <label className={styles.notedescription} style={{ color: 'red' }}>
+                    The key file should be present in the Files folder
+                  </label>
+                  <br />
+                  <br />
                 </div>
-              </div>
-                    
-                  </>
-                )}
-                {selectedOption === 'KeystoreToKey' && (
+
+                <div className={styles.inputGroup}>
+                  <label className={styles.description}>Bundle File Name:</label>
+                  {/* Help Icon with Tooltip */}
+                  <Tooltip text="Select the bundle file name (which you must copy and paste into the Certs directory).">
+                    <Link href="/files/help" legacyBehavior>
+                      <a className={styles.tooltip}>
+                        <HelpCircle size={20} />
+                      </a>
+                    </Link>
+                  </Tooltip>
+
+                  <input
+                    type="text"
+                    value={formData.bundleFileName}
+                    onChange={(e) => handleInputChange('bundleFileName', e.target.value)}
+                    placeholder="Type to search or select"
+                    list="bundleFileSuggestions"
+                    className={styles.styledselecttempmargin}
+                    style={{ width: '100%', padding: '7px' }}
+                  />
+                  <datalist id="bundleFileSuggestions">
+                    {filteredBundle.map((file, index) => (
+                      <option key={index} value={file} />
+                    ))}
+                  </datalist>
+                  <label className={styles.notedescription}> Note: </label>
+                  <label className={styles.notedescription} style={{ color: 'red' }}>
+                    The bundle file should be present in the Certs folder
+                  </label>
+                  <br />
+                  <br />
+                </div>
+
+                <div className={styles.inputGroup}>
+              <label className={styles.description}>P12 File Name:</label>
+                {/* Help Icon with Tooltip */}
+                <Tooltip text="Enter the P12 File name which you want to create.">
+                    <Link href="/files/help" legacyBehavior>
+                      <a className={styles.tooltip}>
+                        <HelpCircle size={20} />
+                      </a>
+                    </Link>
+                  </Tooltip>
+
+              <input
+                type="text"
+                value={formData.p12FileName}
+                onChange={(e) => handleInputChange('p12FileName', e.target.value)}
+                placeholder="Type Here..."
+                className={styles.styledselecttempmargin}
+                style={{ width: '100%', padding: '7px' }}
+              />
+              <label className={styles.notedescription}> Note: </label>
+                  <label className={styles.notedescription} style={{ color: 'red' }}>
+                    Do not enter the file extension (.p12) in the file name
+                  </label>
+            </div>
+            <br />
+            <div className={styles.inputGroup}>
+            <label className={styles.description}>Password:</label> 
+            {/* Help Icon with Tooltip */}
+            <Tooltip text="Enter the password for the P12 file that you want to create.">
+              <Link href="/files/help" legacyBehavior>
+                <a className={styles.tooltip}>
+                  <HelpCircle size={20} />
+                </a>
+              </Link>
+            </Tooltip>
+
+            <br />
+            <div style={{ display: 'flex', alignItems: 'center', width: '50%' }}>
+              <input
+                className={styles.styledselecttempmargin}
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Type Here..."
+                //defaultValue={'sibisoft'}
+                value={formData.password}
+                onChange={(e) => handleInputChange('password', e.target.value)}
+                required
+                style={{
+                  flex: 1,
+                  padding: '7px',
+                  margin: '10px 0',
+                  borderRight: 'none',
+                  borderRadius: '5px 0 0 5px',
+                }}
+              />
+              <button
+                type="button"
+                onClick={togglePasswordVisibility}
+                style={{
+                  padding: '7px',
+                  borderLeft: 'none',
+                  cursor: 'pointer',
+                  backgroundColor: '#f5f5f5',
+                  borderRadius: '0 5px 5px 0',
+                  border: '1px solid #ccc',
+                }}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
+            </div>
+          </div>
+
+          
+
+              </>
+            )}
+
+            {selectedOption === 'KeystoreToKey' && (
               <>
                 <h2 className={styles.headingnew}>Keystore → PEM (Tomcat → Apache)</h2>
 
-              <div className={styles.licenseDescription}>
+              <div className={styles.inputGroup}>
                   <label className={styles.description}>Keystore File Name:</label>
                   {/* Help Icon with Tooltip */}
                   <Tooltip text="You must select the keystore file name that is already present in the app that you generated during the CSR creation.">
@@ -513,7 +498,7 @@ export default function SSLConverter() {
                     placeholder="Type to search or select"
                     list="KeystoreOptions"
                     className={styles.styledselecttempmargin}
-                    style={{ width: '97.5%' }}
+                    style={{ width: '100%', padding: '7px' }}
                   />
                   <datalist id="KeystoreOptions">
                     {filteredkeystore.map((file, index) => (
@@ -522,11 +507,11 @@ export default function SSLConverter() {
                   </datalist>
                   <label className={styles.notedescription}> Note: </label>
                   <label className={styles.notedescription} style={{ color: 'red' }}>
-                    The keystore file must present in the App
+                    The keystore file should be present in the Files folder
                   </label>
                   <br />
-                </div>
-            <div className={styles.licenseDescription}>
+                  <br />
+            <div className={styles.inputGroup}>
             <label className={styles.description}>Password:</label> 
             {/* Help Icon with Tooltip */}
             <Tooltip text="Enter the password for the PEM file that you want to create.">
@@ -537,7 +522,7 @@ export default function SSLConverter() {
               </Link>
             </Tooltip>
             <br />
-            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', width: '50%' }}>
               <input
                 className={styles.styledselecttempmargin}
                 type={showPassword ? 'text' : 'password'}
@@ -569,14 +554,14 @@ export default function SSLConverter() {
               </button>
             </div>
           </div>
-                
+                </div>
 
               </>
             )}
             {selectedOption === 'KeystoreToP12' && (
               <>
               <h2 className={styles.headingnew}>Keystore → P12</h2>
-              <div className={styles.licenseDescription}>
+              <div className={styles.inputGroup}>
                   <label className={styles.description}>Keystore File Name:</label>
                   {/* Help Icon with Tooltip */}
                   <Tooltip text="You must select the keystore file name that is already present in the app that you generated during the CSR creation.">
@@ -594,7 +579,7 @@ export default function SSLConverter() {
                     placeholder="Type to search or select"
                     list="KeystoreOptions"
                     className={styles.styledselecttempmargin}
-                    style={{ width: '97.5%' }}
+                    style={{ width: '100%', padding: '7px' }}
                   />
                   <datalist id="KeystoreOptions">
                     {filteredkeystore.map((file, index) => (
@@ -605,8 +590,9 @@ export default function SSLConverter() {
                   <label className={styles.notedescription} style={{ color: 'red' }}>
                     The keystore file should be present in the Files folder
                   </label>
-                </div>
-            <div className={styles.licenseDescription}>
+                  <br />
+                  <br />
+            <div className={styles.inputGroup}>
             <label className={styles.description}>Password:</label>
             {/* Help Icon with Tooltip */}
             <Tooltip text="Enter the password for the P12 file that you want to create.">
@@ -618,7 +604,7 @@ export default function SSLConverter() {
             </Tooltip>
 
              <br />
-            <div style={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', width: '50%' }}>
               <input
                 className={styles.styledselecttempmargin}
                 type={showPassword ? 'text' : 'password'}
@@ -650,61 +636,98 @@ export default function SSLConverter() {
               </button>
             </div>
           </div>
-                
+                </div>
 
               </>
             )}
 
-                
 
-                <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-                  <button 
-                    type="submit" 
-                    className={styles.btndescription}
-                    disabled={loading}
-                  >
-                    {loading ? 'Converting...' : 'Convert'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleClear}
-                    className={styles.clearbtn}
-                  >
-                    Clear
-                  </button>
-                </div>
-              </form>
-            )}
+            <br />
 
-            {showPopup && (
-              <div className={styles.notification}>
-                {result}
-              </div>
-            )}
+            <div style={{ textAlign: 'center', marginTop: '20px' }}>
+              {/* <button type="submit" className={styles.btndescription}>
+                Convert
+              </button> */}
 
-            <div>
-              <DownloadFiles filePaths={files} />
+              <button type="submit" className={styles.btndescription} disabled={loading}>
+                {loading ? 'Converting...' : 'Convert'}
+              </button>
+              <button
+                type="button"
+                onClick={handleClear}
+                className={styles.clearbtn}
+                style={{ marginLeft: '10px' }}
+              >
+                Clear
+              </button>
             </div>
+          </form>
+        )}
+        <div>
+        <div>
+        {result && (
+          <div style={{ marginTop: '20px', paddingLeft: '5%' }}>
+            <h2>Results:</h2>
+            <pre>{result}</pre>
           </div>
-
-          <div className={styles.licenseVisual}>
-            <img 
-              src="/sslconverter.jpg"  // Update with your conversion image
-              alt="SSL Conversion Preview"
-              className={styles.licenseImage}
-            />
-          </div>
+        )}
         </div>
 
-        <div className={styles.Installerhomebtn}>
-          <button style={{ marginBottom: '1rem' }}><Link href="/home">Back to Home</Link></button>
-        </div>
+        {/* Pop-up Notification */}
+        {showPopup && (
+          <div className={styles.notification}>
+              {result}
+          </div>
+        )}
 
-        <footer className={styles.footer}>
-          {/* ... [Keep existing footer exactly as is] ... */}
-        </footer>
+          <div>
+            <DownloadFiles filePaths={files} /> {/* Auto-downloads all files */}
+          </div>
+        </div>
+        
+        <br />
+        <div className={styles.Installerhomebtn} style={{ marginTop: '20px' }}>
+          <button>
+            <Link href="/home">Back to Home</Link>
+          </button>
+        </div>
+      </div>
+      
+
+      <footer className={styles.footer}>
+        <div className={styles.footerRow}>
+          <a
+            href="https://www.globalnorthstar.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Powered by{' '} Northstar Technologies
+            <img src="/northstar.jpg" alt="Northstar" className={styles.logonew} />
+          </a>
+          
+        </div>
+        <div className={styles.footerRow}>
+        <a
+            href="https://www.globalnorthstar.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            |
+          </a>
+        </div>
+        <div className={styles.footerRow}>
+          <a
+            href="https://github.com/mubi7070/SSLAutomationApp/tree/master"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            By: Mubashir Ahmed (DevOps)
+            <img src="/dev.svg" alt="DevOps" className={styles.logonew} />
+          </a>
+        </div>
+      </footer>
       </Layout>
-    </main>
+      </main>
     </>
   );
 }
