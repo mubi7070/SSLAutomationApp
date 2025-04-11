@@ -893,6 +893,88 @@ font-family: 'Times New Roman', Times, serif;
   width: auto;
 }
 
+/* Help Page Specific Styles */
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 2rem 0 1rem;
+}
+
+.sectionIcon {
+  color: #1e40af;
+}
+
+.sectionTitle {
+  color: #1e3a8a;
+  font-size: 1.5rem;
+}
+
+.infoCard {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+
+.faqCard {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.bulletList {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+  margin: 1rem 0;
+}
+
+.bulletList li {
+  margin: 0.5rem 0;
+}
+
+.quickLinks {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.quickLinksTitle {
+  color: #1e3a8a;
+  margin-bottom: 1rem;
+}
+
+.quickLinksList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.quickLinkItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #475569;
+  padding: 0.75rem;
+  border-radius: 6px;
+  transition: background 0.2s ease;
+}
+
+.quickLinkItem:hover {
+  background: #e2e8f0;
+}
+
+.faqSection {
+  border-top: 2px solid #e2e8f0;
+  padding-top: 2rem;
+  margin-top: 2rem;
+}
+
 
 @media (max-width: 768px) {
   .licenseContainer {
