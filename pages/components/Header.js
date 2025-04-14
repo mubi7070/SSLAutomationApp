@@ -7,16 +7,48 @@ import styles from '/styles/Home.module.css';
 export default function Header() {
   const router = useRouter();
   const [displayText, setDisplayText] = useState('');
-  const fullText = "Northstar SSL Automation Tool";
+  const [activeCategory, setActiveCategory] = useState(null);
+  const [isHovered, setIsHovered] = useState(false);
+  const fullText = "Northstar Automation App";
   const [isTyping, setIsTyping] = useState(true);
 
-  const navLinks = [
+  const categories = [
     { name: 'Home', path: '/home' },
-    { name: 'CSR Generator', path: '/files/CSRGenerator' },
-    { name: 'SSL Installer', path: '/files/SSLInstaller' },
-    { name: 'SSL Converter', path: '/files/SSLConverter' },
-    { name: 'Email Templates', path: '/files/EmailTemplates' },
-    { name: 'Help', path: '/files/help' },
+    {
+      name: 'SSL',
+      items: [
+        { name: 'CSR Generator', path: '/files/CSRGenerator' },
+        { name: 'SSL Installer', path: '/files/SSLInstaller' },
+        { name: 'SSL Converter', path: '/files/SSLConverter' },
+      ],
+    },
+    {
+      name: 'License & Twilio',
+      items: [
+        { name: 'License Renewal', path: '/files/LicenseRenewal' },
+        { name: 'Disable Twilio', path: '/files/TwilioDisable' },
+      ],
+    },
+    {
+      name: 'Templates & Sheets',
+      items: [
+        { name: 'Email Templates', path: '/files/EmailTemplates' },
+        { name: 'SSL Renewal Sheet', path: 'https://docs.google.com/spreadsheets/d/1xOoiO96sFfYB8uFnOgn3xom-wzL7XntPiEJkRk5TOC4/edit' },
+        { name: 'Tracking Data Sheet', path: 'https://docs.google.com/spreadsheets/d/1yVCinTBlCnvv1CYWFjSsfpLjvUcQONJAuBLRoBc4rfE/edit' },
+      ],
+    },
+    {
+      name: 'Others',
+      items: [
+        { name: 'The SSL Store', path: 'https://www.thesslstore.com/client/orders.aspx' },
+        { name: 'CSR Certificate Matcher', path: 'https://www.sslshopper.com/certificate-key-matcher.html' },
+        { name: 'SSL Labs', path: 'https://www.ssllabs.com/ssltest/' },
+      ],
+    },
+    {
+      name: 'Help',
+      path: '/files/help',
+    },
   ];
 
   useEffect(() => {
@@ -35,7 +67,7 @@ export default function Header() {
           setIsTyping(true);
           currentIndex = 0;
           typeText();
-        }, 3000);
+        }, 2000);
       }
     };
 
@@ -43,6 +75,11 @@ export default function Header() {
 
     return () => clearTimeout(typingTimeout);
   }, []);
+
+  const isCategoryActive = (category) => {
+    return category.items?.some(item => router.pathname === item.path) || 
+           (category.path === router.pathname);
+  };
 
   return (
     <header className={styles.header}>
@@ -54,14 +91,52 @@ export default function Header() {
         </span>
       </div>
       <nav className={styles.nav}>
-        {navLinks.map((link) => (
-          <Link 
-            key={link.name} 
-            href={link.path}
-            className={`${styles.navLink} ${router.pathname === link.path ? styles.activeNavLink : ''}`}
+        {categories.map((category) => (
+          <div 
+            key={category.name}
+            className={styles.categoryContainer}
+            onMouseEnter={() => category.items && setActiveCategory(category.name)}
+            onMouseLeave={() => !isHovered && setActiveCategory(null)}
           >
-            {link.name}
-          </Link>
+            {category.items ? (
+              <>
+                <button
+                  className={`${styles.navLink} ${
+                    isCategoryActive(category) ? styles.activeNavLink : ''
+                  } ${styles.hasDropdown}`}
+                >
+                  {category.name}
+                </button>
+                <div 
+                  className={`${styles.dropdown} ${activeCategory === category.name ? styles.active : ''}`}
+                  onMouseEnter={() => setIsHovered(true)}
+                  onMouseLeave={() => setIsHovered(false)}
+                >
+                  {category.items.map((item) => (
+                    <Link
+                      key={item.name}
+                      href={item.path}
+                      className={`${styles.dropdownItem} ${
+                        router.pathname === item.path ? styles.activeDropdownItem : ''
+                      }`}
+                      target={item.path.startsWith('http') ? '_blank' : undefined}
+                    >
+                      {item.name}
+                    </Link>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <Link
+                href={category.path}
+                className={`${styles.navLink} ${
+                  router.pathname === category.path ? styles.activeNavLink : ''
+                }`}
+              >
+                {category.name}
+              </Link>
+            )}
+          </div>
         ))}
       </nav>
     </header>

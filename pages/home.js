@@ -3,6 +3,7 @@ import styles from '../styles/Home.module.css';
 import Link from 'next/link';
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
+import Layout from '/pages/components/Layout.js';
 
 export default function Home() {
   const router = useRouter();
@@ -17,15 +18,19 @@ export default function Home() {
   return (
     <div className={styles.container}>
       <Head>
-        <title>Northstar SSL Automation Tool</title>
+        <title>Northstar Automation App</title>
         <link rel="icon" href="/ssl2white.svg" />
       </Head>
+      <Layout>
 
       <main>
-      <h1 className={styles.titlenew}>
+      <h1 
+      className={styles.titlenew}
+      style={{marginTop: '70px'}}
+      >
         <img src="/ssl2.svg" alt="SSL Icon" className={styles.icon} />
-           Northstar SSL Automation Tool
-        </h1>
+        Northstar Automation App
+      </h1>
 
         <div className={styles.grid}>
           <Link href="/files/CSRGenerator" className={styles.card} >
@@ -51,6 +56,11 @@ export default function Home() {
           <Link href="/files/LicenseRenewal" className={styles.card} >
             <h3>License Renewal &rarr;</h3>
             <p>The feature to get the upcoming license expiries in the google sheet.</p>
+          </Link>
+
+          <Link href="/files/TwilioDisable.js" className={styles.card} >
+            <h3>Disable Twilio &rarr;</h3>
+            <p>The feature to disable a Twilio Sub-Account.</p>
           </Link>
           
           <Link href="https://docs.google.com/spreadsheets/d/1xOoiO96sFfYB8uFnOgn3xom-wzL7XntPiEJkRk5TOC4/edit?gid=2074345631#gid=2074345631" className={styles.card} target="_blank" rel="noopener noreferrer">
@@ -78,9 +88,14 @@ export default function Home() {
               <p>Go to the google sheet to track the ssl renewal email and license renewal status.</p>
           </Link>
 
+          <Link href="/files/help" className={styles.card} >
+            <h3>Help &rarr;</h3>
+            <p>The tab for the help page regarding general info. for SSL tasks.</p>
+          </Link>
           
         </div>
       </main>
+      </Layout>
 
       <footer className={styles.footer}>
         <div className={styles.footerRow}>

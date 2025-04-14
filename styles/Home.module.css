@@ -730,7 +730,19 @@ font-family: 'Times New Roman', Times, serif;
   padding: 0.5rem 1rem;
   border-radius: 4px;
   transition: all 0.3s ease;
-  font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Oxygen,Ubuntu,Cantarell,Fira Sans,Droid Sans,Helvetica Neue,sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, 
+              Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  border: none; 
+  background: none; 
+  cursor: pointer; 
+  font-size: medium;
+}
+
+button.navLink {
+  outline: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
 .navLink:hover {
@@ -974,6 +986,119 @@ font-family: 'Times New Roman', Times, serif;
   padding-top: 2rem;
   margin-top: 2rem;
 }
+
+/* Category Styles */
+.categoryContainer {
+  position: relative;
+  display: inline-block;
+}
+
+.categoryContainer > a.activeNavLink::after {
+  display: none;
+}
+
+.categoryButton {
+  padding: 0.8rem 1.2rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #333;
+  transition: all 0.3s ease;
+  position: relative;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+}
+
+.activeCategory {
+  color: rgb(16, 31, 118);
+  font-weight: 600;
+}
+
+.activeCategory::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-color: rgb(16, 31, 118);
+  animation: underlineSlide 0.3s ease-out;
+}
+
+/* Dropdown Styles */
+.dropdown {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  min-width: 200px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  z-index: 1000;
+  padding: 0.5rem 0;
+}
+
+.dropdown.active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(5px);
+}
+
+.dropdownItem {
+  display: block;
+  padding: 0.8rem 1.5rem;
+  color: #333;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
+              Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+}
+
+.dropdownItem:hover {
+  background-color: rgba(16, 31, 118, 0.05);
+  color: rgb(16, 31, 118);
+}
+
+.activeDropdownItem {
+  color: rgb(16, 31, 118);
+  font-weight: 600;
+  background-color: rgba(16, 31, 118, 0.08);
+}
+
+/* Hover Effects */
+.categoryButton:hover {
+  color: rgb(16, 31, 118);
+}
+
+.hasDropdown {
+  position: relative;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/* Animation Adjustments */
+@keyframes underlineSlide {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+
+
 
 
 @media (max-width: 768px) {

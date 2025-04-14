@@ -103,6 +103,10 @@ const LicenseRenewal = () => {
         </div>
       </div>
 
+      <div className={styles.Installerhomebtn}>
+        <button style={{ marginBottom: '1rem' }}><Link href="/home">Back to Home</Link></button>
+      </div>
+
       {showPopup && (
         <div className={`${styles.licenseNotification} ${
           message.includes('Success') ? styles.licenseSuccess : styles.licenseError
