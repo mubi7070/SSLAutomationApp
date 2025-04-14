@@ -33,8 +33,8 @@ const HelpPage = () => {
         <link rel="icon" href="/ssl2white.svg" />
       </Head>
       <Layout>
-        <div className={styles.CSRContainer2}>
-          <div className={styles.licenseContent2}>
+        <div className={styles.CSRContainer}>
+          <div className={styles.licenseContent}>
             <div className={styles.licenseHeader}>
               <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold' }}>
                 SSL Automation Tool - Help Center
@@ -321,27 +321,21 @@ const HelpPage = () => {
           </div>
 
           {/* Fixed Sidebar */}
-          <div className={styles.licenseVisual2}>
+          <div className={styles.licenseVisual}>
             <img 
               src="/help.png" 
               alt="SSL Security Diagram" 
               className={styles.licenseImage}
               style={{ borderRadius: '8px', marginBottom: '20px' }}
             />
-            <div className={styles.quickLinks2}>
-              <h3 className={styles.quickLinksTitle2}><LinkIcon size={20} /> Navigation</h3>
-              <ul className={styles.quickLinksList2}>
+            <div className={styles.quickLinks}>
+              <h3 className={styles.quickLinksTitle}><LinkIcon size={20} /> Navigation</h3>
+              <ul className={styles.quickLinksList}>
                 {sections.map((section, index) => (
                   <a 
                     key={index} 
                     href={`#${section.id}`}
-                    className={styles.quickLinkItem2}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      document.querySelector(`#${section.id}`).scrollIntoView({
-                        behavior: 'smooth'
-                      });
-                    }}
+                    className={styles.quickLinkItem}
                   >
                     {section.icon}
                     <span>{section.title}</span>

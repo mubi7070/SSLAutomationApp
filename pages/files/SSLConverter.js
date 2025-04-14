@@ -470,6 +470,7 @@ export default function SSLConverter() {
                       margin: '10px 0',
                       borderRight: 'none',
                       borderRadius: '5px 0 0 5px',
+                      
                     }}
                   />
                   <button
@@ -479,9 +480,10 @@ export default function SSLConverter() {
                       padding: '7px',
                       borderLeft: 'none',
                       cursor: 'pointer',
-                      backgroundColor: '#f5f5f5',
+                      backgroundColor: '#f8fafc',
                       borderRadius: '0 5px 5px 0',
                       border: '1px solid #ccc',
+                      height: '34px',
                     }}
                   >
                     {showPassword ? <FaEyeSlash /> : <FaEye />}
@@ -560,9 +562,10 @@ export default function SSLConverter() {
                   padding: '7px',
                   borderLeft: 'none',
                   cursor: 'pointer',
-                  backgroundColor: '#f5f5f5',
+                  backgroundColor: '#f8fafc',
                   borderRadius: '0 5px 5px 0',
                   border: '1px solid #ccc',
+                  height: '34px',
                 }}
               >
                 {showPassword ? <FaEyeSlash /> : <FaEye />}
@@ -641,9 +644,10 @@ export default function SSLConverter() {
                   padding: '7px',
                   borderLeft: 'none',
                   cursor: 'pointer',
-                  backgroundColor: '#f5f5f5',
+                  backgroundColor: '#f8fafc',
                   borderRadius: '0 5px 5px 0',
                   border: '1px solid #ccc',
+                  height: '34px',
                 }}
               >
                 {showPassword ? <FaEyeSlash /> : <FaEye />}

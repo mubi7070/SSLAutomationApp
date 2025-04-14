@@ -4,6 +4,8 @@ import Link from "next/link";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import Layout from '/pages/components/Layout.js';
 import styles from "/styles/Home.module.css";
+import Tooltip from "/pages/components/Tooltip.js";
+import { HelpCircle } from "lucide-react";
 
 export default function TwilioDisable() {
   const [accountSid, setAccountSid] = useState('');
@@ -62,6 +64,13 @@ export default function TwilioDisable() {
               <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', display: 'flex' }}>
                 Disable Twilio Account
               </h1>
+              <Tooltip text="You can disable any twilio account by just entering it's Account SID & Auth Token.">
+                <Link href="/files/help" legacyBehavior>
+                  <a className={styles.tooltip}>
+                    <HelpCircle size={24} color="#64748b" />
+                  </a>
+                </Link>
+              </Tooltip>
             </div>
 
             <p className={styles.licenseDescription}>

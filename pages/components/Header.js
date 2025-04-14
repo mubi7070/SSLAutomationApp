@@ -9,7 +9,7 @@ export default function Header() {
   const [displayText, setDisplayText] = useState('');
   const [activeCategory, setActiveCategory] = useState(null);
   const [isHovered, setIsHovered] = useState(false);
-  const fullText = "Northstar Automation App";
+  const fullText = "Northstar Automation Tool";
   const [isTyping, setIsTyping] = useState(true);
 
   const categories = [

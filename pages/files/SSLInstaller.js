@@ -291,6 +291,7 @@ export default function SSLInstaller() {
                         cursor: 'pointer',
                         backgroundColor: '#f8fafc',
                         borderRadius: '0 4px 4px 0',
+                        height: '36px',
                       }}
                     >
                       {showPassword ? <FaEyeSlash /> : <FaEye />}

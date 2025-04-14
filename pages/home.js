@@ -18,7 +18,7 @@ export default function Home() {
   return (
     <div className={styles.container}>
       <Head>
-        <title>Northstar Automation App</title>
+        <title>Northstar Automation Tool</title>
         <link rel="icon" href="/ssl2white.svg" />
       </Head>
       <Layout>
@@ -29,7 +29,7 @@ export default function Home() {
       style={{marginTop: '70px'}}
       >
         <img src="/ssl2.svg" alt="SSL Icon" className={styles.icon} />
-        Northstar Automation App
+        Northstar Automation Tool
       </h1>
 
         <div className={styles.grid}>

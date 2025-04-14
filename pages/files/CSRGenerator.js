@@ -3,7 +3,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { HelpCircle } from "lucide-react";
-import Tooltip from "/pages/components/Tooltip.js"; // Import Tooltip
+import Tooltip from "/pages/components/Tooltip.js";
 import styles from "/styles/Home.module.css";
 import DownloadFiles from "/pages/components/DownloadFiles.js"; 
 import Layout from '/pages/components/Layout.js';
@@ -190,6 +190,7 @@ export default function Home() {
                         cursor: 'pointer',
                         backgroundColor: '#f8fafc',
                         borderRadius: '0 4px 4px 0',
+                        height: '36px',
                       }}
                     >
                       {showPassword ? <FaEyeSlash /> : <FaEye />}
