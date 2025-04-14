@@ -58,7 +58,7 @@ export default function Home() {
             <p>The feature to get the upcoming license expiries in the google sheet.</p>
           </Link>
 
-          <Link href="/files/TwilioDisable.js" className={styles.card} >
+          <Link href="/files/TwilioDisable" className={styles.card} >
             <h3>Disable Twilio &rarr;</h3>
             <p>The feature to disable a Twilio Sub-Account.</p>
           </Link>
