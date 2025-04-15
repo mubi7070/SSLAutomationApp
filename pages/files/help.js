@@ -45,7 +45,7 @@ const HelpPage = () => {
             </div>
 
             <p className={styles.licenseDescription}>
-              Comprehensive guide to managing SSL/TLS certificates and related operations.
+              Comprehensive guide to managing SSL/TLS certificates, License Renewals, Twilio Account Disable and related operations. Also it includes the details regarding the features of the application.
             </p>
 
             {/* SSL Basics Section */}
@@ -61,7 +61,8 @@ const HelpPage = () => {
                   <ul className={styles.bulletList}>
                     <li>2048-bit minimum RSA key encryption</li>
                     <li>SHA-256 hashing algorithm</li>
-                    <li>OCSP stapling for revocation checking</li>
+                    <li>SSL Handshake Checking</li>
+                    <li>SSL Cipher Suite</li>
                     <li>Perfect Forward Secrecy (PFS) support</li>
                   </ul>
                 </div>
@@ -72,13 +73,13 @@ const HelpPage = () => {
             <section id="csr-gen" className={styles.licenseDescription}>
               <div className={styles.sectionHeader}>
                 <FileText size={24} className={styles.sectionIcon} />
-                <h2 className={styles.sectionTitle}>CSR & Keystore Management</h2>
+                <h2 className={styles.sectionTitle}>CSR & Key / Keystore Management</h2>
               </div>
               <div className={styles.sectionContent}>
                 <div className={styles.grid3Col}>
                   <div className={styles.featureCard}>
                     <h4><Key size={18} /> Key Generation</h4>
-                    <p>Generate RSA 2048/4096-bit private keys with PKCS#8 formatting</p>
+                    <p>Generate RSA 2048/4096-bit private keys with .KEY or .PEM formatting</p>
                   </div>
                   <div className={styles.featureCard}>
                     <h4><Code size={18} /> CSR Components</h4>
@@ -86,7 +87,7 @@ const HelpPage = () => {
                   </div>
                   <div className={styles.featureCard}>
                     <h4><Shield size={18} /> Keystore Types</h4>
-                    <p>JKS, PKCS12, BKS, and PEM formats supported</p>
+                    <p>JKS, PKCS12, and PEM formats supported</p>
                   </div>
                 </div>
               </div>
@@ -103,9 +104,7 @@ const HelpPage = () => {
                   <h3>Supported Servers</h3>
                   <ul className={styles.bulletList}>
                     <li>Apache HTTP Server</li>
-                    <li>NGINX</li>
                     <li>Tomcat</li>
-                    <li>IIS</li>
                     <li>Node.js</li>
                   </ul>
                 </div>
@@ -124,16 +123,16 @@ const HelpPage = () => {
               <div className={styles.sectionContent}>
                 <div className={styles.grid3Col}>
                   <div className={styles.featureCard}>
-                    <h4>JKS to PKCS12</h4>
-                    <code>keytool -importkeystore -srckeystore file.jks -destkeystore file.p12</code>
+                    <h4>KEY to PKCS12</h4>
+                    <code>Converts the key, certificate, and bundle to the PKCS12 format.</code>
                   </div>
                   <div className={styles.featureCard}>
-                    <h4>PEM to DER</h4>
-                    <code>openssl x509 -outform der -in cert.pem -out cert.der</code>
+                    <h4>KEYSTORE to PEM</h4>
+                    <code>Converts the installed keystore to the PEM format.</code>
                   </div>
                   <div className={styles.featureCard}>
-                    <h4>PKCS12 to PEM</h4>
-                    <code>openssl pkcs12 -in cert.p12 -out cert.pem -nodes</code>
+                    <h4>KEYSTORE to PKCS12</h4>
+                    <code>Converts the installed keystore to the PKCS12 format.</code>
                   </div>
                 </div>
               </div>
@@ -148,16 +147,24 @@ const HelpPage = () => {
               <div className={styles.sectionContent}>
                 <div className={styles.grid3Col}>
                   <div className={styles.featureCard}>
-                    <h4>CNAME Records</h4>
-                    <p>NS-managed SSL instructions with DNS validation steps</p>
+                    <h4>SSL Managed By NS</h4>
+                    <p>For SSL Managed By NS, we need to share the CNAME record for SSL validation.</p>
                   </div>
                   <div className={styles.featureCard}>
-                    <h4>SAN Certificates</h4>
-                    <p>Multi-domain validation process for Club-managed SSLs</p>
+                    <h4>SSL Managed By Club</h4>
+                    <p>For SSL Managed By Club, we need to share the CSR with the club for SSL Certificates.</p>
                   </div>
                   <div className={styles.featureCard}>
-                    <h4>Cloudflare Setup</h4>
-                    <p>BackOffice configuration with full SSL strict mode</p>
+                    <h4>SAN SSL Managed By Club</h4>
+                    <p>For SAN SSL Managed By Club, we need to share the CSR and SAN domains with the club.</p>
+                  </div>
+                  <div className={styles.featureCard}>
+                    <h4>Print Server SSL</h4>
+                    <p>For Print Server SSL Managed By NS, we need to share the CNAME record for SSL validation.</p>
+                  </div>
+                  <div className={styles.featureCard}>
+                    <h4>Cloudflare Implementation</h4>
+                    <p>For Cloudflare On BackOffice, We need to share the instructions and schedule the activity.</p>
                   </div>
                 </div>
               </div>
@@ -175,8 +182,10 @@ const HelpPage = () => {
                   <ul className={styles.bulletList}>
                     <li>Automated month-over-month license generation</li>
                     <li>Historical tracking of issued licenses</li>
+                    <li>Proper heading for each month with the relevant data</li>
                     <li>CSV export functionality</li>
-                    <li>Expiration alert system</li>
+                    <li>Remove Duplication via App script</li>
+
                   </ul>
                 </div>
               </div>
@@ -210,16 +219,16 @@ const HelpPage = () => {
               <div className={styles.sectionContent}>
                 <div className={styles.grid3Col}>
                   <div className={styles.featureCard}>
-                    <h4>Expiration Alerts</h4>
-                    <p>90/60/30-day reminders for upcoming renewals</p>
+                    <h4>Expiration Details</h4>
+                    <p>90/60/30-day list for the upcoming renewals</p>
                   </div>
                   <div className={styles.featureCard}>
                     <h4>Domain Inventory</h4>
                     <p>Centralized list of all SSL-protected domains</p>
                   </div>
                   <div className={styles.featureCard}>
-                    <h4>Automated Reports</h4>
-                    <p>Weekly digest of certificate statuses</p>
+                    <h4>Email Tracking</h4>
+                    <p>Centralized list of all Emails sent to support regarding SSL Renewals</p>
                   </div>
                 </div>
               </div>
@@ -229,15 +238,13 @@ const HelpPage = () => {
             <section id="ssl-store" className={styles.licenseDescription}>
               <div className={styles.sectionHeader}>
                 <ShoppingCart size={24} className={styles.sectionIcon} />
-                <h2 className={styles.sectionTitle}>SSL Certificate Marketplace</h2>
+                <h2 className={styles.sectionTitle}>SSL Certificate Marketplace (thesslstore.com)</h2>
               </div>
               <div className={styles.sectionContent}>
                 <div className={styles.infoCard}>
                   <h3>Supported Certificate Types</h3>
                   <ul className={styles.bulletList}>
                     <li>Domain Validated (DV)</li>
-                    <li>Organization Validated (OV)</li>
-                    <li>Extended Validation (EV)</li>
                     <li>Wildcard Certificates</li>
                     <li>Multi-Domain SAN Certificates</li>
                   </ul>
@@ -258,8 +265,8 @@ const HelpPage = () => {
                     <li>Protocol support (TLS 1.2/1.3)</li>
                     <li>Cipher suite strength</li>
                     <li>Certificate transparency</li>
-                    <li>OCSP stapling status</li>
-                    <li>HSTS configuration</li>
+                    <li>Certificate stapling status</li>
+                    <li>SSL Health Check</li>
                   </ul>
                 </div>
               </div>
@@ -275,7 +282,7 @@ const HelpPage = () => {
                 <div className={styles.grid3Col}>
                   <div className={styles.featureCard}>
                     <h4>Email Logs</h4>
-                    <p>Timestamp, recipient, and template used</p>
+                    <p>Timestamp, recipient, and template used for email</p>
                   </div>
                   <div className={styles.featureCard}>
                     <h4>License History</h4>
@@ -304,17 +311,14 @@ const HelpPage = () => {
                   <h3>What's the difference between PEM and PKCS#12?</h3>
                   <p>PEM is ASCII-armored for text-based systems, while PKCS#12 is binary format for Java ecosystems.</p>
                 </div>
-                <div className={styles.faqCard}>
-                  <h3>How are Google Sheets credentials managed?</h3>
-                  <p>OAuth 2.0 with read/write scope limited to specific sheets, credentials encrypted at rest.</p>
-                </div>
+                
                 <div className={styles.faqCard}>
                   <h3>Can I recover disabled Twilio accounts?</h3>
-                  <p>No, account disablement is permanent. Export data first.</p>
+                  <p>Yes, you can enable that account within 30 days because Twilio permanently deletes accounts after 30 days.</p>
                 </div>
                 <div className={styles.faqCard}>
                   <h3>What validation methods are supported?</h3>
-                  <p>DNS (CNAME/TXT), Email, and File-based validation for all certificate types.</p>
+                  <p>DNS (CNAME/TXT), Email, and File-based validation for all certificate types and Cloudflare.</p>
                 </div>
               </div>
             </section>
@@ -325,8 +329,8 @@ const HelpPage = () => {
             <img 
               src="/help.png" 
               alt="SSL Security Diagram" 
-              className={styles.licenseImage}
-              style={{ borderRadius: '8px', marginBottom: '20px' }}
+              className={styles.licenseImage2}
+              //style={{ borderRadius: '8px', marginBottom: '20px' }}
             />
             <div className={styles.quickLinks2}>
               <h3 className={styles.quickLinksTitle2}><LinkIcon size={20} /> Navigation</h3>
