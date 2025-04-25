@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '/pages/components/Layout.js';
-import { FiArrowRight, FiShield, FiLock, FiCode, FiMail, FiRefreshCw, FiSliders, FiFileText, FiShoppingCart, FiTool, FiHelpCircle, FiZap } from 'react-icons/fi';
+import { FiArrowRight, FiShield, FiLock, FiCode, FiMail, FiGrid, FiRefreshCw, FiSliders, FiFileText, FiShoppingCart, FiTool, FiHelpCircle, FiZap } from 'react-icons/fi';
 import styles from '../styles/Home.module.css';
 
 export default function Home() {
@@ -13,22 +13,25 @@ export default function Home() {
   const [isMounted, setIsMounted] = useState(false);
   const sliderContent = [
     {
-      icon: <FiZap size={40} />,
-      title: "Quick Actions",
-      text: "Get started with our most used tools",
-      color: "#3B82F6"
+      icon: <FiGrid size={40} />,
+      //title: "Welcome",
+      //text: "Where Efficiency Meets Innovation!",
+      //color: "#3B82F6",
+      image: "/Slide1.png"
+    },
+    {
+      icon: <FiTool size={40} />,
+      //title: "Automation",
+      //text: "Automate the operations to simplify!",
+      //color: "#10B981",
+      image: "/Slide2.png"
     },
     {
       icon: <FiShield size={40} />,
-      title: "Security First",
-      text: "Enterprise-grade security for all operations",
-      color: "#10B981"
-    },
-    {
-      icon: <FiLock size={40} />,
-      title: "SSL Management",
-      text: "Manage certificates with ease",
-      color: "#8B5CF6"
+      //title: "Team Motivation",
+      //text: "Let's Build Smarter, Faster, Stronger!",
+      //color: "#8B5CF6",
+      image: "/Slide3.jpg"
     }
   ];
 
@@ -142,8 +145,13 @@ export default function Home() {
                 <div 
                   key={index}
                   className={styles.slide}
-                  style={{ backgroundColor: item.color }}
+                  style={{ 
+                    backgroundImage: `url(${item.image})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                  }}
                 >
+                  <div className={styles.slideOverlay} style={{ backgroundColor: item.color }} />
                   <div className={styles.slideContent}>
                     <div className={styles.slideIcon}>{item.icon}</div>
                     <h3>{item.title}</h3>
@@ -166,13 +174,7 @@ export default function Home() {
               
           </div>
 
-          <div className={styles.postSliderImage}>
-                <img 
-                  src="/dashboardpart2.gif" 
-                  alt="Feature highlight"
-                  className={styles.postSliderImg}
-                />
-          </div>
+          
 
           </div>
           
