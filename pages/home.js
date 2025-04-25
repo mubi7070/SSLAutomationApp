@@ -123,10 +123,20 @@ export default function Home() {
                 </div>
                 <FiArrowRight className={styles.cardArrow} />
               </Link>
+
+              <Link href="/files/TwilioDisable" className={`${styles.card} ${styles.cardHelp}`}>
+                <FiSliders className={styles.cardIcon} />
+                <div>
+                  <h3>Help</h3>
+                  <p>Include the necessary information</p>
+                </div>
+                <FiArrowRight className={styles.cardArrow} />
+              </Link>
             </div>
           </div>
-
+          <div className={styles.rightColumn}>
           <div className={styles.sliderContainer}>
+          
             <div className={styles.sliderTrack} style={{ transform: `translateX(-${sliderIndex * 100}%)` }}>
               {sliderContent.map((item, index) => (
                 <div 
@@ -140,8 +150,10 @@ export default function Home() {
                     <p>{item.text}</p>
                   </div>
                 </div>
+                
               ))}
             </div>
+            
             <div className={styles.sliderDots}>
                 {sliderContent.map((_, index) => (
                   <button
@@ -151,8 +163,21 @@ export default function Home() {
                   />
                 ))}
               </div>
+              
           </div>
+
+          <div className={styles.postSliderImage}>
+                <img 
+                  src="/dashboardpart2.gif" 
+                  alt="Feature highlight"
+                  className={styles.postSliderImg}
+                />
+          </div>
+
+          </div>
+          
         </div>
+        
 
         <div className={styles.externalLinks}>
           <h2 className={styles.linksTitle}>Quick External Links</h2>
@@ -163,7 +188,7 @@ export default function Home() {
               { href: 'https://www.sslshopper.com/certificate-key-matcher.html', title: 'CSR Matcher', icon: <FiTool /> },
               { href: 'https://www.ssllabs.com/ssltest/', title: 'SSL Labs Test', icon: <FiShield /> },
               { href: 'https://docs.google.com/spreadsheets/d/1yVCinTBlCnvv1CYWFjSsfpLjvUcQONJAuBLRoBc4rfE/edit', title: 'Tracking Data', icon: <FiFileText /> },
-              { href: '/files/help', title: 'Help Center', icon: <FiHelpCircle /> }
+              
             ].map((link, index) => (
               <a
                 key={index}

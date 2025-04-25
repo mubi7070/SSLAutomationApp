@@ -49,7 +49,7 @@ const LicenseRenewal = () => {
         <link rel="icon" href="/ssl2white.svg" />
       </Head>
     <Layout>
-      <div className={styles.licenseContainer}>
+      <div className={styles.CSRContainer}>
         <div className={styles.licenseContent}>
           <div className={styles.licenseHeader}>
             
@@ -66,7 +66,13 @@ const LicenseRenewal = () => {
           <p className={styles.licenseDescription}>
             Automatically fetch and update expiring licenses in Google Sheets 
             while preserving the previous sheet data. Select the monitoring period below as per your requirement.
+            <br />
+            <br />
+            Also, If you want to remove the duplicate entries from the license sheet.
+            You can do this by the small form on the DashBoard of the Tracking Data Sheet.
           </p>
+
+          
 
           <div>
             <label className={styles.licenseDescription}>
