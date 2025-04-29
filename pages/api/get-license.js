@@ -1,5 +1,5 @@
 import mysql from 'mysql2/promise';
-import { updateLicenseSheet } from '../utils/licenseSheetService';
+import { updateLicenseSheet } from './licenseSheetService';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
