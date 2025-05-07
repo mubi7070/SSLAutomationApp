@@ -159,7 +159,7 @@ export default function SendgridLimits() {
                       className={styles.btndescription}
                       style={{ marginTop: '10px' }}
                     >
-                      Increase Temporary Limit
+                      Update Temporary Limit
                     </button>
                   ) : (
                     <form onSubmit={(e) => e.preventDefault()}>
