@@ -39,7 +39,7 @@ export default function Header() {
       ],
     },
     {
-      name: 'Others',
+      name: 'Links',
       items: [
         { name: 'The SSL Store', path: 'https://www.thesslstore.com/client/orders.aspx' },
         { name: 'CSR Certificate Matcher', path: 'https://www.sslshopper.com/certificate-key-matcher.html' },
