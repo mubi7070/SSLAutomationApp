@@ -136,7 +136,7 @@ export default function Home() {
                 <FiArrowRight className={styles.cardArrow} />
               </Link>
 
-              <Link href="/files/TwilioDisable" className={`${styles.card} ${styles.cardHelp}`}>
+              <Link href="/files/help" className={`${styles.card} ${styles.cardHelp}`}>
                 <FiHelpCircle className={styles.cardIcon} />
                 <div>
                   <h3>Help</h3>
