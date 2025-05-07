@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '/pages/components/Layout.js';
-import { FiArrowRight, FiShield, FiLock, FiCode, FiMail, FiGrid, FiRefreshCw, FiSliders, FiFileText, FiShoppingCart, FiTool, FiHelpCircle, FiZap } from 'react-icons/fi';
+import { FiArrowRight, FiShield, FiLock, FiCode, FiMail, FiGrid, FiRefreshCw, FiSliders, FiFileText, FiShoppingCart, FiTool, FiBarChart2, FiHelpCircle, FiZap } from 'react-icons/fi';
 import styles from '../styles/Home.module.css';
 
 export default function Home() {
@@ -127,8 +127,17 @@ export default function Home() {
                 <FiArrowRight className={styles.cardArrow} />
               </Link>
 
+              <Link href="/files/Sendgrid" className={`${styles.card} ${styles.cardSendgrid}`}>
+                <FiBarChart2 className={styles.cardIcon} />
+                <div>
+                  <h3>Sendgrid</h3>
+                  <p>Manage Sub-Accounts Credit Limits</p>
+                </div>
+                <FiArrowRight className={styles.cardArrow} />
+              </Link>
+
               <Link href="/files/TwilioDisable" className={`${styles.card} ${styles.cardHelp}`}>
-                <FiSliders className={styles.cardIcon} />
+                <FiHelpCircle className={styles.cardIcon} />
                 <div>
                   <h3>Help</h3>
                   <p>Include the necessary information</p>
