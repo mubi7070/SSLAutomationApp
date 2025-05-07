@@ -3,6 +3,8 @@ import Head from 'next/head';
 import Layout from '/pages/components/Layout.js';
 import styles from '/styles/Home.module.css';
 import Link from "next/link";
+import { HelpCircle } from "lucide-react";
+import Tooltip from "/pages/components/Tooltip.js";
 
 export default function SendgridLimits() {
   const [subAccounts, setSubAccounts] = useState([]);
@@ -101,7 +103,19 @@ export default function SendgridLimits() {
               <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', display: 'flex' }}>
                 SendGrid Sub-Account Management
               </h1>
+              <Tooltip text="Modify Recurring and Temporary limits for any SendGrid sub-account.">
+                <Link href="/files/help" legacyBehavior>
+                  <a className={styles.tooltip}>
+                    <HelpCircle size={24} color="#64748b" />
+                  </a>
+                </Link>
+              </Tooltip>
             </div>
+
+            <p className={styles.licenseDescription}>
+            You can view, increase, or decrease the Recurring and Temporary limits for any SendGrid sub-account. 
+            The maximum adjustment allowed at a time is 10,000.
+              </p>
 
             {error && <div className={styles.notification}>{error}</div>}
 
