@@ -1353,13 +1353,14 @@ button.navLink {
   .cardEmail { border-left: 4px solid #EF4444; }
   .cardLicense { border-left: 4px solid #F59E0B; }
   .cardTwilio { border-left: 4px solid #6366F1; }
+  .cardSendgrid { border-left: 4px solid #0d5497; }
   .cardHelp { border-left: 4px solid #63f1d5; }
 
 
   .sliderContainer {
     position: relative;
     width: 100%;
-    height: 75vh !important;
+    height: 85vh !important;
     border-radius: 15px;
     overflow: hidden;
     margin-top: 15px;
