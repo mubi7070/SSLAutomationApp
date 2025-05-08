@@ -1,7 +1,6 @@
 services:
   sslautomation:
-    build:
-      context: .
+    image: automationapp:latest
     container_name: sslautomation
     networks:
       - SSLAutomationNetwork
