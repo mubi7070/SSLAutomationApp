@@ -5,9 +5,9 @@ export default async function handler(req, res) {
   
   const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 
-  const protocol = req.headers['x-forwarded-proto'] || 'http';
-  const host = req.headers.host;
-  const absoluteUrl = `${protocol}://${host}/api/sendgridsheet`;
+  // const protocol = req.headers['x-forwarded-proto'] || 'http';
+  // const host = req.headers.host;
+  // const absoluteUrl = `${protocol}://${host}/api/sendgridsheet`;
   //const ADMIN_PASSWORD = process.env.SENDGRID_ADMIN_PASSWORD;
 
   try {
@@ -95,9 +95,8 @@ export default async function handler(req, res) {
         }
       );
 
-
       try {
-          await axios.post(absoluteUrl, {
+          await axios.post(`${process.env.BASE_URL}/api/sendgridsheet`, {
               subAccount: req.body.username,
               credits: req.body.newLimit,
               date: new Date().toLocaleDateString("en-US"),
