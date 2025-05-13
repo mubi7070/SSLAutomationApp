@@ -16,14 +16,24 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    const user = users.find(u => u.username === username && u.password === password);
-    if (user) {
+  const handleLogin = async (e) => {
+  e.preventDefault();
+
+  const response = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
       localStorage.setItem('authenticated', 'true');
+      localStorage.setItem('username', result.user.username);
+      localStorage.setItem('name', result.user.name);
       router.push('/home');
     } else {
-      setError('Invalid username or password');
+      setError(result.message || 'Login failed');
     }
   };
 
@@ -84,7 +94,36 @@ export default function Login() {
       </main>
 
       <footer className={styles.footer}>
-        {/* Keep your existing footer content */}
+        <div className={styles.footerRow}>
+          <a
+            href="https://www.globalnorthstar.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Powered by{' '} Northstar Technologies
+            <img src="/northstar.jpg" alt="Northstar" className={styles.logonew} />
+          </a>
+          
+        </div>
+        <div className={styles.footerRow}>
+        <a
+            href="https://www.globalnorthstar.com/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            |
+          </a>
+        </div>
+        <div className={styles.footerRow}>
+          <a
+            href="https://github.com/mubi7070/SSLAutomationApp/tree/master"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            By: Mubashir Ahmed (DevOps)
+            <img src="/dev.svg" alt="DevOps" className={styles.logonew} />
+          </a>
+        </div>
       </footer>
     </div>
   );

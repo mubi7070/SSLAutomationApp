@@ -177,15 +177,14 @@ export default function SendgridLimits() {
                 <div className={styles.mainbox} style={{ marginTop: '20px' }}>
                   <h3>Account Details: {selectedAccount.username}</h3>
                   <div className={styles.contentbox}>
-                    <p>Monthly Recurring Limit: {selectedAccount.monthly_limit || 'Not available'}</p>
-                    <p>Remaining Credit: {selectedAccount.remaining || 'Not available'}</p>
+                    <p>Monthly Recurring Limit (Permanent): {selectedAccount.monthly_limit || 'Not available'}</p>
                     <p>
-                        Used Credits: {
-                            selectedAccount.used == null
+                        Remaining Credit: {
+                            selectedAccount.remaining == null
                             ? 'Not available'
-                            : selectedAccount.used < 0
+                            : selectedAccount.remaining < 0
                             ? 0
-                            : selectedAccount.used
+                            : selectedAccount.remaining
                         }
                     </p>
                 </div>
