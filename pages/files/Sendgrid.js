@@ -6,6 +6,7 @@ import Link from "next/link";
 import { HelpCircle } from "lucide-react";
 import Tooltip from "/pages/components/Tooltip.js";
 
+
 export default function SendgridLimits() {
   const [subAccounts, setSubAccounts] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState(null);
@@ -16,10 +17,22 @@ export default function SendgridLimits() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [result, setResult] = useState('');
+  const [showPopup, setShowPopup] = useState(false);
 
   useEffect(() => {
     fetchSubAccounts();
   }, []);
+
+  useEffect(() => {
+    if (result) {
+      setShowPopup(true);
+      const timer = setTimeout(() => {
+        setShowPopup(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [result]);
 
   const fetchSubAccounts = async () => {
     try {
@@ -66,7 +79,10 @@ export default function SendgridLimits() {
 
       const result = await response.json();
       if (response.ok) {
-        // Update local state with new credit information
+        const action = Number(tempLimit) > 0 ? 'increased' : 'decreased';
+        const amount = Math.abs(Number(tempLimit));
+        setResult(`The temporary limit of ${selectedAccount.username} is ${action} by ${amount} successfully`);
+
         setSelectedAccount(prev => ({
           ...prev,
           ...result.updatedAccount
@@ -263,6 +279,13 @@ export default function SendgridLimits() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Pop-up Notification */}
+        {showPopup && (
+        <div className={styles.notification}>
+            {result}
+        </div>
         )}
 
         <div className={styles.Installerhomebtn}>
