@@ -4,12 +4,6 @@ import styles from '../styles/Home.module.css';
 import Link from 'next/link';
 import Head from 'next/head';
 
-const users = [
-  { username: 'devops', password: 'sibisoft2025' },
-  { username: 'admin', password: 'PasswordTemp5' },
-  { username: 'nssupport', password: 'nssupport2025' },
-];
-
 export default function Login() {
   const router = useRouter();
   const [username, setUsername] = useState('');
