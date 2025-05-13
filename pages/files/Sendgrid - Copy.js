@@ -14,14 +14,11 @@ export default function SendgridLimits() {
   const [showLimitForm, setShowLimitForm] = useState(false);
   const [tempLimit, setTempLimit] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
-  //const [password, setPassword] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState('');
   const [showPopup, setShowPopup] = useState(false);
-  const [username, setUsername] = useState('');
-  const [fdTicket, setFdTicket] = useState('');
-  const [userPassword, setUserPassword] = useState('');
 
   useEffect(() => {
     fetchSubAccounts();
@@ -74,11 +71,9 @@ export default function SendgridLimits() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            username: selectedAccount.username,
+            username: selectedAccount.username,  
             newLimit: tempLimit,
-            usernameInput: username,
-            userPassword: userPassword,
-            fdTicket: fdTicket
+            password
         })
       });
 
@@ -95,9 +90,7 @@ export default function SendgridLimits() {
         setShowLimitForm(false);
         setShowConfirmation(false);
         setTempLimit('');
-        setUsername('');
-        setUserPassword('');
-        setFdTicket('');
+        setPassword('');
         setError('');
 
       } else {
@@ -253,42 +246,18 @@ export default function SendgridLimits() {
         {showConfirmation && (
           <div className={styles.popupContainer}>
             <div className={styles.popupBox}>
-              <h3>Confirm Limit Adjustment</h3>
-              <p><strong>Sub-Account:</strong> {selectedAccount?.username}</p>
-              <p><strong>Temporary Limit:</strong> {tempLimit}</p>
-              <div className={styles.licenseDescription}
-               style={{ textAlign:'left'}}
-              >
+              <h3>Confirm Limit Increase</h3>
+              <p>Sub-Account: {selectedAccount?.username}</p>
+              <p>Temporary Limit: {tempLimit}</p>
+              <div className={styles.licenseDescription}>
                 <label>
-                  Username:
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className={styles.styledselecttempmargin}
-                    style={{ width: '96%', margin: '10px 0' }}
-                    required
-                  />
-                </label>
-                <label>
-                  Password:
+                  Enter Password:
                   <input
                     type="password"
-                    value={userPassword}
-                    onChange={(e) => setUserPassword(e.target.value)}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className={styles.styledselecttempmargin}
-                    style={{ width: '96%', margin: '10px 0' }}
-                    required
-                  />
-                </label>
-                <label>
-                  FD/Mantis Ticket:
-                  <input
-                    type="text"
-                    value={fdTicket}
-                    onChange={(e) => setFdTicket(e.target.value)}
-                    className={styles.styledselecttempmargin}
-                    style={{ width: '96%', margin: '10px 0' }}
+                    style={{ width: '90%', margin: '10px 0' }}
                     required
                   />
                 </label>
