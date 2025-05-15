@@ -284,6 +284,8 @@ export default function SendgridLimits() {
                               // Reset data and load bounces immediately
                               setSuppressionData({ bounces: [], invalids: [], blocks: [] });
                               fetchSuppressionData('bounces');
+                              fetchSuppressionData('invalids');
+                              fetchSuppressionData('blocks');
                             }}
                             className={styles.viewButton}
                           >
