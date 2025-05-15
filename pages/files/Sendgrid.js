@@ -38,6 +38,7 @@ export default function SendgridLimits() {
   }, [result]);
 
   const fetchSubAccounts = async () => {
+    setLoading(true);
     try {
       const response = await fetch('/api/sendgridlimit');
       const data = await response.json();
@@ -50,6 +51,7 @@ export default function SendgridLimits() {
     } catch (err) {
       setError('Failed to connect to server');
     }
+    setLoading(false);
   };
 
   const handleAccountSelect = async (username) => {
@@ -142,6 +144,7 @@ export default function SendgridLimits() {
 
             {error && <div className={styles.notification}>{error}</div>}
 
+
             <div className={styles.licenseDescription}>
               <div className={styles.mainbox}>
                 <label>Search Sub-Accounts:</label>
@@ -154,6 +157,14 @@ export default function SendgridLimits() {
                   style={{ width: '97%', margin: '10px 0' }}
                 />
                 
+
+                {loading ? (
+                  <div style={{ textAlign: 'center', margin: '30px 0' }}>
+                    <img src="/spinner3.gif" alt="Loading..." style={{ width: '200px' }} />
+                    
+                  </div>
+                ) : (
+
                 <div className={styles.box1} style={{ maxHeight: '250px', width: '97%', overflowY: 'auto' }}>
                 {filteredAccounts.map(account => (
                 <div
@@ -168,9 +179,10 @@ export default function SendgridLimits() {
                     }}
                 >
                     {account.username}
+                  </div>
+                  ))}
                 </div>
-                ))}
-                </div>
+                )}
               </div>
 
               {selectedAccount && (

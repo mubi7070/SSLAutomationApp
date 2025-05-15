@@ -2,7 +2,6 @@ import axios from 'axios';
 const USERS = JSON.parse(process.env.SENDGRID_USERS || '[]');
 
 export default async function handler(req, res) {
-  
   const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 
   // const protocol = req.headers['x-forwarded-proto'] || 'http';
@@ -52,19 +51,43 @@ export default async function handler(req, res) {
             }
           });
         }
-  
-        // List all subusers (existing working code)
-        const response = await axios.get('https://api.sendgrid.com/v3/subusers', {
-          headers: {
-            Authorization: `Bearer ${SENDGRID_API_KEY}`,
-            'Content-Type': 'application/json'
+        
+        else {
+        // New paginated implementation for all subusers
+        let allSubusers = [];
+        let limit = 500; // Max allowed by SendGrid API
+        let offset = 0;
+        let hasMore = true;
+
+        while (hasMore) {
+          const response = await axios.get('https://api.sendgrid.com/v3/subusers', {
+            headers: {
+              Authorization: `Bearer ${SENDGRID_API_KEY}`,
+              'Content-Type': 'application/json'
+            },
+            params: {
+              limit,
+              offset,
+              region: 'all',
+              include_region: false
+            }
+          });
+
+          const subusersChunk = Array.isArray(response.data) ? response.data : [];
+          allSubusers = [...allSubusers, ...subusersChunk];
+
+          // Check if we've reached the end of the list
+          if (subusersChunk.length < limit) {
+            hasMore = false;
+          } else {
+            offset += limit;
           }
-        });
-        const subusersArray = Array.isArray(response.data) ? response.data : Object.values(response.data);
-        return res.status(200).json({ subusers: subusersArray });
+        }
+
+        return res.status(200).json({ subusers: allSubusers });
+      }
   
       } else if (req.method === 'POST') {
-      // Password verification
 
       const user = USERS.find(u => 
           u.username === req.body.usernameInput && 
@@ -74,11 +97,7 @@ export default async function handler(req, res) {
       if (!user) {
           return res.status(401).json({ error: 'Invalid credentials' });
       }
-      // if (req.body.password !== ADMIN_PASSWORD) {
-      //   return res.status(401).json({ error: 'Invalid password' });
-      // }
 
-      // Validate input
       if (!req.body.username || !req.body.newLimit) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
@@ -120,8 +139,6 @@ export default async function handler(req, res) {
         }
       );
 
-      
-
       return res.status(200).json({
         updatedAccount: {
           username: req.body.username,
@@ -139,7 +156,7 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('SendGrid API Error:', error.response?.data || error.message);
     const errorMessage = error.response?.data?.errors?.[0]?.message || 
-      'Failed to update temporary limit';
+      'Failed to process SendGrid request';
     res.status(500).json({ error: errorMessage });
   }
 }

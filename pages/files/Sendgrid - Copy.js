@@ -176,64 +176,73 @@ export default function SendgridLimits() {
               {selectedAccount && (
                 <div className={styles.mainbox} style={{ marginTop: '20px' }}>
                   <h3>Account Details: {selectedAccount.username}</h3>
-                  <div className={styles.contentbox}>
-                    <p>Monthly Recurring Limit (Permanent): {selectedAccount.monthly_limit || 'Not available'}</p>
-                    <p>
-                        Remaining Credit: {
-                            selectedAccount.remaining == null
-                            ? 'Not available'
-                            : selectedAccount.remaining < 0
-                            ? 0
-                            : selectedAccount.remaining
-                        }
-                    </p>
-                </div>
-
-                  {!showLimitForm ? (
-                    <button
-                      onClick={() => setShowLimitForm(true)}
-                      className={styles.btndescription}
-                      style={{ marginTop: '10px' }}
-                    >
-                      Update Temporary Limit
-                    </button>
+                  
+                  {selectedAccount.disabled ? (
+                    <div className={styles.contentbox}>
+                      <p>The Sub-Account: <strong>{selectedAccount.username}</strong> is disabled.</p>
+                    </div>
                   ) : (
-                    <form onSubmit={(e) => e.preventDefault()}>
-                      <div className={styles.licenseDescription}>
-                        <br />
-                        <strong>Note:</strong> {" "}
-                         Add positive number values (100) to increase the limit and negative number values (-100) to decrease it.
-                        <br />
-                        <br />
-                        <label>
-                          <strong>Temporary Credit:</strong>
-                          <input
-                            type="number"
-                            value={tempLimit}
-                            onChange={(e) => setTempLimit(e.target.value)}
-                            className={styles.styledselecttempmargin}
-                            style={{ width: '97%', margin: '10px 0' }}
-                            required
-                          />
-                        </label>
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                          <button
-                            type="button"
-                            onClick={() => setShowConfirmation(true)}
-                            className={styles.btndescription}
-                          >
-                            Update
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setShowLimitForm(false)}
-                            className={styles.clearbtn}
-                          >
-                            Cancel
-                          </button>
-                        </div>
+                    <>
+                      <div className={styles.contentbox}>
+                        <p>Monthly Recurring Limit (Permanent): {selectedAccount.monthly_limit || 'Not available'}</p>
+                        <p>
+                          Remaining Credit: {
+                            selectedAccount.remaining == null
+                              ? 'Not available'
+                              : selectedAccount.remaining < 0
+                              ? 0
+                              : selectedAccount.remaining
+                          }
+                        </p>
                       </div>
-                    </form>
+
+                      {!showLimitForm ? (
+                        <button
+                          onClick={() => setShowLimitForm(true)}
+                          className={styles.btndescription}
+                          style={{ marginTop: '10px' }}
+                        >
+                          Update Temporary Limit
+                        </button>
+                      ) : (
+                        <form onSubmit={(e) => e.preventDefault()}>
+                          <div className={styles.licenseDescription}>
+                            <br />
+                            <strong>Note:</strong> {" "}
+                            Add positive number values (100) to increase the limit and negative number values (-100) to decrease it.
+                            <br />
+                            <br />
+                            <label>
+                              <strong>Temporary Credit:</strong>
+                              <input
+                                type="number"
+                                value={tempLimit}
+                                onChange={(e) => setTempLimit(e.target.value)}
+                                className={styles.styledselecttempmargin}
+                                style={{ width: '97%', margin: '10px 0' }}
+                                required
+                              />
+                            </label>
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                              <button
+                                type="button"
+                                onClick={() => setShowConfirmation(true)}
+                                className={styles.btndescription}
+                              >
+                                Update
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setShowLimitForm(false)}
+                                className={styles.clearbtn}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        </form>
+                      )}
+                    </>
                   )}
                 </div>
               )}
