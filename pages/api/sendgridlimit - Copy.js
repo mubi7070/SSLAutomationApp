@@ -1,8 +1,14 @@
 import axios from 'axios';
+const USERS = JSON.parse(process.env.SENDGRID_USERS || '[]');
 
 export default async function handler(req, res) {
+  
   const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-  const ADMIN_PASSWORD = process.env.SENDGRID_ADMIN_PASSWORD;
+
+  // const protocol = req.headers['x-forwarded-proto'] || 'http';
+  // const host = req.headers.host;
+  // const absoluteUrl = `${protocol}://${host}/api/sendgridsheet`;
+  //const ADMIN_PASSWORD = process.env.SENDGRID_ADMIN_PASSWORD;
 
   try {
     if (req.method === 'GET') {
@@ -59,9 +65,18 @@ export default async function handler(req, res) {
   
       } else if (req.method === 'POST') {
       // Password verification
-      if (req.body.password !== ADMIN_PASSWORD) {
-        return res.status(401).json({ error: 'Invalid password' });
+
+      const user = USERS.find(u => 
+          u.username === req.body.usernameInput && 
+          u.password === req.body.userPassword
+      );
+
+      if (!user) {
+          return res.status(401).json({ error: 'Invalid credentials' });
       }
+      // if (req.body.password !== ADMIN_PASSWORD) {
+      //   return res.status(401).json({ error: 'Invalid password' });
+      // }
 
       // Validate input
       if (!req.body.username || !req.body.newLimit) {
@@ -80,6 +95,19 @@ export default async function handler(req, res) {
         }
       );
 
+      try {
+          await axios.post(`${process.env.BASE_URL}/api/sendgridsheet`, {
+              subAccount: req.body.username,
+              credits: req.body.newLimit,
+              date: new Date().toLocaleDateString("en-US"),
+              personName: user.name,
+              username: req.body.usernameInput,
+              fdTicket: req.body.fdTicket
+          });
+      } catch (sheetError) {
+          console.error('Google Sheet logging failed:', sheetError);
+      }
+
       // Fetch updated credit information
       const creditsResponse = await axios.get(
         `https://api.sendgrid.com/v3/user/credits`,
@@ -91,6 +119,8 @@ export default async function handler(req, res) {
           }
         }
       );
+
+      
 
       return res.status(200).json({
         updatedAccount: {
