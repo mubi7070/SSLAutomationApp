@@ -22,6 +22,19 @@ export default function SendgridLimits() {
   const [username, setUsername] = useState('');
   const [fdTicket, setFdTicket] = useState('');
   const [userPassword, setUserPassword] = useState('');
+  const [showSuppressions, setShowSuppressions] = useState(false);
+  const [activeTab, setActiveTab] = useState('bounces');
+  const [suppressionData, setSuppressionData] = useState({
+    bounces: [],
+    invalids: [],
+    blocks: [],
+  });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [suppressionLoading, setSuppressionLoading] = useState(false);
+  const [suppressionError, setSuppressionError] = useState('');
+
+
+
 
   useEffect(() => {
     fetchSubAccounts();
@@ -36,6 +49,44 @@ export default function SendgridLimits() {
       return () => clearTimeout(timer);
     }
   }, [result]);
+
+
+  const fetchSuppressionData = async (type) => {
+    if (!selectedAccount?.username) return;
+    
+    setSuppressionLoading(true);
+    setSuppressionError('');
+    
+    try {
+      const response = await fetch(
+        `/api/sendgridlimit/suppressions?type=${type}&username=${selectedAccount.username}&limit=500`
+      );
+
+      const textResponse = await response.text();
+      let data;
+      
+      try {
+        data = JSON.parse(textResponse);
+      } catch (e) {
+        console.error('Invalid JSON response:', textResponse);
+        throw new Error('Received invalid response from server');
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to fetch suppression data');
+      }
+
+      setSuppressionData(prev => ({
+        ...prev,
+        [type]: data.data
+      }));
+      
+    } catch (err) {
+      setSuppressionError(err.message || 'Failed to fetch suppression data');
+    }
+    
+    setSuppressionLoading(false);
+  };
 
   const fetchSubAccounts = async () => {
     setLoading(true);
@@ -209,13 +260,21 @@ export default function SendgridLimits() {
                       </div>
 
                       {!showLimitForm ? (
-                        <button
-                          onClick={() => setShowLimitForm(true)}
-                          className={styles.btndescription}
-                          style={{ marginTop: '10px' }}
-                        >
-                          Update Temporary Limit
-                        </button>
+
+                        <div className={styles.buttonGroup}>
+                          <button
+                            onClick={() => setShowLimitForm(true)}
+                            className={styles.btndescription}
+                          >
+                            Update Temporary Limit
+                          </button>
+                          <button
+                            onClick={() => setShowSuppressions(true)}
+                            className={styles.viewButton}
+                          >
+                            View Suppressions
+                          </button>
+                        </div>
                       ) : (
                         <form onSubmit={(e) => e.preventDefault()}>
                           <div className={styles.licenseDescription}>
@@ -337,6 +396,97 @@ export default function SendgridLimits() {
         <div className={styles.notification}>
             {result}
         </div>
+        )}
+
+        {showSuppressions && selectedAccount && !selectedAccount.disabled && (
+          <div className={styles.suppressionContainer}>
+            <div className={styles.suppressionHeader}>
+              <h3>Suppressions for {selectedAccount.username}</h3>
+              <button 
+                className={styles.closeButton}
+                onClick={() => setShowSuppressions(false)}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className={styles.tabContainer}>
+              <button
+                className={`${styles.tabButton} ${activeTab === 'bounces' ? styles.activeTab : ''}`}
+                onClick={() => {
+                  setActiveTab('bounces');
+                  if (suppressionData.bounces.length === 0) fetchSuppressionData('bounces');
+                }}
+              >
+                Bounces
+              </button>
+              <button
+                className={`${styles.tabButton} ${activeTab === 'invalids' ? styles.activeTab : ''}`}
+                onClick={() => {
+                  setActiveTab('invalids');
+                  if (suppressionData.invalids.length === 0) fetchSuppressionData('invalids');
+                }}
+              >
+                Invalids
+              </button>
+              <button
+                className={`${styles.tabButton} ${activeTab === 'blocks' ? styles.activeTab : ''}`}
+                onClick={() => {
+                  setActiveTab('blocks');
+                  if (suppressionData.blocks.length === 0) fetchSuppressionData('blocks');
+                }}
+              >
+                Blocks
+              </button>
+            </div>
+
+            <div className={styles.searchContainer}>
+              <input
+                type="text"
+                placeholder="Search by Email or Date..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className={styles.suppressionSearch}
+              />
+            </div>
+
+            {suppressionLoading ? (
+              <div className={styles.suppressionLoading}>
+                <img src="/spinner3.gif" alt="Loading..." style={{ width: '50px' }} />
+              </div>
+            ) : suppressionError ? (
+              <div className={styles.suppressionError}>{suppressionError}</div>
+            ) : (
+              <div className={styles.tableContainer}>
+                <table className={styles.suppressionTable}>
+                  <thead>
+                    <tr>
+                      <th>Email</th>
+                      <th>Date/Time</th>
+                      <th>Reason</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {suppressionData[activeTab]
+                      .filter(item => {
+                        const searchLower = searchTerm.toLowerCase();
+                        return (
+                          item.email.toLowerCase().includes(searchLower) ||
+                          new Date(item.created * 1000).toLocaleString().includes(searchTerm)
+                        );
+                      })
+                      .map((item, index) => (
+                        <tr key={index}>
+                          <td>{item.email}</td>
+                          <td>{new Date(item.created * 1000).toLocaleString()}</td>
+                          <td>{item.reason || 'N/A'}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         )}
 
         <div className={styles.Installerhomebtn}>
