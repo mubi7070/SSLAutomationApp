@@ -51,6 +51,16 @@ export default function SendgridLimits() {
   }, [result]);
 
 
+  useEffect(() => {
+  if (showSuppressions) {
+    // Reset suppression data when account changes
+    setSuppressionData({ bounces: [], invalids: [], blocks: [] });
+    // Reload data for current tab
+    fetchSuppressionData(activeTab);
+  }
+}, [selectedAccount?.username]);
+
+
   const fetchSuppressionData = async (type) => {
     if (!selectedAccount?.username) return;
     
@@ -59,7 +69,7 @@ export default function SendgridLimits() {
     
     try {
       const response = await fetch(
-        `/api/sendgridlimit/suppressions?type=${type}&username=${selectedAccount.username}&limit=500`
+        `/api/sendgridlimit/suppressions?type=${type}&username=${selectedAccount.username}&limit=500&ts=${Date.now()}`
       );
 
       const textResponse = await response.text();
@@ -269,7 +279,12 @@ export default function SendgridLimits() {
                             Update Temporary Limit
                           </button>
                           <button
-                            onClick={() => setShowSuppressions(true)}
+                            onClick={() => {
+                              setShowSuppressions(true);
+                              // Reset data and load bounces immediately
+                              setSuppressionData({ bounces: [], invalids: [], blocks: [] });
+                              fetchSuppressionData('bounces');
+                            }}
                             className={styles.viewButton}
                           >
                             View Suppressions
@@ -415,7 +430,10 @@ export default function SendgridLimits() {
                 className={`${styles.tabButton} ${activeTab === 'bounces' ? styles.activeTab : ''}`}
                 onClick={() => {
                   setActiveTab('bounces');
-                  if (suppressionData.bounces.length === 0) fetchSuppressionData('bounces');
+                  if (suppressionData.bounces.length === 0 || 
+                      suppressionData.bounces[0]?.username !== selectedAccount.username) {
+                    fetchSuppressionData('bounces');
+                  }
                 }}
               >
                 Bounces
@@ -424,7 +442,10 @@ export default function SendgridLimits() {
                 className={`${styles.tabButton} ${activeTab === 'invalids' ? styles.activeTab : ''}`}
                 onClick={() => {
                   setActiveTab('invalids');
-                  if (suppressionData.invalids.length === 0) fetchSuppressionData('invalids');
+                  if (suppressionData.invalids.length === 0 || 
+                      suppressionData.invalids[0]?.username !== selectedAccount.username) {
+                    fetchSuppressionData('invalids');
+                  }
                 }}
               >
                 Invalids
@@ -433,7 +454,10 @@ export default function SendgridLimits() {
                 className={`${styles.tabButton} ${activeTab === 'blocks' ? styles.activeTab : ''}`}
                 onClick={() => {
                   setActiveTab('blocks');
-                  if (suppressionData.blocks.length === 0) fetchSuppressionData('blocks');
+                  if (suppressionData.blocks.length === 0 || 
+                      suppressionData.blocks[0]?.username !== selectedAccount.username) {
+                    fetchSuppressionData('blocks');
+                  }
                 }}
               >
                 Blocks
