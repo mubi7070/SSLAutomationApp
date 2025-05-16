@@ -138,7 +138,18 @@ export default function SSLInstaller() {
   };
 
   const handleClear = () => {
-    window.location.reload();
+    setFormData({
+      certPaths: formData.certPaths.map(cert => ({
+        ...cert,
+        path: baseCertDir + cert.path.split('/').pop() // Reset to base path
+      })),
+      keystoreName: '',
+      keystorePassword: 'sibisoft'
+    });
+    setResponseResults([]);
+    setResponseMessage('');
+    setFiles([]);
+    setFilteredFiles(keystoreFiles);
   };
 
   const togglePasswordVisibility = () => {
@@ -332,6 +343,7 @@ export default function SSLInstaller() {
             <div>
               <DownloadFiles filePaths={files} />
             </div>
+
           </div>
 
           <div className={styles.licenseVisual}>
@@ -342,6 +354,40 @@ export default function SSLInstaller() {
             />
           </div>
         </div>
+
+                    {responseResults.length > 0 && (
+              <div className={styles.CSRContainer} style={{ marginTop: '2rem', gridTemplateColumns: '1fr' }}>
+                <div className={styles.licenseContent}>
+                  <div className={styles.mainbox}>
+                    <h2 style={{ color: 'rgb(16, 31, 118)' }}>Installation Results</h2>
+                    <div className={styles.contentbox}>
+                      <ul style={{ 
+                        textAlign: 'left', 
+                        margin: '20px 0',
+                        fontFamily: 'monospace',
+                        backgroundColor: '#f8f9fa',
+                        padding: '15px',
+                        borderRadius: '4px',
+                        border: '1px solid #dee2e6'
+                      }}>
+                        {responseResults.map((result, index) => (
+                          <li key={index} style={{ marginBottom: '8px' }}>
+                            <strong style={{ color: '#1a237e' }}>Alias {result.alias}:</strong>
+                            <pre style={{ 
+                              whiteSpace: 'pre-wrap',
+                              margin: '5px 0 0 20px',
+                              color: '#4a5568'
+                            }}>{result.output}</pre>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+
 
         <div className={styles.Installerhomebtn}>
           <button style={{ marginBottom: '1rem' }}><Link href="/home">Back to Home</Link></button>
