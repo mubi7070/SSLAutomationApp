@@ -26,7 +26,6 @@ export default async function handler(req, res) {
           const process = spawn('keytool', [
             '-import',
             '-trustcacerts',
-            '-storetype', 'JKS',
             '-alias', alias,
             '-file', fullCertPath,
             '-keystore', keystorePath,

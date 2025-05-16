@@ -104,7 +104,6 @@ const generateTomcatCSR = (domain, password) =>
 
     const keytoolGen = spawn('keytool', [
       '-genkey',
-      '-storetype', 'JKS', 
       '-keyalg',
       'RSA',
       '-keysize',
