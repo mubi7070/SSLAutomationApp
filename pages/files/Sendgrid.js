@@ -291,6 +291,19 @@ export default function SendgridLimits() {
                           >
                             View Suppressions
                           </button>
+                          <button
+                            onClick={() => {
+                              // setShowSuppressions(true);
+                              // // Reset data and load bounces immediately
+                              // setSuppressionData({ bounces: [], invalids: [], blocks: [] });
+                              // fetchSuppressionData('bounces');
+                              // fetchSuppressionData('invalids');
+                              // fetchSuppressionData('blocks');
+                            }}
+                            className={styles.viewButton2}
+                          >
+                            Sender Authentication
+                          </button>
                         </div>
                       ) : (
                         <form onSubmit={(e) => e.preventDefault()}>
@@ -478,7 +491,7 @@ export default function SendgridLimits() {
 
             {suppressionLoading ? (
               <div className={styles.suppressionLoading}>
-                <img src="/spinner3.gif" alt="Loading..." style={{ width: '50px' }} />
+                <img src="/spinner3.gif" alt="Loading..." style={{ width: '200px' }} />
               </div>
             ) : suppressionError ? (
               <div className={styles.suppressionError}>{suppressionError}</div>

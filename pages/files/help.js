@@ -56,7 +56,11 @@ const HelpPage = () => {
               </div>
               <div className={styles.sectionContent}>
                 <div className={styles.infoCard}>
-                  <img src="/handshake2.png" alt="SSL Handshake" className={styles.infoImage} />
+                  <img src="/handshake2.png" alt="SSL Handshake" 
+                  className={styles.infoImage} 
+                  style={{width: '250px'}}
+                  />
+
                   <h3>Secure Communication Workflow</h3>
                   <ul className={styles.bulletList}>
                     <li>2048-bit minimum RSA key encryption</li>
@@ -358,7 +362,7 @@ const HelpPage = () => {
 
         <div className={styles.Installerhomebtn}>
           <button className={styles.primaryButton}>
-            <Link href="/home">Return to Dashboard</Link>
+            <Link href="/home">Back to Home</Link>
           </button>
         </div>
       </Layout>
