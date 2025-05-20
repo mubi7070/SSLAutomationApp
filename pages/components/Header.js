@@ -11,6 +11,18 @@ export default function Header() {
   const [isHovered, setIsHovered] = useState(false);
   const fullText = "Northstar Automation Tool";
   const [isTyping, setIsTyping] = useState(true);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/logout');
+      if (response.ok) {
+        router.push('/');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
   const categories = [
     { name: 'Home', path: '/home' },
@@ -140,6 +152,38 @@ export default function Header() {
           </div>
         ))}
       </nav>
+
+<div className={styles.logoutContainer}>
+        <button 
+          onClick={() => setShowLogoutModal(true)}
+          className={styles.logoutButton}
+        >
+          Logout
+        </button>
+
+        {showLogoutModal && (
+          <div className={styles.logoutModal}>
+            <div className={styles.modalContent}>
+              <p>Are you sure you want to logout?</p>
+              <div className={styles.modalActions}>
+                <button 
+                  onClick={handleLogout}
+                  className={styles.confirmButton}
+                >
+                  Logout
+                </button>
+                <button 
+                  onClick={() => setShowLogoutModal(false)}
+                  className={styles.cancelButton}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
     </header>
   );
 }

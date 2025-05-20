@@ -3,31 +3,41 @@ import { useRouter } from 'next/router';
 import styles from '../styles/Home.module.css';
 import Link from 'next/link';
 import Head from 'next/head';
+import { useEffect } from 'react';
+import { useAuth } from '/pages/contexts/AuthContext';
 
 export default function Login() {
+  const { user } = useAuth();
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  const handleLogin = async (e) => {
-  e.preventDefault();
-
-  const response = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
-
-    const result = await response.json();
-
-    if (result.success) {
-      localStorage.setItem('authenticated', 'true');
-      localStorage.setItem('username', result.user.username);
-      localStorage.setItem('name', result.user.name);
+  useEffect(() => {
+    if (user) {
       router.push('/home');
-    } else {
-      setError(result.message || 'Login failed');
+    }
+  }, [user]);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        router.push('/home');
+      } else {
+        setError(result.message || 'Login failed');
+      }
+    } catch (error) {
+      setError('Connection error');
     }
   };
 

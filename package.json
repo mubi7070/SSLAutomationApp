@@ -9,6 +9,8 @@
     "@aws-sdk/client-s3": "^3.744.0",
     "aws-sdk": "^2.1692.0",
     "axios": "^1.7.9",
+    "bcryptjs": "^3.0.2",
+    "cookies-next": "^5.1.0",
     "file-saver": "^2.0.5",
     "formidable": "^3.5.2",
     "google-spreadsheets": "^2.0.0",
