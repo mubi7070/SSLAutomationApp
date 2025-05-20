@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { LogOut } from "lucide-react";
 import styles from '/styles/Home.module.css';
 
 export default function Header() {
@@ -156,25 +157,27 @@ export default function Header() {
 <div className={styles.logoutContainer}>
         <button 
           onClick={() => setShowLogoutModal(true)}
-          className={styles.logoutButton}
+          className={styles.navLink}
+          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
         >
+          <LogOut size={20} />
           Logout
         </button>
 
         {showLogoutModal && (
-          <div className={styles.logoutModal}>
-            <div className={styles.modalContent}>
+          <div className={styles.popupContainer}>
+            <div className={styles.popupBox}>
               <p>Are you sure you want to logout?</p>
-              <div className={styles.modalActions}>
+              <div className={styles.popupButtons}>
                 <button 
                   onClick={handleLogout}
-                  className={styles.confirmButton}
+                  className={styles.yesButton}
                 >
                   Logout
                 </button>
                 <button 
                   onClick={() => setShowLogoutModal(false)}
-                  className={styles.cancelButton}
+                  className={styles.noButton}
                 >
                   Cancel
                 </button>
