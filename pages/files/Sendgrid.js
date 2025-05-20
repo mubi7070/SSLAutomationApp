@@ -640,7 +640,9 @@ const fetchSenderAuthData = async (type) => {
                           <td>{domain.default ? 'Yes' : 'No'}</td>
                           <td>{domain.subdomain}</td>
                           <td>
-                            {domain.dns?.mail_cname?.valid ? 'Valid' : 'Invalid'}
+                            <span style={{ color: domain.dns?.mail_cname?.valid ? 'green' : 'red' }}>
+                              {domain.dns?.mail_cname?.valid ? 'Verified' : 'Pending'}
+                            </span>
                           </td>
                         </tr>
                       ))
@@ -652,7 +654,9 @@ const fetchSenderAuthData = async (type) => {
                           <td>{link.default ? 'Yes' : 'No'}</td>
                           <td>{link.subdomain}</td>
                           <td>
-                            {link.dns?.domain_cname?.valid ? 'Valid' : 'Invalid'}
+                            <span style={{ color: link.dns?.domain_cname?.valid ? 'green' : 'red' }}>
+                              {link.dns?.domain_cname?.valid ? 'Verified' : 'Pending'}
+                            </span>
                           </td>
                         </tr>
                       ))
