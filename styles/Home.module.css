@@ -1672,6 +1672,11 @@ button.navLink {
   background-color: #f87c0f;
 }
 
+.noData {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+}
 
 .logoutContainer {
   position: relative;

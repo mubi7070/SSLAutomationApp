@@ -4,10 +4,58 @@ const USERS = JSON.parse(process.env.SENDGRID_USERS || '[]');
 export default async function handler(req, res) {
   const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 
-  // const protocol = req.headers['x-forwarded-proto'] || 'http';
-  // const host = req.headers.host;
-  // const absoluteUrl = `${protocol}://${host}/api/sendgridsheet`;
-  //const ADMIN_PASSWORD = process.env.SENDGRID_ADMIN_PASSWORD;
+  // Handle Suppressions Endpoint First
+  if (req.url.includes('/api/sendgridlimit/suppressions')) {
+    try {
+      const { type, username } = req.query;
+      const endpoints = {
+        bounces: 'suppression/bounces',
+        invalids: 'suppression/invalid_emails',
+        blocks: 'suppression/blocks'
+      };
+
+      if (!endpoints[type]) {
+        return res.status(400).json({ error: 'Invalid suppression type' });
+      }
+
+      const response = await axios.get(`https://api.sendgrid.com/v3/${endpoints[type]}`, {
+        headers: {
+          Authorization: `Bearer ${SENDGRID_API_KEY}`,
+          'Content-Type': 'application/json',
+          ...(username && { 'on-behalf-of': username })
+        },
+        params: { limit: 1000 },
+        validateStatus: () => true // Important to handle non-200 responses
+      });
+
+      if (response.status >= 400) {
+        console.error('SendGrid Suppression Error:', {
+          status: response.status,
+          data: response.data
+        });
+        return res.status(response.status).json({ 
+          error: response.data?.errors?.[0]?.message || 'Failed to fetch suppression data'
+        });
+      }
+
+      return res.status(200).json({ 
+        data: response.data.map(item => ({
+          email: item.email,
+          created: item.created,
+          reason: item.reason || 'N/A'
+        }))
+      });
+
+    } catch (error) {
+      console.error('Suppression API Error:', error);
+      return res.status(500).json({ 
+        error: error.message || 'Failed to process suppression request'
+      });
+    }
+  }
+
+
+
 
   try {
     if (req.method === 'GET') {
@@ -159,4 +207,5 @@ export default async function handler(req, res) {
       'Failed to process SendGrid request';
     res.status(500).json({ error: errorMessage });
   }
+
 }

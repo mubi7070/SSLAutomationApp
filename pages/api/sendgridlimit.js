@@ -4,6 +4,7 @@ const USERS = JSON.parse(process.env.SENDGRID_USERS || '[]');
 export default async function handler(req, res) {
   const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 
+
   // Handle Suppressions Endpoint First
   if (req.url.includes('/api/sendgridlimit/suppressions')) {
     try {
