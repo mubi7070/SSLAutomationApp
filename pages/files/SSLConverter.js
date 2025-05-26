@@ -7,6 +7,7 @@ import { HelpCircle } from "lucide-react";
 import Tooltip from "/pages/components/Tooltip.js"; // Import Tooltip
 import DownloadFiles from "/pages/components/DownloadFiles.js"; 
 import FileUpload from "/pages/components/FileUpload.js";
+import KeyUpload from "/pages/components/KeyUpload.js";
 import Layout from '/pages/components/Layout.js';
 
 export default function SSLConverter() {
@@ -22,8 +23,7 @@ export default function SSLConverter() {
 
   const [filteredkeystore, setfilteredkeystore] = useState([]);
   const [keystoreFiles, setkeystoreFiles] = useState([]);
-  
-  //const [keystoreFiles, setKeystoreFiles] = useState([]);
+
   
   const [KeystoreName, setKeystoreName] = useState('');
   const [KeystorePassword, setKeystorePassword] = useState('sibisoft');
@@ -61,7 +61,7 @@ export default function SSLConverter() {
           setfilteredKeys(data.files || []);
           setkeyFiles(data.files || []);
         })
-        .catch((error) => console.error('Error fetching Certificate files:', error));
+        .catch((error) => console.error('Error fetching Key files:', error));
     }, []);
 
     useEffect(() => {
@@ -71,7 +71,7 @@ export default function SSLConverter() {
           setfilteredBundle(data.files || []);
           setBundleFiles(data.files || []);
         })
-        .catch((error) => console.error('Error fetching Certificate files:', error));
+        .catch((error) => console.error('Error fetching bundle files:', error));
     }, []);
 
     useEffect(() => {
@@ -81,7 +81,7 @@ export default function SSLConverter() {
           setfilteredkeystore(data.files || []);
           setkeystoreFiles(data.files || []);
         })
-        .catch((error) => console.error('Error fetching Certificate files:', error));
+        .catch((error) => console.error('Error fetching Keystore files:', error));
     }, []);
 
     useEffect(() => {
@@ -119,6 +119,24 @@ export default function SSLConverter() {
         setCertFiles(data.files || []);
       })
       .catch((error) => console.error('Error refreshing certificates:', error));
+  };
+
+  const refreshkeys = () => {
+      fetch('/api/get-keys')
+        .then((response) => response.json())
+        .then((data) => {
+          setfilteredKeys(data.files || []);
+          setkeyFiles(data.files || []);
+        })
+        .catch((error) => console.error('Error refreshing Keys:', error));
+
+      fetch('/api/get-keystore')
+        .then((response) => response.json())
+        .then((data) => {
+          setfilteredkeystore(data.files || []);
+          setkeystoreFiles(data.files || []);
+        })
+        .catch((error) => console.error('Error fetching Keystores:', error));
   };
 
   const handleClear = () => {
@@ -325,6 +343,15 @@ export default function SSLConverter() {
                     </div>
 
                     <div className={styles.licenseDescription}>
+                      <KeyUpload 
+                        styles={styles}
+                        setResponseMessage={setResult}
+                        setShowPopup={setShowPopup}
+                        refreshCertificates={refreshkeys}
+                      />
+                    </div>
+
+                    <div className={styles.licenseDescription}>
                       <label>
                         Certificate File Name:
                         <Tooltip text="Select certificate file from Certs directory">
@@ -497,6 +524,15 @@ export default function SSLConverter() {
               <>
                 <h2 className={styles.headingnew}>Keystore → PEM (Tomcat → Apache)</h2>
 
+                  <div className={styles.licenseDescription}>
+                      <KeyUpload 
+                        styles={styles}
+                        setResponseMessage={setResult}
+                        setShowPopup={setShowPopup}
+                        refreshCertificates={refreshkeys}
+                      />
+                  </div>
+
               <div className={styles.licenseDescription}>
                   <label className={styles.description}>Keystore File Name:</label>
                   {/* Help Icon with Tooltip */}
@@ -579,6 +615,16 @@ export default function SSLConverter() {
             {selectedOption === 'KeystoreToP12' && (
               <>
               <h2 className={styles.headingnew}>Keystore → P12</h2>
+
+              <div className={styles.licenseDescription}>
+                      <KeyUpload 
+                        styles={styles}
+                        setResponseMessage={setResult}
+                        setShowPopup={setShowPopup}
+                        refreshCertificates={refreshkeys}
+                      />
+                  </div>
+
               <div className={styles.licenseDescription}>
                   <label className={styles.description}>Keystore File Name:</label>
                   {/* Help Icon with Tooltip */}

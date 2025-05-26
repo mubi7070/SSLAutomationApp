@@ -7,6 +7,7 @@ import { HelpCircle } from "lucide-react";
 import Tooltip from "/pages/components/Tooltip.js"; // Import Tooltip
 import DownloadFiles from "/pages/components/DownloadFiles.js";
 import FileUpload from "/pages/components/FileUpload.js";
+import KeyUpload from "/pages/components/KeyUpload.js";
 import Layout from '/pages/components/Layout.js';
 
 const baseCertDir = 'Certs/';
@@ -46,11 +47,16 @@ export default function SSLInstaller() {
   const [responseResults, setResponseResults] = useState([]);
   const [responseMessage, setResponseMessage] = useState('');
   const [keystoreFiles, setKeystoreFiles] = useState([]);
+  const [filteredkeystore, setfilteredkeystore] = useState([]);
   const [filteredFiles, setFilteredFiles] = useState([]);
   const [showPassword, setShowPassword] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [filteredcerts, setfilteredcerts] = useState([]);
   const [CertFiles, setCertFiles] = useState([]);
+  const [filteredKeys, setfilteredKeys] = useState([]);
+  const [keyFiles, setkeyFiles] = useState([]);
+
+
   const [files, setFiles] = useState([]);
   useEffect(() => {
     fetch('/api/install-ssl')
@@ -97,6 +103,27 @@ export default function SSLInstaller() {
       })
       .catch((error) => console.error('Error refreshing certificates:', error));
   };
+
+    const refreshkeys = () => {
+      fetch('/api/get-keys')
+        .then((response) => response.json())
+        .then((data) => {
+          setfilteredKeys(data.files || []);
+          setkeyFiles(data.files || []);
+        })
+        .catch((error) => console.error('Error refreshing Keys:', error));
+
+      fetch('/api/get-keystore')
+        .then((response) => response.json())
+        .then((data) => {
+          setfilteredkeystore(data.files || []);
+          setKeystoreFiles(data.files || []);
+        })
+        .catch((error) => console.error('Error fetching Keystores:', error));
+  };
+
+
+
 
   const toggleCertEnabled = (index) => {
     const updatedCertPaths = [...formData.certPaths];
@@ -194,6 +221,17 @@ export default function SSLInstaller() {
                   refreshCertificates={refreshCertificates}
                 />
               </div>
+
+              <div className={styles.licenseDescription}>
+                <KeyUpload 
+                  styles={styles}
+                  setResponseMessage={setResponseMessage}
+                  setShowPopup={setShowPopup}
+                  refreshCertificates={refreshkeys}
+                />
+              </div>
+
+              
 
               {formData.certPaths.map((cert, index) => (
                 <div key={cert.alias} className={styles.licenseDescription}>

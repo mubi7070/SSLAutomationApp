@@ -5,12 +5,12 @@ import Link from 'next/link';
 import { HelpCircle } from "lucide-react";
 
 
-const allowedExtensions = ['.crt', '.pem', '.ca-bundle', '.cer'];
+const allowedExtensions = ['.key', '.pem', '.keystore', '.p12', '.pfx'];
 
-export default function FileUpload({ styles, setResponseMessage, setShowPopup, refreshCertificates }) {
+export default function KeyUpload({ styles, setResponseMessage, setShowPopup, refreshCertificates }) {
   const [isUploading, setIsUploading] = useState(false);
 
-  const handleFileUpload = async (e) => {
+  const handleKeyUpload = async (e) => {
     e.preventDefault();
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -22,7 +22,7 @@ export default function FileUpload({ styles, setResponseMessage, setShowPopup, r
     });
 
     if (invalidFiles.length > 0) {
-      alert('Only .crt, .pem, .ca-bundle, and .cer files are allowed!');
+      alert('Only .key, .pem, .keystore, .p12, and .pfx files are allowed!');
       return;
     }
 
@@ -31,7 +31,7 @@ export default function FileUpload({ styles, setResponseMessage, setShowPopup, r
     Array.from(files).forEach(file => formData.append('certificates', file));
 
     try {
-      const response = await fetch('/api/upload-certificates', {
+      const response = await fetch('/api/upload-keys', {
         method: 'POST',
         body: formData,
       });
@@ -60,27 +60,27 @@ export default function FileUpload({ styles, setResponseMessage, setShowPopup, r
   return (
     <div style={{ marginBottom: '20px' }}>
       <label className={style.customfileupload}>
-      <label className={style.description}>Upload Cert Files: </label>
+      <label className={style.description}>Upload Key Files: </label>
         <input
           type="file"
           multiple
-          onChange={handleFileUpload}
-          accept=".crt,.pem,.ca-bundle,.cer"
+          onChange={handleKeyUpload}
+          accept=".key,.pem,.keystore,.p12,.pfx"
           disabled={isUploading}
           style={{ display: 'none' }}
-          id="certFileInput"
+          id="keyFileInput"
         />
         <button 
           type="button"
           className={isUploading ? style.uploadBtnDisabled : style.uploadBtn}
-          onClick={() => document.getElementById('certFileInput').click()}
+          onClick={() => document.getElementById('keyFileInput').click()}
           disabled={isUploading}
         >
           {isUploading ? 'Uploading...' : 'Upload'}
         </button>
       </label>
         <Tooltip text="
-        You need to add the certificates files which you want to install. It only allows you to add the files with extension: .crt, .pem, .ca-bundle, .cer
+        You need to add the key files which you want to add. It only allows you to add the files with extension: .key, .pem, .keystore, .p12, .pfx
         ">
             <Link href="/files/help" legacyBehavior>
                 <a className={style.tooltip}>
