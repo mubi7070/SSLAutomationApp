@@ -729,7 +729,7 @@ font-family: 'Times New Roman', Times, serif;
 
 .nav {
   display: flex;
-  gap: 1.5rem;
+  gap: 2.5rem;
   align-items: center;
 }
 
@@ -1742,7 +1742,19 @@ button.navLink {
   cursor: pointer;
 }
 
+.errorMessage {
+  color: #dc3545;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+}
 
+.styledinput:disabled {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+}
 
 
 

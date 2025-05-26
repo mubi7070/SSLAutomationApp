@@ -1,12 +1,10 @@
-// pages/_app.js
-import { AuthProvider } from '/pages/contexts/AuthContext';
+import { useRouter } from 'next/router';
+import '../styles/Home.module.css';
 
 function MyApp({ Component, pageProps }) {
-  return (
-    <AuthProvider>
-      <Component {...pageProps} />
-    </AuthProvider>
-  );
+  const router = useRouter();
+
+  return <Component {...pageProps} />;
 }
 
 export default MyApp;

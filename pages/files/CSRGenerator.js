@@ -8,7 +8,6 @@ import styles from "/styles/Home.module.css";
 import DownloadFiles from "/pages/components/DownloadFiles.js"; 
 import Layout from '/pages/components/Layout.js';
 
-
 export default function Home() {
   const [domains, setDomains] = useState('');
   const [password, setPassword] = useState('sibisoft');
