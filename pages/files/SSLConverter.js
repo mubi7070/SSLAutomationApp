@@ -115,8 +115,8 @@ export default function SSLConverter() {
     fetch('/api/get-bundle')
       .then((response) => response.json())
       .then((data) => {
-        setFilteredCerts(data.files || []);
-        setCertFiles(data.files || []);
+        setfilteredBundle(data.files || []);
+        setBundleFiles(data.files || []);
       })
       .catch((error) => console.error('Error refreshing certificates:', error));
   };
