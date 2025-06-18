@@ -1584,8 +1584,7 @@ button.navLink {
 }
 
 .suppressionSearch {
-  width: 98%;
-  margin-bottom: 15px;
+  width: 78%;
   outline-color: #6ba9f396;
   padding: 8px;
   border: 1px solid #ccc;
@@ -1756,6 +1755,54 @@ button.navLink {
 .styledinput:disabled {
   background-color: #e9ecef;
   cursor: not-allowed;
+}
+
+/* Add these styles */
+.searchContainer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.actionButtons {
+  display: flex;
+  gap: 10px;
+}
+
+.downloadButton {
+  padding: 8px 16px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.downloadButton:hover {
+  background-color: #218838;
+}
+
+.downloadButton:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+}
+
+.deleteButton {
+  padding: 8px 16px;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.deleteButton:hover {
+  background-color: #c82333;
 }
 
 

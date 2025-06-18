@@ -181,6 +181,55 @@ const fetchSenderAuthData = async (type) => {
     setLoading(false);
   };
 
+
+  // Add this function to handle CSV download
+  const handleDownload = () => {
+    const type = activeTab;
+    const data = suppressionData[type];
+    const username = selectedAccount.username;
+
+    // Create CSV content
+    let csvContent = `Sendgrid ${type.charAt(0).toUpperCase() + type.slice(1)} Data - ${username}\n`;
+    
+    // Add headers based on suppression type
+    if (type === 'spam_reports') {
+      csvContent += 'Email,Date/Time\n';
+    } else {
+      csvContent += 'Email,Date/Time,Reason\n';
+    }
+    
+    // Add data rows
+    data.forEach(item => {
+      const row = [
+        `"${item.email}"`,
+        `"${new Date(item.created * 1000).toLocaleString()}"`
+      ];
+      
+      if (type !== 'spam_reports') {
+        row.push(`"${item.reason || ''}"`);
+      }
+      
+      csvContent += row.join(',') + '\n';
+    });
+
+    // Create and trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${username}_${type}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Add placeholder delete function
+  const handleDelete = () => {
+    alert('Delete functionality will be implemented in the next phase');
+  };
+
+
   const handleAccountSelect = async (username) => {
     try {
       const response = await fetch(`/api/sendgridlimit?username=${username}`);
@@ -564,6 +613,21 @@ const fetchSenderAuthData = async (type) => {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className={styles.suppressionSearch}
               />
+              <div className={styles.actionButtons}>
+                <button 
+                  onClick={handleDownload}
+                  className={styles.downloadButton}
+                  disabled={suppressionData[activeTab].length === 0}
+                >
+                  Download
+                </button>
+                <button 
+                  onClick={handleDelete}
+                  className={styles.deleteButton}
+                >
+                  Delete
+                </button>
+              </div>                      
             </div>
 
             {suppressionLoading ? (
