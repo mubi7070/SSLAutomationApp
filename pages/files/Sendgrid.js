@@ -28,6 +28,7 @@ export default function SendgridLimits() {
     bounces: [],
     invalids: [],
     blocks: [],
+    spam_reports: [],
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [suppressionLoading, setSuppressionLoading] = useState(false);
@@ -61,7 +62,7 @@ export default function SendgridLimits() {
   useEffect(() => {
   if (showSuppressions) {
     // Reset suppression data when account changes
-    setSuppressionData({ bounces: [], invalids: [], blocks: [] });
+    setSuppressionData({ bounces: [], invalids: [], blocks: [], spam_reports: [] });
     // Reload data for current tab
     fetchSuppressionData(activeTab);
   }
@@ -115,11 +116,22 @@ const fetchSenderAuthData = async (type) => {
     setSuppressionError('');
     
     try {
-      const response = await fetch(
-        `/api/sendgridlimit/suppressions?type=${type}&username=${selectedAccount.username}&limit=500&ts=${Date.now()}`
-      );
+      console.log(`Fetching suppression data for type: ${type}`);
+      let apiUrl;
 
+      if (type === 'spam_reports') {
+        // Use the new endpoint for spam reports
+        apiUrl = `/api/sendgridspamreports?username=${selectedAccount.username}`;
+      } else {
+        // Use existing endpoint for other types
+        apiUrl = `/api/sendgridlimit/suppressions?type=${type}&username=${selectedAccount.username}&limit=500&ts=${Date.now()}`;
+      }
+
+      const response = await fetch(apiUrl);
       const textResponse = await response.text();
+      console.log(`API response: ${textResponse.substring(0, 100)}...`);
+        
+
       let data;
       
       try {
@@ -129,17 +141,24 @@ const fetchSenderAuthData = async (type) => {
         throw new Error('Received invalid response from server');
       }
 
+      // IMPORTANT: Keep error handling uncommented
       if (!response.ok) {
+        console.error(`API error: ${data.error || 'Unknown error'}`);
         throw new Error(data.error || 'Failed to fetch suppression data');
       }
 
       setSuppressionData(prev => ({
         ...prev,
-        [type]: data.data
+        [type]: data.data || []
       }));
       
     } catch (err) {
+      console.error('Fetch error:', err);
       setSuppressionError(err.message || 'Failed to fetch suppression data');
+      setSuppressionData(prev => ({
+        ...prev,
+        [type]: []
+      }));
     }
     
     setSuppressionLoading(false);
@@ -329,10 +348,11 @@ const fetchSenderAuthData = async (type) => {
                             onClick={() => {
                               setShowSuppressions(true);
                               // Reset data and load bounces immediately
-                              setSuppressionData({ bounces: [], invalids: [], blocks: [] });
+                              setSuppressionData({ bounces: [], invalids: [], blocks: [], spam_reports: [] });
                               fetchSuppressionData('bounces');
                               fetchSuppressionData('invalids');
                               fetchSuppressionData('blocks');
+                              fetchSuppressionData('spam_reports');
                             }}
                             className={styles.viewButton}
                           >
@@ -522,6 +542,18 @@ const fetchSenderAuthData = async (type) => {
               >
                 Blocks
               </button>
+              <button
+                className={`${styles.tabButton} ${activeTab === 'spam_reports' ? styles.activeTab : ''}`}
+                onClick={() => {
+                  setActiveTab('spam_reports');
+                  if (suppressionData.spam_reports.length === 0 || 
+                      suppressionData.spam_reports[0]?.username !== selectedAccount.username) {
+                    fetchSuppressionData('spam_reports');
+                  }
+                }}
+              >
+                Spam Reports
+              </button>
             </div>
 
             <div className={styles.searchContainer}>
@@ -547,7 +579,7 @@ const fetchSenderAuthData = async (type) => {
                     <tr>
                       <th>Email</th>
                       <th>Date/Time</th>
-                      <th>Reason</th>
+                      {activeTab !== 'spam_reports' && <th>Reason</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -563,7 +595,7 @@ const fetchSenderAuthData = async (type) => {
                         <tr key={index}>
                           <td>{item.email}</td>
                           <td>{new Date(item.created * 1000).toLocaleString()}</td>
-                          <td>{item.reason || 'N/A'}</td>
+                          {activeTab !== 'spam_reports' && <td>{item.reason}</td>}
                         </tr>
                       ))}
                   </tbody>

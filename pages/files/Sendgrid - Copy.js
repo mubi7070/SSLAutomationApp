@@ -32,7 +32,14 @@ export default function SendgridLimits() {
   const [searchTerm, setSearchTerm] = useState('');
   const [suppressionLoading, setSuppressionLoading] = useState(false);
   const [suppressionError, setSuppressionError] = useState('');
-
+  const [showSenderAuth, setShowSenderAuth] = useState(false);
+  const [senderAuthData, setSenderAuthData] = useState({
+    domains: [],
+    links: []
+  });
+  const [senderAuthLoading, setSenderAuthLoading] = useState(false);
+  const [senderAuthError, setSenderAuthError] = useState('');
+  const [activeAuthTab, setActiveAuthTab] = useState('domains');
 
 
 
@@ -59,6 +66,46 @@ export default function SendgridLimits() {
     fetchSuppressionData(activeTab);
   }
 }, [selectedAccount?.username]);
+
+
+const fetchSenderAuthData = async (type) => {
+  if (!selectedAccount?.username) return;
+  
+  setSenderAuthLoading(true);
+  setSenderAuthError('');
+  
+  try {
+    const encodedUsername = encodeURIComponent(selectedAccount.username);
+    const response = await fetch(
+      `/api/sendgridlimit/sender-auth?type=${type}&username=${encodedUsername}`
+    );
+
+    // Add JSON parsing with error handling
+    const textResponse = await response.text();
+    let data;
+    
+    try {
+      data = JSON.parse(textResponse);
+    } catch (e) {
+      console.error('Invalid JSON response:', textResponse);
+      throw new Error('Received invalid response from server');
+    }
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to fetch data');
+    }
+
+    setSenderAuthData(prev => ({
+      ...prev,
+      [type]: data.data
+    }));
+    
+  } catch (err) {
+    setSenderAuthError(err.message || 'Failed to fetch data');
+  }
+  
+  setSenderAuthLoading(false);
+};
 
 
   const fetchSuppressionData = async (type) => {
@@ -293,12 +340,10 @@ export default function SendgridLimits() {
                           </button>
                           <button
                             onClick={() => {
-                              // setShowSuppressions(true);
-                              // // Reset data and load bounces immediately
-                              // setSuppressionData({ bounces: [], invalids: [], blocks: [] });
-                              // fetchSuppressionData('bounces');
-                              // fetchSuppressionData('invalids');
-                              // fetchSuppressionData('blocks');
+                              setShowSenderAuth(true);
+                              setSenderAuthData({ domains: [], links: [] });
+                              fetchSenderAuthData('domains');
+                              fetchSenderAuthData('links');
                             }}
                             className={styles.viewButton2}
                           >
@@ -523,6 +568,107 @@ export default function SendgridLimits() {
                       ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+          </div>
+        )}
+
+
+        {showSenderAuth && selectedAccount && !selectedAccount.disabled && (
+          <div className={styles.suppressionContainer}>
+            <div className={styles.suppressionHeader}>
+              <h3>Sender Authentication for {selectedAccount.username}</h3>
+              <button 
+                className={styles.closeButton}
+                onClick={() => setShowSenderAuth(false)}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className={styles.tabContainer}>
+              <button
+                className={`${styles.tabButton} ${activeAuthTab === 'domains' ? styles.activeTab : ''}`}
+                onClick={() => setActiveAuthTab('domains')}
+              >
+                Domain Authentication
+              </button>
+              <button
+                className={`${styles.tabButton} ${activeAuthTab === 'links' ? styles.activeTab : ''}`}
+                onClick={() => setActiveAuthTab('links')}
+              >
+                Link Branding
+              </button>
+            </div>
+
+            {senderAuthLoading ? (
+              <div className={styles.suppressionLoading}>
+                <img src="/spinner3.gif" alt="Loading..." style={{ width: '200px' }} />
+              </div>
+            ) : senderAuthError ? (
+              <div className={styles.suppressionError}>{senderAuthError}</div>
+            ) : (
+              <div className={styles.tableContainer}>
+                <table className={styles.suppressionTable}>
+                  <thead>
+                    <tr>
+                      {activeAuthTab === 'domains' ? (
+                        <>
+                          <th>Domain</th>
+                          <th>Valid</th>
+                          <th>Default</th>
+                          <th>Subdomain</th>
+                          <th>DNS Validation</th>
+                        </>
+                      ) : (
+                        <>
+                          <th>Links</th>
+                          <th>Valid</th>
+                          <th>Default</th>
+                          <th>Subdomain</th>
+                          <th>DNS Validation</th>
+                        </>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activeAuthTab === 'domains' ? (
+                      senderAuthData.domains.map((domain, index) => (
+                        <tr key={index}>
+                          <td>{domain.domain}</td>
+                          <td>{domain.valid ? 'Yes' : 'No'}</td>
+                          <td>{domain.default ? 'Yes' : 'No'}</td>
+                          <td>{domain.subdomain}</td>
+                          <td>
+                            <span style={{ color: domain.dns?.mail_cname?.valid ? 'green' : 'red' }}>
+                              {domain.dns?.mail_cname?.valid ? 'Verified' : 'Pending'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      senderAuthData.links.map((link, index) => (
+                        <tr key={index}>
+                          <td>{link.domain}</td>
+                          <td>{link.valid ? 'Yes' : 'No'}</td>
+                          <td>{link.default ? 'Yes' : 'No'}</td>
+                          <td>{link.subdomain}</td>
+                          <td>
+                            <span style={{ color: link.dns?.domain_cname?.valid ? 'green' : 'red' }}>
+                              {link.dns?.domain_cname?.valid ? 'Verified' : 'Pending'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+                {activeAuthTab === 'domains' && senderAuthData.domains.length === 0 && (
+                  <div className={styles.noData}>No domains found</div>
+                )}
+                {activeAuthTab === 'links' && senderAuthData.links.length === 0 && (
+                  <div className={styles.noData}>No link brandings found</div>
+                )}
               </div>
             )}
           </div>

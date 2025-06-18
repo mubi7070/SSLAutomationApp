@@ -1570,6 +1570,7 @@ button.navLink {
   color: #666;
   border-bottom: 2px solid transparent;
   transition: all 0.2s;
+  width: 120px;
 }
 
 .activeTab {
@@ -1797,7 +1798,12 @@ button.navLink {
 
 
 
-
+@media (max-width: 768px) {
+  .tabButton {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+}
 
 
 
