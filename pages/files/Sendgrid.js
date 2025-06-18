@@ -41,6 +41,10 @@ export default function SendgridLimits() {
   const [senderAuthLoading, setSenderAuthLoading] = useState(false);
   const [senderAuthError, setSenderAuthError] = useState('');
   const [activeAuthTab, setActiveAuthTab] = useState('domains');
+  const [selectedEmails, setSelectedEmails] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
 
 
@@ -108,6 +112,55 @@ const fetchSenderAuthData = async (type) => {
   setSenderAuthLoading(false);
 };
 
+
+  const handleSelectEmail = (email) => {
+    setSelectedEmails(prev => 
+      prev.includes(email) 
+        ? prev.filter(e => e !== email) 
+        : [...prev, email]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectAll || selectedEmails.length > 0) {
+      setSelectedEmails([]);
+      setSelectAll(false);
+    } else {
+      const allEmails = suppressionData[activeTab].map(item => item.email);
+      setSelectedEmails(allEmails);
+      setSelectAll(true);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    setDeleteLoading(true);
+    try {
+      const response = await fetch('/api/suppressiondelete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: activeTab,
+          username: selectedAccount.username,
+          emails: selectedEmails
+        })
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        // Reload data after successful deletion
+        fetchSuppressionData(activeTab);
+        setSelectedEmails([]);
+        setSelectAll(false);
+        setResult(`Deleted ${selectedEmails.length} emails successfully`);
+      } else {
+        setError(result.error || 'Failed to delete selected emails');
+      }
+    } catch (err) {
+      setError('Failed to connect to server');
+    }
+    setDeleteLoading(false);
+    setShowDeleteConfirmation(false);
+  };
 
   const fetchSuppressionData = async (type) => {
     if (!selectedAccount?.username) return;
@@ -622,13 +675,53 @@ const fetchSenderAuthData = async (type) => {
                   Download
                 </button>
                 <button 
-                  onClick={handleDelete}
+                  onClick={() => setShowDeleteConfirmation(true)}
                   className={styles.deleteButton}
+                  disabled={selectedEmails.length === 0 || suppressionLoading}
                 >
                   Delete
                 </button>
               </div>                      
             </div>
+
+            
+            {showDeleteConfirmation && (
+              <div className={styles.popupContainer}>
+                <div className={styles.popupBox}>
+                  <h3>Confirm Deletion</h3>
+                  <p>Are you sure you want to delete the following emails?</p>
+                  
+                  <div className={styles.emailList}>
+                    {selectedEmails.slice(0, 5).map(email => (
+                      <div key={email} className={styles.emailItem}>
+                        {email}
+                      </div>
+                    ))}
+                    {selectedEmails.length > 5 && (
+                      <div className={styles.emailItem}>
+                        and {selectedEmails.length - 5} more...
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className={styles.popupButtons}>
+                    <button
+                      onClick={handleDeleteSelected}
+                      className={styles.yesButton}
+                      disabled={deleteLoading}
+                    >
+                      {deleteLoading ? 'Deleting...' : 'Yes'}
+                    </button>
+                    <button
+                      onClick={() => setShowDeleteConfirmation(false)}
+                      className={styles.noButton}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {suppressionLoading ? (
               <div className={styles.suppressionLoading}>
@@ -641,6 +734,14 @@ const fetchSenderAuthData = async (type) => {
                 <table className={styles.suppressionTable}>
                   <thead>
                     <tr>
+                      <th>
+                        <input
+                          type="checkbox"
+                          checked={selectAll || selectedEmails.length === suppressionData[activeTab]?.length}
+                          onChange={handleSelectAll}
+                          disabled={suppressionLoading || suppressionData[activeTab]?.length === 0}
+                        />
+                      </th>
                       <th>Email</th>
                       <th>Date/Time</th>
                       {activeTab !== 'spam_reports' && <th>Reason</th>}
@@ -657,6 +758,14 @@ const fetchSenderAuthData = async (type) => {
                       })
                       .map((item, index) => (
                         <tr key={index}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={selectedEmails.includes(item.email)}
+                              onChange={() => handleSelectEmail(item.email)}
+                              disabled={suppressionLoading}
+                            />
+                          </td>
                           <td>{item.email}</td>
                           <td>{new Date(item.created * 1000).toLocaleString()}</td>
                           {activeTab !== 'spam_reports' && <td>{item.reason}</td>}
