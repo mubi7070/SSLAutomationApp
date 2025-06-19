@@ -28,6 +28,7 @@ export default function SendgridLimits() {
     bounces: [],
     invalids: [],
     blocks: [],
+    spam_reports: [],
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [suppressionLoading, setSuppressionLoading] = useState(false);
@@ -40,7 +41,15 @@ export default function SendgridLimits() {
   const [senderAuthLoading, setSenderAuthLoading] = useState(false);
   const [senderAuthError, setSenderAuthError] = useState('');
   const [activeAuthTab, setActiveAuthTab] = useState('domains');
-
+  const [selectedEmails, setSelectedEmails] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showActivityFeed, setShowActivityFeed] = useState(false);
+  const [activityData, setActivityData] = useState([]);
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [activityError, setActivityError] = useState('');
+  const [activitySearchTerm, setActivitySearchTerm] = useState('');
 
 
   useEffect(() => {
@@ -61,7 +70,7 @@ export default function SendgridLimits() {
   useEffect(() => {
   if (showSuppressions) {
     // Reset suppression data when account changes
-    setSuppressionData({ bounces: [], invalids: [], blocks: [] });
+    setSuppressionData({ bounces: [], invalids: [], blocks: [], spam_reports: [] });
     // Reload data for current tab
     fetchSuppressionData(activeTab);
   }
@@ -108,6 +117,85 @@ const fetchSenderAuthData = async (type) => {
 };
 
 
+  const handleSelectEmail = (email) => {
+    setSelectedEmails(prev => 
+      prev.includes(email) 
+        ? prev.filter(e => e !== email) 
+        : [...prev, email]
+    );
+  };
+
+  const handleSelectAll = () => {
+    if (selectAll || selectedEmails.length > 0) {
+      setSelectedEmails([]);
+      setSelectAll(false);
+    } else {
+      const allEmails = suppressionData[activeTab].map(item => item.email);
+      setSelectedEmails(allEmails);
+      setSelectAll(true);
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    setDeleteLoading(true);
+    try {
+      const response = await fetch('/api/suppressiondelete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: activeTab,
+          username: selectedAccount.username,
+          emails: selectedEmails
+        })
+      });
+
+      const result = await response.json();
+      if (response.ok) {
+        // Reload data after successful deletion
+        fetchSuppressionData(activeTab);
+        setSelectedEmails([]);
+        setSelectAll(false);
+        setResult(`Deleted ${selectedEmails.length} emails successfully`);
+      } else {
+        setError(result.error || 'Failed to delete selected emails');
+      }
+    } catch (err) {
+      setError('Failed to connect to server');
+    }
+    setDeleteLoading(false);
+    setShowDeleteConfirmation(false);
+  };
+
+  // Fetch activity feed data
+  const fetchActivityData = async () => {
+    if (!selectedAccount?.username) return;
+    
+    setActivityLoading(true);
+    setActivityError('');
+    
+    try {
+      const encodedUsername = encodeURIComponent(selectedAccount.username);
+      const response = await fetch(
+        `/api/sendgridactivity?username=${encodedUsername}`
+      );
+
+      const data = await response.json();
+      if (!response.ok) {
+        console.error('API Error Response:', data);
+        throw new Error(data.error || 'Failed to fetch activity data');
+      }
+
+      setActivityData(data.messages || []);
+      
+    } catch (err) {
+      console.error('Fetch Activity Error:', err);
+      setActivityError(err.message || 'Failed to fetch activity data');
+    }
+    
+    setActivityLoading(false);
+  };
+
+
   const fetchSuppressionData = async (type) => {
     if (!selectedAccount?.username) return;
     
@@ -115,11 +203,22 @@ const fetchSenderAuthData = async (type) => {
     setSuppressionError('');
     
     try {
-      const response = await fetch(
-        `/api/sendgridlimit/suppressions?type=${type}&username=${selectedAccount.username}&limit=500&ts=${Date.now()}`
-      );
+      console.log(`Fetching suppression data for type: ${type}`);
+      let apiUrl;
 
+      if (type === 'spam_reports') {
+        // Use the new endpoint for spam reports
+        apiUrl = `/api/sendgridspamreports?username=${selectedAccount.username}`;
+      } else {
+        // Use existing endpoint for other types
+        apiUrl = `/api/sendgridlimit/suppressions?type=${type}&username=${selectedAccount.username}&limit=500&ts=${Date.now()}`;
+      }
+
+      const response = await fetch(apiUrl);
       const textResponse = await response.text();
+      console.log(`API response: ${textResponse.substring(0, 100)}...`);
+        
+
       let data;
       
       try {
@@ -129,17 +228,24 @@ const fetchSenderAuthData = async (type) => {
         throw new Error('Received invalid response from server');
       }
 
+      // IMPORTANT: Keep error handling uncommented
       if (!response.ok) {
+        console.error(`API error: ${data.error || 'Unknown error'}`);
         throw new Error(data.error || 'Failed to fetch suppression data');
       }
 
       setSuppressionData(prev => ({
         ...prev,
-        [type]: data.data
+        [type]: data.data || []
       }));
       
     } catch (err) {
+      console.error('Fetch error:', err);
       setSuppressionError(err.message || 'Failed to fetch suppression data');
+      setSuppressionData(prev => ({
+        ...prev,
+        [type]: []
+      }));
     }
     
     setSuppressionLoading(false);
@@ -161,6 +267,55 @@ const fetchSenderAuthData = async (type) => {
     }
     setLoading(false);
   };
+
+
+  // Add this function to handle CSV download
+  const handleDownload = () => {
+    const type = activeTab;
+    const data = suppressionData[type];
+    const username = selectedAccount.username;
+
+    // Create CSV content
+    let csvContent = `Sendgrid ${type.charAt(0).toUpperCase() + type.slice(1)} Data - ${username}\n`;
+    
+    // Add headers based on suppression type
+    if (type === 'spam_reports') {
+      csvContent += 'Email,Date/Time\n';
+    } else {
+      csvContent += 'Email,Date/Time,Reason\n';
+    }
+    
+    // Add data rows
+    data.forEach(item => {
+      const row = [
+        `"${item.email}"`,
+        `"${new Date(item.created * 1000).toLocaleString()}"`
+      ];
+      
+      if (type !== 'spam_reports') {
+        row.push(`"${item.reason || ''}"`);
+      }
+      
+      csvContent += row.join(',') + '\n';
+    });
+
+    // Create and trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${username}_${type}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Add placeholder delete function
+  const handleDelete = () => {
+    alert('Delete functionality will be implemented in the next phase');
+  };
+
 
   const handleAccountSelect = async (username) => {
     try {
@@ -329,10 +484,11 @@ const fetchSenderAuthData = async (type) => {
                             onClick={() => {
                               setShowSuppressions(true);
                               // Reset data and load bounces immediately
-                              setSuppressionData({ bounces: [], invalids: [], blocks: [] });
+                              setSuppressionData({ bounces: [], invalids: [], blocks: [], spam_reports: [] });
                               fetchSuppressionData('bounces');
                               fetchSuppressionData('invalids');
                               fetchSuppressionData('blocks');
+                              fetchSuppressionData('spam_reports');
                             }}
                             className={styles.viewButton}
                           >
@@ -347,7 +503,16 @@ const fetchSenderAuthData = async (type) => {
                             }}
                             className={styles.viewButton2}
                           >
-                            Sender Authentication
+                            View Sender Authentication
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowActivityFeed(true);
+                              fetchActivityData();
+                            }}
+                            className={styles.viewButton3}
+                          >
+                            View Activity Feed
                           </button>
                         </div>
                       ) : (
@@ -403,6 +568,86 @@ const fetchSenderAuthData = async (type) => {
             />
           </div>
         </div>
+
+        {showActivityFeed && selectedAccount && !selectedAccount.disabled && (
+          <div className={styles.suppressionContainer}>
+            <div className={styles.suppressionHeader}>
+              <h3>Activity Feed for {selectedAccount.username}</h3>
+              <button 
+                className={styles.closeButton}
+                onClick={() => setShowActivityFeed(false)}
+              >
+                ×
+              </button>
+            </div>
+            
+            <div className={styles.searchContainer}>
+              <input
+                type="text"
+                placeholder="Search by Email, Subject, or Status..."
+                value={activitySearchTerm}
+                onChange={(e) => setActivitySearchTerm(e.target.value)}
+                className={styles.suppressionSearch}
+              />
+              <button 
+                onClick={fetchActivityData}
+                className={styles.refreshButton}
+              >
+                Refresh
+              </button>
+            </div>
+
+            {activityLoading ? (
+              <div className={styles.suppressionLoading}>
+                <img src="/spinner3.gif" alt="Loading..." style={{ width: '200px' }} />
+              </div>
+            ) : activityError ? (
+              <div className={styles.suppressionError}>{activityError}</div>
+            ) : (
+              <div className={styles.tableContainer}>
+                <table className={styles.suppressionTable}>
+                  <thead>
+                    <tr>
+                      <th>From Email</th>
+                      <th>To Email</th>
+                      <th>Subject</th>
+                      <th>Status</th>
+                      <th>Last Event</th>
+                      <th>Opens</th>
+                      <th>Clicks</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activityData
+                      .filter(item => {
+                        const searchLower = activitySearchTerm.toLowerCase();
+                        return (
+                          (item.from_email?.toLowerCase().includes(searchLower) || '') ||
+                          (item.to_email?.toLowerCase().includes(searchLower) || '') ||
+                          (item.subject?.toLowerCase().includes(searchLower) || '') ||
+                          (item.status?.toLowerCase().includes(searchLower) || '')
+                        );
+                      })
+                      .map((item, index) => (
+                        <tr key={index}>
+                          <td>{item.from_email || 'N/A'}</td>
+                          <td>{item.to_email || 'N/A'}</td>
+                          <td>{item.subject || 'N/A'}</td>
+                          <td>{item.status || 'N/A'}</td>
+                          <td>{item.last_event_time ? new Date(item.last_event_time).toLocaleString() : 'N/A'}</td>
+                          <td>{item.opens_count || 0}</td>
+                          <td>{item.clicks_count || 0}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+                {activityData.length === 0 && !activityLoading && (
+                  <div className={styles.noData}>No activity data found</div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {showConfirmation && (
           <div className={styles.popupContainer}>
@@ -522,6 +767,18 @@ const fetchSenderAuthData = async (type) => {
               >
                 Blocks
               </button>
+              <button
+                className={`${styles.tabButton} ${activeTab === 'spam_reports' ? styles.activeTab : ''}`}
+                onClick={() => {
+                  setActiveTab('spam_reports');
+                  if (suppressionData.spam_reports.length === 0 || 
+                      suppressionData.spam_reports[0]?.username !== selectedAccount.username) {
+                    fetchSuppressionData('spam_reports');
+                  }
+                }}
+              >
+                Spam Reports
+              </button>
             </div>
 
             <div className={styles.searchContainer}>
@@ -532,7 +789,62 @@ const fetchSenderAuthData = async (type) => {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className={styles.suppressionSearch}
               />
+              <div className={styles.actionButtons}>
+                <button 
+                  onClick={handleDownload}
+                  className={styles.downloadButton}
+                  disabled={suppressionData[activeTab].length === 0}
+                >
+                  Download
+                </button>
+                <button 
+                  onClick={() => setShowDeleteConfirmation(true)}
+                  className={styles.deleteButton}
+                  disabled={selectedEmails.length === 0 || suppressionLoading}
+                >
+                  Delete
+                </button>
+              </div>                      
             </div>
+
+            
+            {showDeleteConfirmation && (
+              <div className={styles.popupContainer}>
+                <div className={styles.popupBox}>
+                  <h3>Confirm Deletion</h3>
+                  <p>Are you sure you want to delete the following emails?</p>
+                  
+                  <div className={styles.emailList}>
+                    {selectedEmails.slice(0, 5).map(email => (
+                      <div key={email} className={styles.emailItem}>
+                        {email}
+                      </div>
+                    ))}
+                    {selectedEmails.length > 5 && (
+                      <div className={styles.emailItem}>
+                        and {selectedEmails.length - 5} more...
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className={styles.popupButtons}>
+                    <button
+                      onClick={handleDeleteSelected}
+                      className={styles.yesButton}
+                      disabled={deleteLoading}
+                    >
+                      {deleteLoading ? 'Deleting...' : 'Yes'}
+                    </button>
+                    <button
+                      onClick={() => setShowDeleteConfirmation(false)}
+                      className={styles.noButton}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {suppressionLoading ? (
               <div className={styles.suppressionLoading}>
@@ -545,9 +857,17 @@ const fetchSenderAuthData = async (type) => {
                 <table className={styles.suppressionTable}>
                   <thead>
                     <tr>
+                      <th>
+                        <input
+                          type="checkbox"
+                          checked={selectAll || selectedEmails.length === suppressionData[activeTab]?.length}
+                          onChange={handleSelectAll}
+                          disabled={suppressionLoading || suppressionData[activeTab]?.length === 0}
+                        />
+                      </th>
                       <th>Email</th>
                       <th>Date/Time</th>
-                      <th>Reason</th>
+                      {activeTab !== 'spam_reports' && <th>Reason</th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -561,9 +881,17 @@ const fetchSenderAuthData = async (type) => {
                       })
                       .map((item, index) => (
                         <tr key={index}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={selectedEmails.includes(item.email)}
+                              onChange={() => handleSelectEmail(item.email)}
+                              disabled={suppressionLoading}
+                            />
+                          </td>
                           <td>{item.email}</td>
                           <td>{new Date(item.created * 1000).toLocaleString()}</td>
-                          <td>{item.reason || 'N/A'}</td>
+                          {activeTab !== 'spam_reports' && <td>{item.reason}</td>}
                         </tr>
                       ))}
                   </tbody>

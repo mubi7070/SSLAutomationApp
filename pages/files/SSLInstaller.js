@@ -18,19 +18,19 @@ export default function SSLInstaller() {
       {
         alias: 'root',
         label: 'Certificate 1 (alias: Root, i.e. AAACertificateServices):',
-        path: 'AAACertificateServices.crt',
+        path: 'SectigoPublicServerAuthenticationCADVR36.crt',
         enabled: true,
       },
       {
         alias: 'cross',
         label: 'Certificate 2 (alias: Cross, i.e. USERTrustRSAAAACA):',
-        path: 'USERTrustRSAAAACA.crt',
+        path: 'USERTrustRSACertificationAuthority.crt',
         enabled: true,
       },
       {
         alias: 'intermed',
         label: 'Certificate 3 (alias: Intermed, i.e. SectigoRSADomain...):',
-        path: 'SectigoRSADomainValidationSecureServerCA.crt',
+        path: 'SectigoPublicServerAuthenticationRootR46_USERTrust.crt',
         enabled: true,
       },
       {

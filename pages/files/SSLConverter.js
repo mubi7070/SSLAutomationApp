@@ -119,6 +119,14 @@ export default function SSLConverter() {
         setBundleFiles(data.files || []);
       })
       .catch((error) => console.error('Error refreshing certificates:', error));
+
+      fetch('/api/get-cert')
+      .then((response) => response.json())
+      .then((data) => {
+        setFilteredCerts(data.files || []);
+        setCertFiles(data.files || []);
+      })
+      .catch((error) => console.error('Error fetching Certificate files:', error));
   };
 
   const refreshkeys = () => {

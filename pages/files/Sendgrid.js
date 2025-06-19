@@ -469,7 +469,7 @@ const fetchSenderAuthData = async (type) => {
                             }}
                             className={styles.viewButton2}
                           >
-                            Sender Authentication
+                            View Sender Authentication
                           </button>
                         </div>
                       ) : (

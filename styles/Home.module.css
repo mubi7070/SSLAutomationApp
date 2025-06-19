@@ -1595,6 +1595,8 @@ button.navLink {
   appearance: none; 
   cursor: pointer;
   font-family: 'Times New Roman', Times, serif;
+  flex: 1;
+  margin-left: 10px;
 }
 
 .tableContainer {
@@ -1769,6 +1771,7 @@ button.navLink {
   align-items: center;
   gap: 10px;
   margin-bottom: 15px;
+  width: 97%;
 }
 
 .actionButtons {
@@ -1829,6 +1832,35 @@ button.navLink {
   border-bottom: none;
 }
 
+.viewButton3 {
+  padding: 10px 20px;
+  font-size: 16px;
+  border-radius: 5px;
+  background-color: #8a2be2; /* Purple color */
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.viewButton3:hover {
+  background-color: #7a1bd2;
+}
+
+.refreshButton {
+  padding: 8px 16px;
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+
+.refreshButton:hover {
+  background-color: #3e8e41;
+}
 
 
 
