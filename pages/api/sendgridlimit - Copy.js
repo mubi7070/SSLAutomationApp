@@ -1,5 +1,5 @@
 import axios from 'axios';
-const USERS = JSON.parse(process.env.SENDGRID_USERS || '[]');
+const USERS = JSON.parse(process.env.APP_USERS || '[]');
 
 export default async function handler(req, res) {
   const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
