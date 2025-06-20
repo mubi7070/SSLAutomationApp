@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-// Map suppression types to SendGrid endpoints
 const ENDPOINT_MAP = {
   bounces: 'bounces',
   blocks: 'blocks',
