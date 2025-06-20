@@ -72,6 +72,25 @@ export default function SendgridLimits() {
   }
 }, [selectedAccount?.username]);
 
+useEffect(() => {
+  // Clear selected emails and reset select-all state
+  setSelectedEmails([]);
+  setSelectAll(false);
+}, [selectedAccount?.username]);
+
+useEffect(() => {
+  if (showSuppressions) {
+    // Clear selected emails and reset select-all state
+    setSelectedEmails([]);
+    setSelectAll(false);
+    
+    // Reset suppression data
+    setSuppressionData({ bounces: [], invalids: [], blocks: [], spam_reports: [] });
+    
+    // Reload data for current tab
+    fetchSuppressionData(activeTab);
+  }
+}, [selectedAccount?.username]);
 
 const fetchSenderAuthData = async (type) => {
   if (!selectedAccount?.username) return;
@@ -134,6 +153,16 @@ const fetchSenderAuthData = async (type) => {
 
   const handleDeleteSelected = async () => {
     setDeleteLoading(true);
+    const validEmails = selectedEmails.filter(email => 
+      suppressionData[activeTab].some(item => item.email === email)
+    );
+    
+    if (validEmails.length === 0) {
+      setError('No valid emails found for deletion');
+      setShowDeleteConfirmation(false);
+      return;
+    }
+    
     try {
       const response = await fetch('/api/suppressiondelete', {
         method: 'POST',
@@ -449,6 +478,8 @@ const fetchSenderAuthData = async (type) => {
                           <button
                             onClick={() => {
                               setShowSuppressions(true);
+                              setSelectedEmails([]);
+                              setSelectAll(false);
                               // Reset data and load bounces immediately
                               setSuppressionData({ bounces: [], invalids: [], blocks: [], spam_reports: [] });
                               fetchSuppressionData('bounces');
