@@ -8,9 +8,10 @@ export default async function handler(req, res) {
       const filesDir = path.join(process.cwd(), 'Files');
       try {
         const allowedExtensions = ['.key', '.pem'];
-        const keystoreFiles = fs.readdirSync(filesDir).filter((file) =>
-            allowedExtensions.some((ext) => file.endsWith(ext))
-        );
+        const keystoreFiles = fs.readdirSync(filesDir).filter((file) => {
+            const ext = path.extname(file).toLowerCase();
+            return allowedExtensions.includes(ext);
+        });
         res.status(200).json({ files: keystoreFiles });
       } catch (error) {
         console.error('Error reading directory:', error);

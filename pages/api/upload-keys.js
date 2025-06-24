@@ -3,7 +3,7 @@ import path from 'path';
 import { IncomingForm } from 'formidable';
 
 // Use environment variable or default to project-relative path
-const certsDir = process.env.CERTS_DIR || path.join(process.cwd(), 'Files');
+const keysDir = process.env.KEYS_DIR || path.join(process.cwd(), 'Files');
 
 export const config = {
   api: {
@@ -17,8 +17,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    if (!fs.existsSync(certsDir)) {
-      fs.mkdirSync(certsDir, { recursive: true });
+    if (!fs.existsSync(keysDir)) {
+      fs.mkdirSync(keysDir, { recursive: true });
     }
 
     const form = new IncomingForm();
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
 
     let uploadedCount = 0;
     for (const file of files) {
-      const filePath = path.join(certsDir, file.originalFilename);
+      const filePath = path.join(keysDir, file.originalFilename);
       const fileData = fs.readFileSync(file.filepath);
       fs.writeFileSync(filePath, fileData);
       uploadedCount++;
