@@ -1,11 +1,16 @@
 services:
   sslautomation:
-    image: automationapp:latest
-    container_name: sslautomation
-    networks:
-      - SSLAutomationNetwork
+    build:
+      context: .        
+      dockerfile: Dockerfile
+    container_name: automationapp
     ports:
       - "3000:3000"
+    volumes:
+      - /home/sibisoft/Application/backup/Certs:/app/Certs
+      - /home/sibisoft/Application/backup/Files:/app/Files
+    networks:
+      - SSLAutomationNetwork
 
 networks:
   SSLAutomationNetwork:
