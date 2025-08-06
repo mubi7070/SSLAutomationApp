@@ -26,8 +26,6 @@ export default function ServerMigration() {
   ]);
   const [newExcludePath, setNewExcludePath] = useState('');
   const [generatedPassword, setGeneratedPassword] = useState('');
-  const [downloadMethod, setDownloadMethod] = useState('direct');
-  const [copied, setCopied] = useState(false);
 
   const driveLetters = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
@@ -40,24 +38,6 @@ export default function ServerMigration() {
       }, 5000);
     }
   }, [popupMessage]);
-
-  const handleCopy = () => {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(generatedPassword).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }).catch(err => console.error("Failed to copy:", err));
-    } else {
-      const textArea = document.createElement("textarea");
-      textArea.value = generatedPassword;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textArea);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
 
   const handleGenerateSourceScript = async () => {
     if (!clientName) {
@@ -86,18 +66,18 @@ export default function ServerMigration() {
       const password = response.headers.get('X-Password');
       setGeneratedPassword(password);
       
-      // Trigger RAR download
+      // Trigger download
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `migration-source-${clientName}.rar`;
+      a.download = `migration-source-${clientName}.zip`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
-      setSourceStatus('RAR file downloaded. Password required to extract script.');
+      setSourceStatus('ZIP file downloaded. Password required to extract script.');
       setPopupMessage(`Source script generated. Password: ${password}`);
     } catch (error) {
       setPopupMessage(error.message || 'An error occurred');
@@ -192,9 +172,9 @@ export default function ServerMigration() {
 
             <div className={styles.licenseDescription} >
               <p style={{ color: 'red' }}>
-                <strong>Important:</strong> Both servers must have WinRAR installed. 
-                <a href="https://www.rarlab.com/download.htm" target="_blank" rel="noopener noreferrer">
-                  {" "} Download WinRAR
+                <strong>Important:</strong> Both servers must have 7-Zip installed. 
+                <a href="https://www.7-zip.org/download.html" target="_blank" rel="noopener noreferrer">
+                  {" "} Download 7-Zip
                 </a>
               </p>
               <p>
@@ -299,35 +279,6 @@ export default function ServerMigration() {
                   </div>
                 )}
               </div>
-
-              {generatedPassword && (
-                <div className={styles.passwordSection}>
-                  <h3>RAR File Password</h3>
-                  <div className={styles.passwordBox}>
-                    <code>{generatedPassword}</code>
-                    <button 
-                      onClick={handleCopy}
-                      className={styles.copyButton}
-                      style={{
-                        color: copied ? "green" : "black",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "5px"
-                      }}
-                    >
-                      <img
-                        src="/copy-icon.svg"
-                        alt="Copy"
-                        style={{ width: "20px", height: "20px" }}
-                      />
-                      {copied ? "Copied!" : "Copy"}
-                    </button>
-                  </div>
-                  <p className={styles.passwordNote}>
-                    This password is required to extract the PowerShell script
-                  </p>
-                </div>
-              )}
 
               {/* Destination Server Section */}
               <div className={styles.mainbox2}>
@@ -443,7 +394,23 @@ export default function ServerMigration() {
           </div>
         )}
 
-        
+        {generatedPassword && (
+        <div className={styles.passwordSection}>
+          <h3>Generated Password</h3>
+          <div className={styles.passwordBox}>
+            <code>{generatedPassword}</code>
+            <button 
+              onClick={() => navigator.clipboard.writeText(generatedPassword)}
+              className={styles.copyButton}
+            >
+              Copy
+            </button>
+          </div>
+          <p className={styles.passwordNote}>
+            This password is required to run the script and will not be shown again.
+          </p>
+        </div>
+      )}
 
         <div className={styles.Installerhomebtn}>
           <button style={{ marginBottom: '1rem' }}><Link href="/home">Back to Home</Link></button>

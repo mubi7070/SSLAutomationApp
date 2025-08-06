@@ -3,10 +3,6 @@ import { fromIni } from "@aws-sdk/credential-providers";
 import { v4 as uuidv4 } from 'uuid';
 import archiver from 'archiver';
 import { PassThrough } from 'stream';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-import { exec } from 'child_process';
 
 // Generate strong 12-character password (alphanumeric + special characters)
 function generatePassword(length = 12) {
@@ -59,7 +55,8 @@ export default async function handler(req, res) {
         });
     }
 
-    
+    // Generate strong password
+    const password = generatePassword();
 
     // Default exclusions
     const defaultExclusions = [
@@ -160,13 +157,15 @@ try {
         "a",
         "-r",
         "-ep1",
+        "-hp${password}",
         "-y",
         "\`\"$ArchivePath\`\"",
         "${drive}:\\*"
         ) + $exclusionArgs
 
-    # Log command for debugging
-    $commandLine = "$WinRARPath $($commandArgs -join ' ')"
+    # Log command for debugging (without password)
+    $loggedArgs = $commandArgs -replace "-hp${password}", "-hp*****"
+    $commandLine = "$WinRARPath $($loggedArgs -join ' ')"
     Log-Message "Executing: $commandLine"
     
     $process = Start-Process -FilePath $WinRARPath -ArgumentList $commandArgs -Wait -NoNewWindow -PassThru
@@ -269,15 +268,8 @@ try {
         $scriptPath = $MyInvocation.MyCommand.Path
         if ($scriptPath) {
             Log-Message "Scheduling self-deletion of this script"
-            $deleteCommand = @"
-                Start-Sleep -Seconds 5
-                if (Test-Path -LiteralPath '$scriptPath') {
-                    Remove-Item -LiteralPath '$scriptPath' -Force -ErrorAction SilentlyContinue
-                }
-"@
-            $bytes = [System.Text.Encoding]::Unicode.GetBytes($deleteCommand)
-            $encodedCommand = [Convert]::ToBase64String($bytes)
-            Start-Process -WindowStyle Hidden -FilePath powershell.exe -ArgumentList "-EncodedCommand", $encodedCommand
+            $deleteCommand = "Start-Sleep -Seconds 1; Remove-Item -LiteralPath '$scriptPath' -Force -ErrorAction SilentlyContinue"
+            Start-Process -WindowStyle Hidden -FilePath powershell.exe -ArgumentList "-Command", $deleteCommand
         }
         
         Log-Message "Log saved to $LogPath"
@@ -287,63 +279,9 @@ try {
 
 `;
 
-// Generate strong password for RAR download
-    const rarPassword = generatePassword();
-    const tempDir = path.join(os.tmpdir(), 'migration-scripts');
-    fs.mkdirSync(tempDir, { recursive: true });
-
-    const uniqueId = uuidv4();
-    const scriptName = `migration-source-${clientName}.ps1`;
-    const scriptPath = path.join(tempDir, `${scriptName}`);
-    const rarFilePath = path.join(tempDir, `migration-source-${clientName}-${uniqueId}.rar`);
-
-    // Write PowerShell script to temp file
-    fs.writeFileSync(scriptPath, script);
-
-    // Create password-protected RAR using rar CLI
-    const rarCommand = `rar a -ep -hp"${rarPassword}" "${rarFilePath}" "${scriptPath}"`;
-
-    exec(rarCommand, (err, stdout, stderr) => {
-        // Always clean up script file immediately
-        try {
-            if (fs.existsSync(scriptPath)) {
-                fs.unlinkSync(scriptPath);
-            }
-        } catch (cleanupErr) {
-            console.error('Script cleanup failed:', cleanupErr);
-        }
-
-        if (err) {
-            console.error('RAR error:', err, stderr);
-            try {
-                if (fs.existsSync(rarFilePath)) {
-                    fs.unlinkSync(rarFilePath);
-                }
-            } catch (rarCleanupErr) {
-                console.error('RAR cleanup failed:', rarCleanupErr);
-            }
-            return res.status(500).json({ error: 'RAR creation failed. Ensure rar CLI is installed.' });
-        }
-
-        // Set headers for RAR download
-        res.setHeader('X-Password', rarPassword);
-        res.setHeader('Content-Type', 'application/vnd.rar');
-        res.setHeader('Content-Disposition', `attachment; filename=migration-source-${clientName}.rar`);
-
-        // Stream the RAR file
-        const fileStream = fs.createReadStream(rarFilePath);
-        fileStream.pipe(res);
-
-        // Clean up after streaming
-        fileStream.on('close', () => {
-            try {
-                if (fs.existsSync(rarFilePath)) {
-                    fs.unlinkSync(rarFilePath);
-                }
-            } catch (finalCleanupErr) {
-                console.error('Final cleanup failed:', finalCleanupErr);
-            }
-        });
-    });
-
+// Set headers for PowerShell script download
+    res.setHeader('X-Password', password);
+    res.setHeader('Content-Type', 'text/plain');
+    res.setHeader('Content-Disposition', `attachment; filename=migration-source-${clientName}.ps1`);
+    res.status(200).send(script);
 }

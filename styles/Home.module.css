@@ -1953,7 +1953,45 @@ button.navLink {
   background-color: #3e8e41;
 }
 
+.passwordSection {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background-color: #f8fafc;
+  border-radius: 8px;
+  border-left: 4px solid #3b82f6;
+}
 
+.passwordBox {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1rem 0;
+  padding: 1rem;
+  background-color: #eff6ff;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 1.2rem;
+}
+
+.copyButton {
+  padding: 0.5rem 1rem;
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.copyButton:hover {
+  background-color: #2563eb;
+}
+
+.passwordNote {
+  color: #64748b;
+  font-style: italic;
+  margin-top: 0.5rem;
+}
 
 
 
