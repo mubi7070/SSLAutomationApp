@@ -19,11 +19,7 @@ export default function ServerMigration() {
   const [loadingDestination, setLoadingDestination] = useState(false);
   const [showPopup, setShowPopup] = useState(false);
   const [popupMessage, setPopupMessage] = useState('');
-  const [excludePaths, setExcludePaths] = useState([
-    'pagefile.sys',
-    'System Volume Information',
-    '$RECYCLE.BIN'
-  ]);
+  const [excludePaths, setExcludePaths] = useState([]);
   const [newExcludePath, setNewExcludePath] = useState('');
   const [generatedPassword, setGeneratedPassword] = useState('');
   const [downloadMethod, setDownloadMethod] = useState('direct');
@@ -200,6 +196,10 @@ export default function ServerMigration() {
               <p>
                 <strong>Note:</strong> The script will skip locked files during archiving.
               </p>
+              <p style={{ fontSize: '1.2rem', color: '#666' }}>
+                  For folders: use trailing backslash (e.g. D:\data\)<br/>
+                  Default exclusions: pagefile.sys, System Volume Information, $RECYCLE.BIN
+              </p>
             </div>
 
             <div className={styles.mainContainer2}>
@@ -247,7 +247,7 @@ export default function ServerMigration() {
                           type="text"
                           value={newExcludePath}
                           onChange={(e) => setNewExcludePath(e.target.value)}
-                          placeholder="Add new path to exclude (e.g., D:\data)"
+                          placeholder="Add path to exclude (e.g., D:\data\ use trailing \ for folders)"
                           className={styles.styledselecttempmargin}
                           style={{ 
                             width: 'calc(100% - 100px)', 

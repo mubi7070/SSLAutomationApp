@@ -47,7 +47,7 @@ export default function ServerMigration() {
     
     setLoadingSource(true);
     try {
-      const response = await fetch('/api/generate-source-script', {
+      const response = await fetch('/api/generate-source-script-7zip', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
