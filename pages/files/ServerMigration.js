@@ -167,13 +167,14 @@ export default function ServerMigration() {
         <link rel="icon" href="/ssl2white.svg" />
       </Head>
       <Layout>
-        <div className={styles.CSRContainer}>
+        <div className={styles.CSRContainerNew}>
+          {/* Left Column - Content */}
           <div className={styles.licenseContent}>
             <div className={styles.licenseHeader}>
               <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold', display: 'flex' }}>
                 Server Migration
               </h1>
-              <Tooltip text="Migrate server data between Windows servers using S3 bucket">
+              <Tooltip text="Migrate server data seamlessly between Windows-based servers.">
                 <Link href="/files/help" legacyBehavior>
                   <a className={styles.tooltip}>
                     <HelpCircle size={24} color="#64748b" />
@@ -183,7 +184,7 @@ export default function ServerMigration() {
             </div>
 
             <p className={styles.licenseDescription}>
-              Migrate all data from a source server to a destination server using S3 bucket as intermediary storage.
+              Streamline your server migration process with a powerful feature that transfers all data quickly, securely, and automatically.
             </p>
 
             <div className={styles.licenseDescription} >
@@ -197,13 +198,12 @@ export default function ServerMigration() {
                 <strong>Note:</strong> The script will skip locked files during archiving.
               </p>
               <p style={{ fontSize: '1.2rem', color: '#666' }}>
-                  For folders: use trailing backslash (e.g. D:\data\)<br/>
-                  Default exclusions: pagefile.sys, System Volume Information, $RECYCLE.BIN
+                  <strong>For folders:</strong> avoid trailing backslash (e.g. D:\data)<br/>
+                  <strong>For faster execution:</strong> Empty the Recycle Bin before running the source script.
               </p>
             </div>
 
-            <div className={styles.mainContainer2}>
-              {/* Source Server Section */}
+            {/* Left Column - Source Server */}
               <div className={styles.mainbox2} style={{ marginBottom: '2rem' }}>
                 <h2 style={{ color: 'rgb(16, 31, 118)', marginBottom: '1rem' }}>Source Server</h2>
                 
@@ -328,25 +328,21 @@ export default function ServerMigration() {
                   </p>
                 </div>
               )}
+            </div>
 
-              {/* Destination Server Section */}
-              <div className={styles.mainbox2}>
+            {/* Right Column - Destination Server */}
+            <div className={styles.rightColumn}>
+            <div className={styles.licenseVisualNew}>
+              <img 
+                src="/servermigration.jpg"
+                alt="Server Migration Preview"
+                className={styles.licenseImageNew}
+              />
+            </div>
+
+                <div className={styles.mainbox2}>
+
                 <h2 style={{ color: 'rgb(16, 31, 118)', marginBottom: '1rem' }}>Destination Server</h2>
-                
-                <div className={styles.licenseDescription}>
-                  <label>
-                    Client Name:
-                    <input
-                      type="text"
-                      placeholder="Must match source client name"
-                      value={clientName}
-                      onChange={(e) => setClientName(e.target.value)}
-                      className={styles.styledselecttempmargin}
-                      style={{ width: '98%', padding: '7px', margin: '10px 0' }}
-                      required
-                    />
-                  </label>
-                </div>
                 
                 <div className={styles.licenseDescription}>
                   <label>
@@ -363,6 +359,23 @@ export default function ServerMigration() {
                     </select>
                   </label>
                 </div>
+                
+                <div className={styles.licenseDescription}>
+                  <label>
+                    Client Name:
+                    <input
+                      type="text"
+                      placeholder="Must match source client name"
+                      value={clientName}
+                      onChange={(e) => setClientName(e.target.value)}
+                      className={styles.styledselecttempmargin}
+                      style={{ width: '98%', padding: '7px', margin: '10px 0' }}
+                      required
+                    />
+                  </label>
+                </div>
+                
+                
                 
                 <div className={styles.licenseDescription}>
                   <label>
@@ -427,15 +440,10 @@ export default function ServerMigration() {
               </div>
             </div>
           </div>
+        
 
-          <div className={styles.licenseVisual}>
-            <img 
-              src="/servermigration.jpg"
-              alt="Server Migration Preview"
-              className={styles.licenseImage}
-            />
-          </div>
-        </div>
+          
+        
 
         {showPopup && (
           <div className={styles.notification}>

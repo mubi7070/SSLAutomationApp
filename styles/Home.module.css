@@ -1993,6 +1993,66 @@ button.navLink {
   margin-top: 0.5rem;
 }
 
+.formColumns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-top: 1.5rem;
+}
+
+.formColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.CSRContainerNew {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* More space for content */
+  gap: 2rem;
+  max-width: 93%;
+  margin-top: 6rem;
+  margin-left: 1.5rem;
+  margin-bottom: 2rem;
+  padding: 2rem;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.licenseVisualNew {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start; /* Align to top */
+  padding-top: 1rem;
+}
+
+.licenseImageNew {
+  width: 100%;
+  max-width: 441px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .formColumns {
+    grid-template-columns: 1fr;
+  }
+  
+  .CSRContainerNew {
+    grid-template-columns: 1fr;
+  }
+  
+  .licenseVisualNew {
+    order: -1; /* Move image to top on mobile */
+    margin-bottom: 2rem;
+  }
+}
+
+
+
+
+
+
 
 
 
