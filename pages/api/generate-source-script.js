@@ -23,7 +23,7 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { drive, clientName, excludePaths = [] } = req.body;
+    const { drive, clientName, excludePaths = [], includePaths = [], mode = 'exclude' } = req.body;
 
     // Validate input parameters
     if (!drive || !clientName) {
@@ -94,6 +94,10 @@ export default async function handler(req, res) {
 param(
     [string]$DriveLetter = "${drive}",
     [string]$ClientName = "${clientName}",
+    [string]$Mode = "${mode}",
+    [string[]]$IncludePaths = @(
+        ${includePaths.map(e => `"${e.replace(/"/g, '""')}"`).join(",\n        ")}
+    ),
     [string[]]$ExcludePaths = @(
         ${allExclusions.map(e => `"${e.replace(/"/g, '""')}"`).join(",\n        ")}
     )
@@ -185,7 +189,11 @@ try {
     Log-Message "Parameters:"
     Log-Message "  Drive: ${drive}"
     Log-Message "  Client: ${clientName}"
-    Log-Message "  Exclusions: $($ExcludePaths -join ', ')"
+    Log-Message "  Mode: $Mode"
+    if ($Mode -eq 'include') {
+        Log-Message "  Include Paths: $($IncludePaths -join ', ')"
+    }
+    Log-Message "  Exclude Paths: $($ExcludePaths -join ', ')"
 
     # Verify WinRAR installation
     if (-not (Test-Path $WinRARPath)) {
@@ -206,7 +214,28 @@ try {
         Log-Message "Deleted existing archive: $ArchivePath"
     }
 
-    # Archive drive using WinRAR
+    # Archive based on mode
+    if ($Mode -eq 'include') {
+        Log-Message "Starting archive process for included paths with WinRAR..."
+        
+        $rarCommand = @(
+            "a",           # Add to archive
+            "-r",          # Recurse subdirectories
+            "-ep1",        # Exclude base folder from names
+            "-y",          # Assume Yes to all queries
+            "-idq",        # Quiet mode (suppress progress)
+            "$ArchivePath"
+        )
+        
+        # Add each included path
+        foreach ($inc in $IncludePaths) {
+            $rarCommand += $inc
+        }
+        
+        # Add exclusions
+        $rarCommand += $exclusionArgs
+    }
+    else {    
     Log-Message "Starting archive process for drive ${drive} with WinRAR..."
     
     $rarCommand = @(
@@ -219,6 +248,7 @@ try {
         "${drive}:\\*"
     ) + $exclusionArgs
 
+    }
 
     Log-Message "Executing: $WinRARPath $($rarCommand -join ' ')"
     
@@ -239,7 +269,7 @@ try {
         throw $errorDetails
     }
 
-$sizeGB = [math]::Round((Get-Item $ArchivePath).Length / 1GB, 2)
+    $sizeGB = [math]::Round((Get-Item $ArchivePath).Length / 1GB, 2)
     Log-Message "Archive created at $ArchivePath (Size: $sizeGB GB)"
 
     # Upload to S3 using AWS SDK for JavaScript

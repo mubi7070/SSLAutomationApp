@@ -24,6 +24,10 @@ export default function ServerMigration() {
   const [generatedPassword, setGeneratedPassword] = useState('');
   const [downloadMethod, setDownloadMethod] = useState('direct');
   const [copied, setCopied] = useState(false);
+  const [pathMode, setPathMode] = useState('include'); // 'include' or 'exclude'
+  const [includePaths, setIncludePaths] = useState([]);
+  const [newIncludePath, setNewIncludePath] = useState('');
+
 
   const driveLetters = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
@@ -36,6 +40,19 @@ export default function ServerMigration() {
       }, 5000);
     }
   }, [popupMessage]);
+
+  const addIncludePath = () => {
+    if (newIncludePath.trim()) {
+      setIncludePaths([...includePaths, newIncludePath.trim()]);
+      setNewIncludePath('');
+    }
+  };
+
+  const removeIncludePath = (index) => {
+    const updatedPaths = [...includePaths];
+    updatedPaths.splice(index, 1);
+    setIncludePaths(updatedPaths);
+  };
 
   const handleCopy = () => {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -60,6 +77,11 @@ export default function ServerMigration() {
       setPopupMessage('Please enter client name');
       return;
     }
+    // Validate include paths in include mode
+    if (pathMode === 'include' && includePaths.length === 0) {
+      setPopupMessage('Please add at least one path to include');
+      return;
+    }
     
     setLoadingSource(true);
     try {
@@ -69,7 +91,9 @@ export default function ServerMigration() {
         body: JSON.stringify({ 
           drive: sourceDrive, 
           clientName,
-          excludePaths
+          excludePaths,
+          includePaths: pathMode === 'include' ? includePaths : [],
+          mode: pathMode
         }),
       });
 
@@ -237,17 +261,98 @@ export default function ServerMigration() {
                     />
                   </label>
                 </div>
-
+                
+                {/* Radio Buttons */}
                 <div className={styles.licenseDescription}>
                   <label>
-                    Paths to Exclude:
+                    Selection Mode:
+                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                      <label className={styles.radioLabel}>
+                        <input
+                          type="radio"
+                          value="include"
+                          checked={pathMode === 'include'}
+                          onChange={() => setPathMode('include')}
+                          className={styles.radioInput}
+                        />
+                        Include Specific Paths
+                      </label>
+                      <label className={styles.radioLabel}>
+                        <input
+                          type="radio"
+                          value="exclude"
+                          checked={pathMode === 'exclude'}
+                          onChange={() => setPathMode('exclude')}
+                          className={styles.radioInput}
+                        />
+                        Exclude Specific Paths
+                      </label>
+                    </div>
+                  </label>
+                </div>
+                {/* Include Paths Section */}
+                {pathMode === 'include' && (
+                  <div className={styles.licenseDescription}>
+                    <label>
+                      Paths to Include:
+                      <div style={{ margin: '10px 0' }}>
+                        <div className={styles.pathInputContainer}>
+                          <input
+                            type="text"
+                            value={newIncludePath}
+                            onChange={(e) => setNewIncludePath(e.target.value)}
+                            placeholder="Add path to include (e.g., D:\data)"
+                            className={styles.styledselecttempmargin}
+                            style={{ 
+                              width: 'calc(100% - 100px)', 
+                              padding: '7px', 
+                              marginRight: '10px'
+                            }}
+                          />
+                          <button 
+                            onClick={addIncludePath}
+                            className={styles.addPathButton}
+                          >
+                            Add Path
+                          </button>
+                        </div>
+                        
+                        <div className={styles.pathList}>
+                          {includePaths.map((path, index) => (
+                            <div key={index} className={styles.pathItem}>
+                              <span>{path}</span>
+                              <button 
+                                onClick={() => removeIncludePath(index)}
+                                className={styles.removePathButton}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </label>
+                    <p style={{ fontSize: '0.9rem', color: '#666' }}>
+                      <strong>Note:</strong> Only the above paths will be included in the archive.
+                    </p>
+                  </div>
+                )}
+
+                {/* Exclude Paths Section */}
+                <div className={styles.licenseDescription}>
+                  <label>
+                    {pathMode === 'include' 
+                      ? 'Paths to Exclude (within included paths):' 
+                      : 'Paths to Exclude:'}
                     <div style={{ margin: '10px 0' }}>
                       <div className={styles.pathInputContainer}>
                         <input
                           type="text"
                           value={newExcludePath}
                           onChange={(e) => setNewExcludePath(e.target.value)}
-                          placeholder="Add path to exclude (e.g., D:\data\ use trailing \ for folders)"
+                          placeholder={pathMode === 'include' 
+                            ? "Add path to exclude from included paths" 
+                            : "Add path to exclude (e.g., D:\\data)"}
                           className={styles.styledselecttempmargin}
                           style={{ 
                             width: 'calc(100% - 100px)', 
@@ -279,9 +384,13 @@ export default function ServerMigration() {
                     </div>
                   </label>
                   <p style={{ fontSize: '0.9rem', color: '#666' }}>
-                    Default exclusions: pagefile.sys, System Volume Information, $RECYCLE.BIN
+                    <strong>Exclusions:</strong> {pathMode === 'include' 
+                      ? 'The above paths will be excluded from the included paths' 
+                      : 'The above paths will be excluded automatically'}
                   </p>
                 </div>
+
+                
                 
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
                   <button
