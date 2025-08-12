@@ -219,11 +219,10 @@ export default function ServerMigration() {
                 </a>
               </p>
               <p>
-                <strong>Note:</strong> The script will skip locked files during archiving.
+                <strong>Note:</strong> The script will automatically skip any locked files during archiving. Please ensure that the generated PowerShell script is not saved on the same drive (e.g., D, E, etc.).
               </p>
               <p style={{ fontSize: '1.2rem', color: '#666' }}>
-                  <strong>For folders:</strong> avoid trailing backslash (e.g. D:\data)<br/>
-                  <strong>For faster execution:</strong> Empty the Recycle Bin before running the source script.
+                  <strong>For Faster Execution:</strong> Empty the Recycle Bin before running the source script.
               </p>
             </div>
 
@@ -276,6 +275,13 @@ export default function ServerMigration() {
                           className={styles.radioInput}
                         />
                         Include Specific Paths
+                        <Tooltip text="Select the paths you wish to migrate, and the system will archive only those items while applying the defined exclusions.">
+                          <Link href="/files/help" legacyBehavior>
+                            <a className={styles.tooltip}>
+                              <HelpCircle size={20} />
+                            </a>
+                          </Link>
+                        </Tooltip>
                       </label>
                       <label className={styles.radioLabel}>
                         <input
@@ -286,6 +292,13 @@ export default function ServerMigration() {
                           className={styles.radioInput}
                         />
                         Exclude Specific Paths
+                        <Tooltip text="Select the paths you wish to exclude, and the system will archive all remaining items in the drive.">
+                          <Link href="/files/help" legacyBehavior>
+                            <a className={styles.tooltip}>
+                              <HelpCircle size={20} />
+                            </a>
+                          </Link>
+                        </Tooltip>
                       </label>
                     </div>
                   </label>
@@ -416,7 +429,7 @@ export default function ServerMigration() {
                     <code>{generatedPassword}</code>
                     <button 
                       onClick={handleCopy}
-                      className={styles.copyButton}
+                      className={styles.handlecopy}
                       style={{
                         color: copied ? "green" : "black",
                         display: "flex",

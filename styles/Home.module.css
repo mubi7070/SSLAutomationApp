@@ -426,6 +426,16 @@ font-family: 'Times New Roman', Times, serif;
   cursor: pointer;
 }
 
+.handlecopy {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-left: 23rem;
+}
+
 .contentbox {
   border: 1px solid #e0e0e0;
   padding: 10px;

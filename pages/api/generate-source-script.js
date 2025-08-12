@@ -325,6 +325,7 @@ try {
     npm init -y --quiet
     npm install @aws-sdk/client-s3
 
+    Log-Message "Uploading the Archive to S3... Please Wait..."
     # Execute the upload script
     \$nodeProcess = Start-Process -FilePath "node" -ArgumentList "\`\"\$uploadScriptPath\`\"" -Wait -NoNewWindow -PassThru
         
