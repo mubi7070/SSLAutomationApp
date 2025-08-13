@@ -22,12 +22,19 @@ export default function ServerMigration() {
   const [excludePaths, setExcludePaths] = useState([]);
   const [newExcludePath, setNewExcludePath] = useState('');
   const [generatedPassword, setGeneratedPassword] = useState('');
-  const [downloadMethod, setDownloadMethod] = useState('direct');
   const [copied, setCopied] = useState(false);
   const [pathMode, setPathMode] = useState('include'); // 'include' or 'exclude'
   const [includePaths, setIncludePaths] = useState([]);
   const [newIncludePath, setNewIncludePath] = useState('');
-
+  const [installMySQL, setInstallMySQL] = useState(false);
+  const [installTomcat, setInstallTomcat] = useState(false);
+  const [copyFonts, setCopyFonts] = useState(false);
+  const [ramAllocation, setRamAllocation] = useState(false);
+  const [mysqlServiceName, setMysqlServiceName] = useState('MySQL8');
+  const [tomcatServiceName, setTomcatServiceName] = useState('Tomcat9');
+  const [tomcatDependency, setTomcatDependency] = useState(false);
+  const [tomcatInitialMemory, setTomcatInitialMemory] = useState('1024');
+  const [tomcatMaxMemory, setTomcatMaxMemory] = useState('2048');
 
   const driveLetters = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
@@ -147,7 +154,16 @@ export default function ServerMigration() {
           clientName,
           tomcatPath,
           jdkPath,
-          mysqlPath
+          mysqlPath,
+          installMySQL,
+          installTomcat,
+          copyFonts,
+          ramAllocation,
+          mysqlServiceName,
+          tomcatDependency,
+          tomcatInitialMemory,
+          tomcatMaxMemory,
+          tomcatServiceName
         }),
       });
 
@@ -543,6 +559,126 @@ export default function ServerMigration() {
                     />
                   </label>
                 </div>
+
+                <h3 className={styles.additionalOptionsHeader}>Additional Options</h3>
+
+                <div className={styles.optionGroup}>
+                <label className={styles.optionLabel}>
+                  <input 
+                    type="checkbox" 
+                    checked={installMySQL} 
+                    onChange={(e) => setInstallMySQL(e.target.checked)} 
+                    className={styles.optionCheckbox}
+                  />
+                  Install MySQL Service
+                </label>
+                {installMySQL && (
+                  <div className={styles.optionInput}>
+                    <label>MySQL Service Name:</label>
+                    <input
+                      type="text"
+                      value={mysqlServiceName}
+                      onChange={(e) => setMysqlServiceName(e.target.value)}
+                      className={styles.styledselecttempmargin}
+                      style={{ width: '98%', padding: '7px', margin: '10px 0' }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className={styles.optionGroup}>
+              <label className={styles.optionLabel}>
+                <input 
+                  type="checkbox" 
+                  checked={installTomcat} 
+                  onChange={(e) => setInstallTomcat(e.target.checked)} 
+                  className={styles.optionCheckbox}
+                />
+                Install Tomcat Service
+              </label>
+              {installTomcat && (
+                <>
+                  {/* Add Tomcat Service Name Input */}
+                  <div className={styles.optionInput}>
+                    <label>Tomcat Service Name:</label>
+                    <input
+                      type="text"
+                      value={tomcatServiceName}
+                      onChange={(e) => setTomcatServiceName(e.target.value)}
+                      className={styles.styledselecttempmargin}
+                      style={{ width: '98%', padding: '7px', margin: '10px 0' }}
+                      placeholder="Tomcat9"
+                    />
+                  </div>
+                  
+                  {/* RAM Allocation Checkbox */}
+                  <div className={styles.optionInput}>
+                    <label className={styles.optionLabel}>
+                      <input 
+                        type="checkbox" 
+                        checked={ramAllocation} 
+                        onChange={(e) => setRamAllocation(e.target.checked)} 
+                        className={styles.optionCheckbox}
+                      />
+                      Configure RAM Allocation
+                    </label>
+                  </div>
+                  
+                  {/* Memory Inputs (only shown when RAM Allocation is checked) */}
+                  {ramAllocation && (
+                    <>
+                      <div className={styles.optionInput}>
+                        <label>Initial Memory (MB):</label>
+                        <input
+                          type="number"
+                          value={tomcatInitialMemory}
+                          onChange={(e) => setTomcatInitialMemory(e.target.value)}
+                          className={styles.styledselecttempmargin}
+                          style={{ width: '98%', padding: '7px', margin: '10px 0' }}
+                        />
+                      </div>
+                      <div className={styles.optionInput}>
+                        <label>Max Memory (MB):</label>
+                        <input
+                          type="number"
+                          value={tomcatMaxMemory}
+                          onChange={(e) => setTomcatMaxMemory(e.target.value)}
+                          className={styles.styledselecttempmargin}
+                          style={{ width: '98%', padding: '7px', margin: '10px 0' }}
+                        />
+                      </div>
+                    </>
+                  )}
+                  
+                  {/* Dependency Checkbox */}
+                  <div className={styles.optionInput}>
+                    <label className={styles.optionLabel}>
+                      <input 
+                        type="checkbox" 
+                        checked={tomcatDependency} 
+                        onChange={(e) => setTomcatDependency(e.target.checked)} 
+                        className={styles.optionCheckbox}
+                      />
+                      Tomcat Dependency on MySQL
+                    </label>
+                  </div>
+                </>
+              )}
+            </div>
+
+
+              <div className={styles.optionGroup}>
+                <label className={styles.optionLabel}>
+                  <input 
+                    type="checkbox" 
+                    checked={copyFonts} 
+                    onChange={(e) => setCopyFonts(e.target.checked)} 
+                    className={styles.optionCheckbox}
+                  />
+                  Copy Fonts
+                </label>
+              </div>
+
                 
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
                   <button

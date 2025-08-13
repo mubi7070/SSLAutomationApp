@@ -287,7 +287,6 @@ background-color:#045abc ;
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-
   max-width: 100%;
   margin-block: 20px;
 }
@@ -326,7 +325,6 @@ background-color:#045abc ;
 
 .logo {
   height: 2em;
-  
 }
 
 .footer {
@@ -2062,6 +2060,40 @@ button.navLink {
 }
 
 
+.additionalOptionsHeader {
+  color: rgb(16, 31, 118);
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 0.5rem;
+}
+
+.optionGroup {
+  margin-bottom: 1rem;
+  padding: 0.8rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  background-color: #f9f9f9;
+}
+
+.optionLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.optionInput {
+  margin-left: 24px;
+  margin-top: 8px;
+}
+
+.optionCheckbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
 
 
 
