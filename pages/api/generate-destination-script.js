@@ -260,7 +260,21 @@ try {
     }
 
     if ($InstallTomcatService) {
+    try {
         $TomcatBinPath = Join-Path -Path $TomcatPath -ChildPath "bin"
+
+        # Validate paths
+        if (-Not (Test-Path $TomcatBinPath)) {
+            throw "Tomcat bin path not found: $TomcatBinPath"
+        }
+        if (-Not (Test-Path "$TomcatBinPath\\service.bat")) {
+            throw "service.bat not found in: $TomcatBinPath"
+        }
+        if (-Not (Test-Path $JavaHome)) {
+            throw "Java Home not found: $JavaHome"
+        }
+
+        Log-Message "Setting up environment variables and installing the service."
         
         # Set environment variables required for service installation
         $env:CATALINA_HOME = $TomcatPath
@@ -268,25 +282,43 @@ try {
         $env:JRE_HOME = "$JavaHome\\jre"
         
         Log-Message "Installing Tomcat service: ${tomcatServiceName}"
-        Set-Location -Path $TomcatBinPath
+        
+        Push-Location $TomcatBinPath
+
+        # Install service
+        & cmd.exe /c "service.bat install ${tomcatServiceName}"
+        Pop-Location
+
+        # Wait to ensure the service is installed
+        Start-Sleep -Seconds 5
+
+        # Verify the service installation
+        $service = Get-Service -Name ${tomcatServiceName} -ErrorAction SilentlyContinue
+        if ($service) {
+            Log-Message "Tomcat service '${tomcatServiceName}' installed successfully."
+        } else {
+            throw "Tomcat service '${tomcatServiceName}' could not be found after installation."
+        }
         
         # Configure memory allocation if enabled
         if ($RamAllocation) {
             $env:JAVA_OPTS = "-Xms${tomcatInitialMemory}m -Xmx${tomcatMaxMemory}m"
             Log-Message "Configured Tomcat memory: Initial=${tomcatInitialMemory}MB, Max=${tomcatMaxMemory}MB"
         }
-        
-        # Install service
-        & .\service.bat install ${tomcatServiceName}
-        if ($LASTEXITCODE -ne 0) {
-            Log-Message "ERROR: Failed to install Tomcat service. Exit code: $LASTEXITCODE"
-        } else {
-            Log-Message "Tomcat service '${tomcatServiceName}' installed successfully"
             
             # Configure service recovery options
             sc.exe failure ${tomcatServiceName} reset= 86400 actions= restart/60000/restart/60000// | Out-Null
             Log-Message "Configured Tomcat service recovery options"
+
+            # Set Log On to 'Local System account'
+            $ServiceManagerPath = "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\${tomcatServiceName}"
+            Set-ItemProperty -Path $ServiceManagerPath -Name "ObjectName" -Value "LocalSystem"
+            Log-Message "Configured 'Local System account' for service '${tomcatServiceName}'"
             
+            # Disable 'Enable actions for stops with errors'
+            sc.exe failureflag $ServiceName 0 | Out-Null
+            Log-Message "Disabled 'Enable actions for stops with errors' for service '${tomcatServiceName}'."
+
             # Set dependency if enabled
             if ($TomcatDependency) {
                 Log-Message "Setting Tomcat dependency on MySQL service"
@@ -302,6 +334,10 @@ try {
             sc.exe config ${tomcatServiceName} start= auto | Out-Null
             Log-Message "Configured Tomcat service to start automatically"
         }
+    } catch {
+        Log-Message "An error occurred during Tomcat service installation."
+    }
+        
     }
 
     if ($CopyFonts) {

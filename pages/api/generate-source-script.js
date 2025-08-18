@@ -156,7 +156,8 @@ function Remove-TemporaryFiles {
                     Remove-Item -LiteralPath $file -Force -ErrorAction Stop
                 }
                 Log-Message "Deleted temporary file: $file"
-            } catch {
+            } 
+            catch {
                 Log-Message "WARNING: Failed to delete $file - $($_.Exception.Message)"
             }
         }
@@ -276,42 +277,53 @@ try {
     Log-Message "Uploading to S3 bucket $BucketName..."
 
     $uploadScript = @"
-    const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+    const { S3Client } = require("@aws-sdk/client-s3");
+    const { Upload } = require("@aws-sdk/lib-storage");
     const fs = require("fs");
     const path = require("path");
 
     async function uploadToS3() {
-      const filePath = "$($ArchivePath.Replace('\\', '\\\\'))";
-      const fileContent = fs.readFileSync(filePath);
-
-      const params = {
-          Bucket: "$BucketName",
-          Key: "$FolderName/$ArchiveName",
-          Body: fileContent,
-      };
-
-      const s3Client = new S3Client({
-        region: "$env:AWS_REGION",
-        credentials: {
-          accessKeyId: "$env:AWS_ACCESS_KEY_ID",
-          secretAccessKey: "$env:AWS_SECRET_ACCESS_KEY"
-        }
-      });
+      const filePath = path.resolve(process.argv[2]);
+      const bucketName = "${process.env.S3_MIGRATION_BUCKET_NAME}";
+      const key = process.argv[3];
 
       try {
-        await s3Client.send(new PutObjectCommand(params));
-        return "Uploaded $ArchiveName to S3 successfully";
+        const s3Client = new S3Client({
+          region: "$env:AWS_REGION",
+          credentials: {
+            accessKeyId: "$env:AWS_ACCESS_KEY_ID",
+            secretAccessKey: "$env:AWS_SECRET_ACCESS_KEY"
+          }
+        });
+      
+        const parallelUploads3 = new Upload({
+          client: s3Client,
+          params: {
+            Bucket: bucketName,
+            Key: key,
+            Body: fs.createReadStream(filePath)
+          },
+          leavePartsOnError: false,
+          queueSize: 4,        // Optional: concurrent parts
+          partSize: 1024 * 1024 * 500 // 500MB
+        });
+
+        parallelUploads3.on("httpUploadProgress", (progress) => {
+          console.log("Uploaded:", progress.loaded, "of", progress.total);
+        });
+
+        await parallelUploads3.done();
+        console.log("Upload completed successfully.");
+        process.exit(0);
       } catch (err) {
-        throw new Error("S3 upload failed: \${err.message}");
+        console.error("S3 upload failed:", err);
+        process.exit(1);
+      } finally {
+        console.log("Finally finished.");
       }
     }
 
-    uploadToS3()
-      .then(result => console.log(result))
-      .catch(error => {
-        console.error(error.message);
-        process.exit(1);
-      });
+    uploadToS3();
 "@
 
     # Save the upload script to a temporary file
@@ -323,20 +335,27 @@ try {
     Log-Message "Installing AWS SDK for S3..."
     Set-Location -Path $MigrationFolder
     npm init -y --quiet
-    npm install @aws-sdk/client-s3
+    npm install @aws-sdk/client-s3 @aws-sdk/lib-storage
 
     Log-Message "Uploading the Archive to S3... Please Wait..."
-    # Execute the upload script
-    \$nodeProcess = Start-Process -FilePath "node" -ArgumentList "\`\"\$uploadScriptPath\`\"" -Wait -NoNewWindow -PassThru
-        
+    # -------------------------------
+    # Run Node.js upload script
+    # -------------------------------
+
+    $nodeArgs = @(
+    "\`"$uploadScriptPath\`"",
+    "\`"$ArchivePath\`"",
+    "\`"$FolderName/$ArchiveName\`""
+    )
+
+    \$nodeProcess = Start-Process -FilePath "node" -ArgumentList $nodeArgs -Wait -NoNewWindow -PassThru
+
     if ($nodeProcess.ExitCode -ne 0) {
-        $errorDetails = "S3 upload failed with exit code $($nodeProcess.ExitCode)"
-        Log-Message $errorDetails
-        throw $errorDetails
+        throw "S3 upload failed with exit code $($nodeProcess.ExitCode)."
     }
         
     Log-Message "Upload completed successfully"
-    Log-Message "Migration completed successfully"
+    Log-Message "===== MIGRATION COMPLETED SUCCESSFULLY ====="
 
     } catch {
         $errorMsg = $_.Exception.Message

@@ -3,12 +3,45 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { drive, clientName, tomcatPath, jdkPath, mysqlPath } = req.body;
+  const { 
+    drive, 
+    clientName, 
+    tomcatPath, 
+    jdkPath, 
+    mysqlPath, 
+    installMySQL,
+    installTomcat,
+    copyFonts,
+    ramAllocation,
+    mysqlServiceName,
+    tomcatDependency,
+    tomcatInitialMemory,
+    tomcatMaxMemory,
+    tomcatServiceName
+    } = req.body;
 
   // Validate input parameters
   if (!drive || !clientName || !tomcatPath || !jdkPath || !mysqlPath) {
     return res.status(400).json({ error: 'All fields are required' });
   }
+
+  console.log(`
+    drive: ${drive},
+    clientName: ${clientName} , 
+    tomcatPath: ${tomcatPath}, 
+    jdkPath: ${jdkPath}, 
+    mysqlPath: ${mysqlPath}, 
+    installMySQL: ${installMySQL},
+    installTomcat: ${installTomcat},
+    copyFonts: ${copyFonts},
+    ramAllocation: ${ramAllocation},
+    mysqlServiceName: ${mysqlServiceName},
+    tomcatDependency: ${tomcatDependency},
+    tomcatInitialMemory: ${tomcatInitialMemory},
+    tomcatMaxMemory: ${tomcatMaxMemory},
+    tomcatServiceName: ${tomcatServiceName}
+    `);
+  
   
   // Generate formatted date (MMDDYY)
   const today = new Date();
@@ -28,8 +61,27 @@ param(
     [string]$ClientName = "${clientName}",
     [string]$TomcatPath = "${tomcatPath.replace(/\\/g, '\\\\')}",
     [string]$JavaHome = "${jdkPath.replace(/\\/g, '\\\\')}",
-    [string]$MySQLPath = "${mysqlPath.replace(/\\/g, '\\\\')}"
+    [string]$MySQLPath = "${mysqlPath.replace(/\\/g, '\\\\')}",
+    [bool]$InstallMySQLService = $${installMySQL},
+    [bool]$InstallTomcatService = $${installTomcat},
+    [bool]$CopyFonts = $${copyFonts},
+    [bool]$RamAllocation = $${ramAllocation},
+    [string]$MySQLServiceName = "${mysqlServiceName}",
+    [string]$TomcatServiceName = "${tomcatServiceName || 'Tomcat9'}",
+    [bool]$TomcatDependency = $${tomcatDependency},
+    [string]$TomcatInitialMemory = "${tomcatInitialMemory}",
+    [string]$TomcatMaxMemory = "${tomcatMaxMemory}"
 )
+
+if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
+).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host ""
+    Write-Host "Script is not running as Administrator. Kindly re-run the script as Administrator." -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Press any key to exit..."
+    [void][System.Console]::ReadKey($true)
+    exit 1
+}
 
 # AWS Configuration
 $env:AWS_ACCESS_KEY_ID = "${process.env.AWS_ACCESS_KEY_ID}"
@@ -176,6 +228,88 @@ try {
     }
     Log-Message "Extraction completed successfully"
 
+    # Capture script path for self-deletion
+    $scriptPath = $MyInvocation.MyCommand.Path
+
+    # Service installation and configuration
+    if ($InstallMySQLService) {
+        Log-Message "Installing MySQL service: $MySQLServiceName"
+
+        Push-Location "$MySQLPath\\bin"
+        
+        Log-Message "MySQL Bin Location: $MySQLPath\\bin"
+        Log-Message "Current working directory: $(Get-Location)"
+
+        $mysqldExe = ".\\mysqld.exe"
+        if (-not (Test-Path $mysqldExe)) {
+            Log-Message "CRITICAL ERROR: mysqld.exe not found at $(Get-Location)"
+        } else {
+            & $mysqldExe "-install" $MySQLServiceName
+        }
+
+        if ($LASTEXITCODE -ne 0) {
+            Log-Message "ERROR: Failed to install MySQL service. Exit code: $LASTEXITCODE"
+        } else {
+            Log-Message "MySQL service installed successfully"
+            # Set service to auto-start
+            sc.exe config $MySQLServiceName start= auto | Out-Null
+            Log-Message "Configured MySQL service to start automatically"
+        }
+        
+        Pop-Location
+    }
+
+    if ($InstallTomcatService) {
+        $TomcatBinPath = Join-Path -Path $TomcatPath -ChildPath "bin"
+        
+        # Set environment variables required for service installation
+        $env:CATALINA_HOME = $TomcatPath
+        $env:JAVA_HOME = $JavaHome
+        $env:JRE_HOME = "$JavaHome\\jre"
+        
+        Log-Message "Installing Tomcat service: ${tomcatServiceName}"
+        Set-Location -Path $TomcatBinPath
+        
+        # Configure memory allocation if enabled
+        if ($RamAllocation) {
+            $env:JAVA_OPTS = "-Xms${tomcatInitialMemory}m -Xmx${tomcatMaxMemory}m"
+            Log-Message "Configured Tomcat memory: Initial=${tomcatInitialMemory}MB, Max=${tomcatMaxMemory}MB"
+        }
+        
+        # Install service
+        & .\service.bat install ${tomcatServiceName}
+        if ($LASTEXITCODE -ne 0) {
+            Log-Message "ERROR: Failed to install Tomcat service. Exit code: $LASTEXITCODE"
+        } else {
+            Log-Message "Tomcat service '${tomcatServiceName}' installed successfully"
+            
+            # Configure service recovery options
+            sc.exe failure ${tomcatServiceName} reset= 86400 actions= restart/60000/restart/60000// | Out-Null
+            Log-Message "Configured Tomcat service recovery options"
+            
+            # Set dependency if enabled
+            if ($TomcatDependency) {
+                Log-Message "Setting Tomcat dependency on MySQL service"
+                sc.exe config ${tomcatServiceName} depend= $MySQLServiceName
+                if ($LASTEXITCODE -ne 0) {
+                    Log-Message "WARNING: Failed to set Tomcat dependency on MySQL"
+                } else {
+                    Log-Message "Tomcat service configured to depend on MySQL"
+                }
+            }
+            
+            # Set service to auto-start
+            sc.exe config ${tomcatServiceName} start= auto | Out-Null
+            Log-Message "Configured Tomcat service to start automatically"
+        }
+    }
+
+    if ($CopyFonts) {
+        # Placeholder for font copying functionality
+        # TODO: Implement font copying in the future
+        Log-Message "Font copying feature will be implemented in a future version"
+    }
+
     Log-Message "===== MIGRATION COMPLETED SUCCESSFULLY ====="
     Log-Message "All data restored to drive ${drive}:\\"
 
@@ -192,6 +326,26 @@ try {
     Write-Host "Press Enter to exit..."
     $null = Read-Host
     exit 1
+} finally {
+    # Self-deletion process
+    Log-Message "Starting self-deletion process"
+    try {
+        # Delete temporary files
+        Remove-TemporaryFiles -FolderPath $MigrationFolder
+        
+        # Delete the script itself
+        if (Test-Path -LiteralPath $scriptPath) {
+            Log-Message "Deleting script: $scriptPath"
+            Remove-Item -LiteralPath $scriptPath -Force -ErrorAction Stop
+        }
+    } catch {
+        Log-Message "WARNING: Failed to delete script - $($_.Exception.Message)"
+    } finally {
+     # Keep window open to see error
+    Write-Host "Press Enter to exit..."
+    $null = Read-Host
+    exit 1
+    }
 }
 `;
 
