@@ -229,9 +229,24 @@ export default function ServerMigration() {
 
             <div className={styles.licenseDescription} >
               <p style={{ color: 'red' }}>
-                <strong>Important:</strong> Both servers must have WinRAR installed. 
-                <a href="https://www.rarlab.com/download.htm" target="_blank" rel="noopener noreferrer">
-                  {" "} Download WinRAR
+                <strong>Important:</strong> Both servers must have <strong>WinRAR</strong> and <strong>NodeJS</strong> installed. 
+                <br />
+                <a 
+                href="https://www.rarlab.com/download.htm" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className={styles.winrarBtn}
+                >
+                  Download WinRAR
+                </a>
+
+                <a 
+                href="https://nodejs.org/en/download" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className={styles.nodeBtn}
+                >
+                  Download NodeJS
                 </a>
               </p>
               <p>
@@ -240,6 +255,17 @@ export default function ServerMigration() {
               <p style={{ fontSize: '1.2rem', color: '#666' }}>
                   <strong>For Faster Execution:</strong> Empty the Recycle Bin before running the source script.
               </p>
+
+              <p>
+                <strong>Steps to run the script:</strong>
+              </p>
+              <ul>
+                <li>Open PowerShell as Administrator.</li>
+                <li>Go to the script path.</li>
+                <li>
+                  Run the script (e.g: <em>.\migration-source-ClientName.ps1</em>)
+                </li>
+              </ul>
             </div>
 
             {/* Left Column - Source Server */}
