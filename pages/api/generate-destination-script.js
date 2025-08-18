@@ -300,11 +300,11 @@ try {
             throw "Tomcat service '${tomcatServiceName}' could not be found after installation."
         }
         
-        # Configure memory allocation if enabled
-        if ($RamAllocation) {
-            $env:JAVA_OPTS = "-Xms${tomcatInitialMemory}m -Xmx${tomcatMaxMemory}m"
-            Log-Message "Configured Tomcat memory: Initial=${tomcatInitialMemory}MB, Max=${tomcatMaxMemory}MB"
-        }
+            # Configure memory allocation if enabled
+            if ($RamAllocation) {
+                $env:JAVA_OPTS = "-Xms${tomcatInitialMemory}m -Xmx${tomcatMaxMemory}m"
+                Log-Message "Configured Tomcat memory: Initial=${tomcatInitialMemory}MB, Max=${tomcatMaxMemory}MB"
+            }
             
             # Configure service recovery options
             sc.exe failure ${tomcatServiceName} reset= 86400 actions= restart/60000/restart/60000// | Out-Null
@@ -333,11 +333,9 @@ try {
             # Set service to auto-start
             sc.exe config ${tomcatServiceName} start= auto | Out-Null
             Log-Message "Configured Tomcat service to start automatically"
-        }
-    } catch {
+        } catch {
         Log-Message "An error occurred during Tomcat service installation."
-    }
-        
+        }   
     }
 
     if ($CopyFonts) {
@@ -376,11 +374,6 @@ try {
         }
     } catch {
         Log-Message "WARNING: Failed to delete script - $($_.Exception.Message)"
-    } finally {
-     # Keep window open to see error
-    Write-Host "Press Enter to exit..."
-    $null = Read-Host
-    exit 1
     }
 }
 `;
