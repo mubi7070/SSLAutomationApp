@@ -59,9 +59,10 @@ export default async function handler(req, res) {
 param(
     [string]$DriveLetter = "${drive}",
     [string]$ClientName = "${clientName}",
-    [string]$TomcatPath = "${tomcatPath.replace(/\\/g, '\\\\')}",
-    [string]$JavaHome = "${jdkPath.replace(/\\/g, '\\\\')}",
-    [string]$MySQLPath = "${mysqlPath.replace(/\\/g, '\\\\')}",
+    [string]$TomcatPath = "${tomcatPath}",
+    [string]$JavaHome = "${jdkPath}",
+    [string]$JRE_HOME = "${jdkPath}\\jre",
+    [string]$MySQLPath = "${mysqlPath}",
     [bool]$InstallMySQLService = $${installMySQL},
     [bool]$InstallTomcatService = $${installTomcat},
     [bool]$CopyFonts = $${copyFonts},
@@ -279,7 +280,7 @@ try {
         # Set environment variables required for service installation
         $env:CATALINA_HOME = $TomcatPath
         $env:JAVA_HOME = $JavaHome
-        $env:JRE_HOME = "$JavaHome\\jre"
+        $env:JRE_HOME = "$JRE_HOME"
         
         Log-Message "Installing Tomcat service: ${tomcatServiceName}"
         
