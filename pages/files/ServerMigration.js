@@ -35,6 +35,17 @@ export default function ServerMigration() {
   const [tomcatDependency, setTomcatDependency] = useState(false);
   const [tomcatInitialMemory, setTomcatInitialMemory] = useState('1024');
   const [tomcatMaxMemory, setTomcatMaxMemory] = useState('2048');
+  const [enablePerformanceOptions, setEnablePerformanceOptions] = useState(false);
+  const [performanceOptions, setPerformanceOptions] = useState([
+    '-Djava.awt.headless=false',
+    '-Dfile.encoding=UTF8',
+    '-XX:MaxPermSize=1024m',
+    '-XX:ReservedCodeCacheSize=128m',
+    '-XX:+UseCodeCacheFlushing',
+    '-XX:-CreateMinidumpOnCrash',
+    '-Xverify:none'
+  ]);
+  const [newPerformanceOption, setNewPerformanceOption] = useState('');
 
   const driveLetters = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
@@ -59,6 +70,19 @@ export default function ServerMigration() {
     const updatedPaths = [...includePaths];
     updatedPaths.splice(index, 1);
     setIncludePaths(updatedPaths);
+  };
+
+  const addPerformanceOption = () => {
+    if (newPerformanceOption.trim()) {
+      setPerformanceOptions([...performanceOptions, newPerformanceOption.trim()]);
+      setNewPerformanceOption('');
+    }
+  };
+
+  const removePerformanceOption = (index) => {
+    const updatedOptions = [...performanceOptions];
+    updatedOptions.splice(index, 1);
+    setPerformanceOptions(updatedOptions);
   };
 
   const handleCopy = () => {
@@ -163,7 +187,9 @@ export default function ServerMigration() {
           tomcatDependency,
           tomcatInitialMemory,
           tomcatMaxMemory,
-          tomcatServiceName
+          tomcatServiceName,
+          enablePerformanceOptions,
+          performanceOptions: performanceOptions.join(';')
         }),
       });
 
@@ -606,7 +632,7 @@ export default function ServerMigration() {
                       value={mysqlServiceName}
                       onChange={(e) => setMysqlServiceName(e.target.value)}
                       className={styles.styledselecttempmargin}
-                      style={{ width: '98%', padding: '7px', margin: '10px 0' }}
+                      style={{ width: '93%', padding: '7px', margin: '10px 0' }}
                     />
                   </div>
                 )}
@@ -632,7 +658,7 @@ export default function ServerMigration() {
                       value={tomcatServiceName}
                       onChange={(e) => setTomcatServiceName(e.target.value)}
                       className={styles.styledselecttempmargin}
-                      style={{ width: '98%', padding: '7px', margin: '10px 0' }}
+                      style={{ width: '93%', padding: '7px', margin: '10px 0' }}
                       placeholder="Tomcat9"
                     />
                   </div>
@@ -650,6 +676,7 @@ export default function ServerMigration() {
                     </label>
                   </div>
                   
+                  
                   {/* Memory Inputs (only shown when RAM Allocation is checked) */}
                   {ramAllocation && (
                     <>
@@ -660,7 +687,7 @@ export default function ServerMigration() {
                           value={tomcatInitialMemory}
                           onChange={(e) => setTomcatInitialMemory(e.target.value)}
                           className={styles.styledselecttempmargin}
-                          style={{ width: '98%', padding: '7px', margin: '10px 0' }}
+                          style={{ width: '93%', padding: '7px', margin: '10px 0' }}
                         />
                       </div>
                       <div className={styles.optionInput}>
@@ -670,11 +697,70 @@ export default function ServerMigration() {
                           value={tomcatMaxMemory}
                           onChange={(e) => setTomcatMaxMemory(e.target.value)}
                           className={styles.styledselecttempmargin}
-                          style={{ width: '98%', padding: '7px', margin: '10px 0' }}
+                          style={{ width: '93%', padding: '7px', margin: '10px 0' }}
                         />
                       </div>
                     </>
                   )}
+
+                  {/* Performance Options Section */}
+
+                  <div className={styles.optionInput}>
+                  <label className={styles.optionLabel}>
+                    <input 
+                      type="checkbox" 
+                      checked={enablePerformanceOptions} 
+                      onChange={(e) => setEnablePerformanceOptions(e.target.checked)} 
+                      className={styles.optionCheckbox}
+                    />
+                    Enable Performance Options
+                  </label>
+                  </div>
+
+                  {enablePerformanceOptions && (
+                    <div className={styles.optionInput}>
+                      <label>Performance Options:</label>
+                      <div className={styles.performanceOptionsList}>
+                        {performanceOptions.map((option, index) => (
+                          <div key={index} className={styles.performanceOptionItem}>
+                            <span>{option}</span>
+                            <button 
+                              onClick={() => removePerformanceOption(index)}
+                              className={styles.removePathButton}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className={styles.pathInputContainer}>
+                        <input
+                          type="text"
+                          value={newPerformanceOption}
+                          onChange={(e) => setNewPerformanceOption(e.target.value)}
+                          placeholder="Add new performance option (e.g., -Dsome.option=value)"
+                          className={styles.styledselecttempmargin}
+                          style={{ 
+                            width: 'calc(100% - 100px)', 
+                            padding: '7px', 
+                            marginRight: '10px',
+                            marginTop: '10px'
+                          }}
+                        />
+                        <button 
+                          onClick={addPerformanceOption}
+                          className={styles.addPathButton}
+                          style={{ marginTop: '10px' }}
+                        >
+                          Add Option
+                        </button>
+                      </div>
+                      <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
+                        These options will be added to the JVM options in service.bat
+                      </p>
+                    </div>
+                  )}
+                
                   
                   {/* Dependency Checkbox */}
                   <div className={styles.optionInput}>

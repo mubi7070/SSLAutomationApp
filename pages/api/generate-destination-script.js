@@ -17,7 +17,9 @@ export default async function handler(req, res) {
     tomcatDependency,
     tomcatInitialMemory,
     tomcatMaxMemory,
-    tomcatServiceName
+    tomcatServiceName,
+    enablePerformanceOptions,
+    performanceOptions
     } = req.body;
 
   // Validate input parameters
@@ -39,7 +41,9 @@ export default async function handler(req, res) {
     tomcatDependency: ${tomcatDependency},
     tomcatInitialMemory: ${tomcatInitialMemory},
     tomcatMaxMemory: ${tomcatMaxMemory},
-    tomcatServiceName: ${tomcatServiceName}
+    tomcatServiceName: ${tomcatServiceName},
+    enablePerformanceOptions: ${enablePerformanceOptions},
+    performanceOptions: ${performanceOptions}
     `);
   
   
@@ -71,7 +75,9 @@ param(
     [string]$TomcatServiceName = "${tomcatServiceName || 'Tomcat9'}",
     [bool]$TomcatDependency = $${tomcatDependency},
     [string]$TomcatInitialMemory = "${tomcatInitialMemory}",
-    [string]$TomcatMaxMemory = "${tomcatMaxMemory}"
+    [string]$TomcatMaxMemory = "${tomcatMaxMemory}",
+    [bool]$EnablePerformanceOptions = $${enablePerformanceOptions},
+    [string]$PerformanceOptions = "${performanceOptions}"
 )
 
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -263,17 +269,67 @@ try {
     if ($InstallTomcatService) {
     try {
         $TomcatBinPath = Join-Path -Path $TomcatPath -ChildPath "bin"
+        $serviceBatPath = Join-Path -Path $TomcatBinPath -ChildPath "service.bat"
+        $serviceBatBackup = $null
+        $ramUpdated = $false
+        $performanceOptionsUpdated = $false
 
         # Validate paths
         if (-Not (Test-Path $TomcatBinPath)) {
             throw "Tomcat bin path not found: $TomcatBinPath"
         }
-        if (-Not (Test-Path "$TomcatBinPath\\service.bat")) {
+        if (-Not (Test-Path $serviceBatPath)) {
             throw "service.bat not found in: $TomcatBinPath"
         }
         if (-Not (Test-Path $JavaHome)) {
             throw "Java Home not found: $JavaHome"
         }
+
+        # Backup original service.bat content
+        $serviceBatBackup = Get-Content $serviceBatPath -Raw
+
+        
+        if ($RamAllocation) {
+            try {
+                # Update service.bat with memory settings
+
+                if (Test-Path $serviceBatPath) {
+                    $content = Get-Content $serviceBatPath -Raw
+                    
+                    # Update JVM memory settings
+                    $content = $content -replace '(?i)--JvmMs\\s+"%JvmMs%"', "--JvmMs \`"${tomcatInitialMemory}\`""
+                    $content = $content -replace '(?i)--JvmMx\\s+"%JvmMx%"', "--JvmMx \`"${tomcatMaxMemory}\`""
+                    
+                    Set-Content -Path $serviceBatPath -Value $content
+                    $ramUpdated = $true
+                    Log-Message "Updated service.bat with memory settings: Initial=${tomcatInitialMemory}MB, Max=${tomcatMaxMemory}MB"
+                } else {
+                    Log-Message "WARNING: service.bat not found at $serviceBatPath"
+                }
+            } catch {
+                Log-Message "ERROR: Failed to update service.bat with memory settings - $($_.Exception.Message)"
+            }
+        }
+
+        if ($EnablePerformanceOptions -and $PerformanceOptions) {
+            try {
+                $content = Get-Content $serviceBatPath -Raw
+                
+                # Replace %JvmArgs% with performance options
+                $content = $content -replace '%JvmArgs%', "${performanceOptions}"
+                
+                Set-Content -Path $serviceBatPath -Value $content
+                $performanceOptionsUpdated = $true
+                Log-Message "Added performance options to service.bat"
+            } catch {
+                Log-Message "ERROR: Failed to add performance options to service.bat - $($_.Exception.Message)"
+            }
+        }
+
+
+        # Wait to ensure the service.bat is configured.
+        Write-Host "Waiting..."
+        Start-Sleep -Seconds 20
 
         Log-Message "Setting up environment variables and installing the service."
         
@@ -281,9 +337,9 @@ try {
         $env:CATALINA_HOME = $TomcatPath
         $env:JAVA_HOME = $JavaHome
         $env:JRE_HOME = "$JRE_HOME"
-        
+
         Log-Message "Installing Tomcat service: ${tomcatServiceName}"
-        
+
         Push-Location $TomcatBinPath
 
         # Install service
@@ -301,11 +357,7 @@ try {
             throw "Tomcat service '${tomcatServiceName}' could not be found after installation."
         }
         
-            # Configure memory allocation if enabled
-            if ($RamAllocation) {
-                $env:JAVA_OPTS = "-Xms${tomcatInitialMemory}m -Xmx${tomcatMaxMemory}m"
-                Log-Message "Configured Tomcat memory: Initial=${tomcatInitialMemory}MB, Max=${tomcatMaxMemory}MB"
-            }
+            
             
             # Configure service recovery options
             sc.exe failure ${tomcatServiceName} reset= 86400 actions= restart/60000/restart/60000// | Out-Null
@@ -334,6 +386,13 @@ try {
             # Set service to auto-start
             sc.exe config ${tomcatServiceName} start= auto | Out-Null
             Log-Message "Configured Tomcat service to start automatically"
+
+            # Revert changes to service.bat if they were made
+            if ($ramUpdated -or $performanceOptionsUpdated) {
+                Set-Content -Path $serviceBatPath -Value $serviceBatBackup
+                Log-Message "Reverted service.bat to original state"
+            }
+
         } catch {
         Log-Message "An error occurred during Tomcat service installation."
         }   
