@@ -756,7 +756,7 @@ export default function ServerMigration() {
                         </button>
                       </div>
                       <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
-                        These options will be added to the JVM options in service.bat
+                        These options will be added to the Java Options in Tomcat Service
                       </p>
                     </div>
                   )}

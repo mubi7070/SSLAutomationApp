@@ -329,7 +329,7 @@ try {
 
         # Wait to ensure the service.bat is configured.
         Write-Host "Waiting..."
-        Start-Sleep -Seconds 20
+        Start-Sleep -Seconds 5
 
         Log-Message "Setting up environment variables and installing the service."
         
