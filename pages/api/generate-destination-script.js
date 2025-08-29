@@ -19,7 +19,9 @@ export default async function handler(req, res) {
     tomcatMaxMemory,
     tomcatServiceName,
     enablePerformanceOptions,
-    performanceOptions
+    performanceOptions,
+    mysqlRamAllocation,
+    mysqlRamSize
     } = req.body;
 
   // Validate input parameters
@@ -43,7 +45,9 @@ export default async function handler(req, res) {
     tomcatMaxMemory: ${tomcatMaxMemory},
     tomcatServiceName: ${tomcatServiceName},
     enablePerformanceOptions: ${enablePerformanceOptions},
-    performanceOptions: ${performanceOptions}
+    performanceOptions: ${performanceOptions},
+    mysqlRamAllocation: ${mysqlRamAllocation},
+    mysqlRamSize: ${mysqlRamSize}
     `);
   
   
@@ -77,7 +81,9 @@ param(
     [string]$TomcatInitialMemory = "${tomcatInitialMemory}",
     [string]$TomcatMaxMemory = "${tomcatMaxMemory}",
     [bool]$EnablePerformanceOptions = $${enablePerformanceOptions},
-    [string]$PerformanceOptions = "${performanceOptions}"
+    [string]$PerformanceOptions = "${performanceOptions}",
+    [bool]$MySQLRamAllocation = $${mysqlRamAllocation},
+    [string]$MySQLRamSize = "${mysqlRamSize}"
 )
 
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -240,7 +246,61 @@ try {
 
     # Service installation and configuration
     if ($InstallMySQLService) {
+        $myIniPath = Join-Path -Path $MySQLPath -ChildPath "my.ini"
+
+            try {
+                if (Test-Path $myIniPath) {
+                    # Read the content of my.ini line by line
+                    $lines = Get-Content $myIniPath
+                    
+                    # Normalize MySQL path (remove trailing backslash if present)
+                    $normalizedMySQLPath = $MySQLPath.TrimEnd('\')
+
+                    # Process each line
+                    $updatedLines = @()
+                    foreach ($line in $lines) {
+                    $updatedLine = $line
+
+                    # Update basedir
+                    if ($line -match '^\\s*basedir\\s*=\\s*".*"') {
+                        $updatedLine = "basedir=\`"$normalizedMySQLPath\\\`""
+                        Log-Message "Updated basedir to: $updatedLine"
+                    }
+
+                    # Update datadir
+                    elseif ($line -match '^\\s*datadir\\s*=\\s*".*"') {
+                        $updatedLine = "datadir=\`"$normalizedMySQLPath\\Data\`""
+                        Log-Message "Updated datadir to: $updatedLine"
+                    }
+
+                    # Update innodb_buffer_pool_size if RAM allocation is enabled
+                    elseif ($MySQLRamAllocation -and $MySQLRamSize -and $line -match '^\\s*innodb_buffer_pool_size\\s*=\\s*\\d+[MmKk]?') {
+                        $updatedLine = "innodb_buffer_pool_size=${mysqlRamSize}M"
+                        Log-Message "Updated innodb_buffer_pool_size to: $updatedLine"
+                    }
+
+                    $updatedLines += $updatedLine
+
+                }
+
+                # Write the updated content back to my.ini
+                Set-Content -Path $myIniPath -Value $updatedLines
+                Log-Message "Updated my.ini with new settings"
+                
+                # Wait to ensure the my.ini is configured
+                Write-Host "Waiting for my.ini configuration..."
+                Start-Sleep -Seconds 3
+            } else {
+                Log-Message "WARNING: my.ini not found at $myIniPath"
+            }
+
         Log-Message "Installing MySQL service: $MySQLServiceName"
+
+        # Check if MySQL bin directory exists
+        $MySQLBinPath = Join-Path -Path $MySQLPath -ChildPath "bin"
+        if (-not (Test-Path $MySQLBinPath)) {
+            throw "MySQL bin directory not found: $MySQLBinPath"
+        }
 
         Push-Location "$MySQLPath\\bin"
         
@@ -250,12 +310,15 @@ try {
         $mysqldExe = ".\\mysqld.exe"
         if (-not (Test-Path $mysqldExe)) {
             Log-Message "CRITICAL ERROR: mysqld.exe not found at $(Get-Location)"
+            throw "mysqld.exe not found at $(Get-Location)"
         } else {
+            # Install MySQL service
             & $mysqldExe "-install" $MySQLServiceName
         }
 
         if ($LASTEXITCODE -ne 0) {
             Log-Message "ERROR: Failed to install MySQL service. Exit code: $LASTEXITCODE"
+            throw "MySQL service installation failed with exit code: $LASTEXITCODE"
         } else {
             Log-Message "MySQL service installed successfully"
             # Set service to auto-start
@@ -264,6 +327,9 @@ try {
         }
         
         Pop-Location
+    } catch {
+            Log-Message "ERROR: Failed during MySQL service installation - $($_.Exception.Message)"
+        }
     }
 
     if ($InstallTomcatService) {
@@ -325,7 +391,6 @@ try {
                 Log-Message "ERROR: Failed to add performance options to service.bat - $($_.Exception.Message)"
             }
         }
-
 
         # Wait to ensure the service.bat is configured.
         Write-Host "Waiting..."

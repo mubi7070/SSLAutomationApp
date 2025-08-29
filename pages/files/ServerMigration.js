@@ -35,6 +35,9 @@ export default function ServerMigration() {
   const [tomcatDependency, setTomcatDependency] = useState(false);
   const [tomcatInitialMemory, setTomcatInitialMemory] = useState('1024');
   const [tomcatMaxMemory, setTomcatMaxMemory] = useState('2048');
+  const [mysqlRamAllocation, setMysqlRamAllocation] = useState(false);
+  const [mysqlRamSize, setMysqlRamSize] = useState('4096');
+
   const [enablePerformanceOptions, setEnablePerformanceOptions] = useState(false);
   const [performanceOptions, setPerformanceOptions] = useState([
     '-Djava.awt.headless=false',
@@ -189,7 +192,9 @@ export default function ServerMigration() {
           tomcatMaxMemory,
           tomcatServiceName,
           enablePerformanceOptions,
-          performanceOptions: performanceOptions.join(';')
+          performanceOptions: performanceOptions.join(';'),
+          mysqlRamAllocation,
+          mysqlRamSize
         }),
       });
 
@@ -625,6 +630,7 @@ export default function ServerMigration() {
                   Install MySQL Service
                 </label>
                 {installMySQL && (
+                  <>
                   <div className={styles.optionInput}>
                     <label>MySQL Service Name:</label>
                     <input
@@ -635,8 +641,40 @@ export default function ServerMigration() {
                       style={{ width: '93%', padding: '7px', margin: '10px 0' }}
                     />
                   </div>
+
+                  {/* MySQL RAM Allocation Checkbox */}
+                  <div className={styles.optionInput}>
+                    <label className={styles.optionLabel}>
+                      <input 
+                        type="checkbox" 
+                        checked={mysqlRamAllocation} 
+                        onChange={(e) => setMysqlRamAllocation(e.target.checked)} 
+                        className={styles.optionCheckbox}
+                      />
+                      MySQL RAM Allocation
+                    </label>
+                  </div>
+
+                  {/* MySQL RAM Input (only shown when MySQL RAM Allocation is checked) */}
+                  {mysqlRamAllocation && (
+                    <div className={styles.optionInput}>
+                      <label>MySQL RAM Size (MB):</label>
+                      <input
+                        type="number"
+                        value={mysqlRamSize}
+                        onChange={(e) => setMysqlRamSize(e.target.value)}
+                        className={styles.styledselecttempmargin}
+                        style={{ width: '93%', padding: '7px', margin: '10px 0' }}
+                      />
+                      <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
+                        The app will set the Data Drive automatically based on the MySQL path.
+                      </p>
+                    </div>
+                  )}
+                  </>
                 )}
               </div>
+              
 
               <div className={styles.optionGroup}>
               <label className={styles.optionLabel}>
@@ -672,7 +710,7 @@ export default function ServerMigration() {
                         onChange={(e) => setRamAllocation(e.target.checked)} 
                         className={styles.optionCheckbox}
                       />
-                      Configure RAM Allocation
+                      Tomcat RAM Allocation
                     </label>
                   </div>
                   

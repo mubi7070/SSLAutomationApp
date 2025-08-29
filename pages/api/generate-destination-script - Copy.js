@@ -17,7 +17,11 @@ export default async function handler(req, res) {
     tomcatDependency,
     tomcatInitialMemory,
     tomcatMaxMemory,
-    tomcatServiceName
+    tomcatServiceName,
+    enablePerformanceOptions,
+    performanceOptions,
+    mysqlRamAllocation,
+    mysqlRamSize
     } = req.body;
 
   // Validate input parameters
@@ -39,7 +43,11 @@ export default async function handler(req, res) {
     tomcatDependency: ${tomcatDependency},
     tomcatInitialMemory: ${tomcatInitialMemory},
     tomcatMaxMemory: ${tomcatMaxMemory},
-    tomcatServiceName: ${tomcatServiceName}
+    tomcatServiceName: ${tomcatServiceName},
+    enablePerformanceOptions: ${enablePerformanceOptions},
+    performanceOptions: ${performanceOptions},
+    mysqlRamAllocation: ${mysqlRamAllocation},
+    mysqlRamSize: ${mysqlRamSize}
     `);
   
   
@@ -59,9 +67,10 @@ export default async function handler(req, res) {
 param(
     [string]$DriveLetter = "${drive}",
     [string]$ClientName = "${clientName}",
-    [string]$TomcatPath = "${tomcatPath.replace(/\\/g, '\\\\')}",
-    [string]$JavaHome = "${jdkPath.replace(/\\/g, '\\\\')}",
-    [string]$MySQLPath = "${mysqlPath.replace(/\\/g, '\\\\')}",
+    [string]$TomcatPath = "${tomcatPath}",
+    [string]$JavaHome = "${jdkPath}",
+    [string]$JRE_HOME = "${jdkPath}\\jre",
+    [string]$MySQLPath = "${mysqlPath}",
     [bool]$InstallMySQLService = $${installMySQL},
     [bool]$InstallTomcatService = $${installTomcat},
     [bool]$CopyFonts = $${copyFonts},
@@ -70,7 +79,11 @@ param(
     [string]$TomcatServiceName = "${tomcatServiceName || 'Tomcat9'}",
     [bool]$TomcatDependency = $${tomcatDependency},
     [string]$TomcatInitialMemory = "${tomcatInitialMemory}",
-    [string]$TomcatMaxMemory = "${tomcatMaxMemory}"
+    [string]$TomcatMaxMemory = "${tomcatMaxMemory}",
+    [bool]$EnablePerformanceOptions = $${enablePerformanceOptions},
+    [string]$PerformanceOptions = "${performanceOptions}",
+    [bool]$MySQLRamAllocation = $${mysqlRamAllocation},
+    [string]$MySQLRamSize = "${mysqlRamSize}"
 )
 
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -233,7 +246,50 @@ try {
 
     # Service installation and configuration
     if ($InstallMySQLService) {
+        $myIniPath = Join-Path -Path $MySQLPath -ChildPath "my.ini"
+
+        try {
+            try {
+                if (Test-Path $myIniPath) {
+                    $content = Get-Content $myIniPath -Raw
+
+                    if ($MySQLRamAllocation -and $MySQLRamSize) {
+                        # Update innodb_buffer_pool_size (all instances)
+                        $content = $content -replace '(?mi)(innodb_buffer_pool_size\s*=\s*)(\d+[MmKk]?)', "\`${1}${mysqlRamSize}M"
+                    
+                        Log-Message "Updated my.ini with RAM setting: ${mysqlRamSize}M"
+                    }
+
+                    # Normalize MySQL path (remove trailing backslash if present)
+                    $normalizedMySQLPath = $MySQLPath.TrimEnd('\')
+
+                    # Update basedir - simpler approach
+                    $content = $content -replace '(?mi)(basedir\s*=\s*")([^"]*)(")', "\`${1}$normalizedMySQLPath\\\`${3}"
+            
+                    # Update datadir - simpler approach
+                    $content = $content -replace '(?mi)(datadir\s*=\s*")([^"]*)(")', "\`${1}$normalizedMySQLPath\\Data\`${3}"
+
+                    # Write the updated content back to my.ini
+                    Set-Content -Path $myIniPath -Value $content
+                    Log-Message "Updated my.ini with MySQL path settings"
+                    
+                    # Wait to ensure the my.ini is configured
+                    Write-Host "Waiting for my.ini configuration..."
+                    Start-Sleep -Seconds 3
+            } else {
+                Log-Message "WARNING: my.ini not found at $myIniPath"
+            }   
+        } catch {
+            Log-Message "ERROR: Failed updating my.ini - $($_.Exception.Message)"
+        }
+
         Log-Message "Installing MySQL service: $MySQLServiceName"
+
+        # Check if MySQL bin directory exists
+        $MySQLBinPath = Join-Path -Path $MySQLPath -ChildPath "bin"
+        if (-not (Test-Path $MySQLBinPath)) {
+            throw "MySQL bin directory not found: $MySQLBinPath"
+        }
 
         Push-Location "$MySQLPath\\bin"
         
@@ -243,12 +299,15 @@ try {
         $mysqldExe = ".\\mysqld.exe"
         if (-not (Test-Path $mysqldExe)) {
             Log-Message "CRITICAL ERROR: mysqld.exe not found at $(Get-Location)"
+            throw "mysqld.exe not found at $(Get-Location)"
         } else {
+            # Install MySQL service
             & $mysqldExe "-install" $MySQLServiceName
         }
 
         if ($LASTEXITCODE -ne 0) {
             Log-Message "ERROR: Failed to install MySQL service. Exit code: $LASTEXITCODE"
+            throw "MySQL service installation failed with exit code: $LASTEXITCODE"
         } else {
             Log-Message "MySQL service installed successfully"
             # Set service to auto-start
@@ -257,32 +316,84 @@ try {
         }
         
         Pop-Location
+    } catch {
+            Log-Message "ERROR: Failed during MySQL service installation - $($_.Exception.Message)"
+        }
     }
 
     if ($InstallTomcatService) {
     try {
         $TomcatBinPath = Join-Path -Path $TomcatPath -ChildPath "bin"
+        $serviceBatPath = Join-Path -Path $TomcatBinPath -ChildPath "service.bat"
+        $serviceBatBackup = $null
+        $ramUpdated = $false
+        $performanceOptionsUpdated = $false
 
         # Validate paths
         if (-Not (Test-Path $TomcatBinPath)) {
             throw "Tomcat bin path not found: $TomcatBinPath"
         }
-        if (-Not (Test-Path "$TomcatBinPath\\service.bat")) {
+        if (-Not (Test-Path $serviceBatPath)) {
             throw "service.bat not found in: $TomcatBinPath"
         }
         if (-Not (Test-Path $JavaHome)) {
             throw "Java Home not found: $JavaHome"
         }
 
+        # Backup original service.bat content
+        $serviceBatBackup = Get-Content $serviceBatPath -Raw
+
+        
+        if ($RamAllocation) {
+            try {
+                # Update service.bat with memory settings
+
+                if (Test-Path $serviceBatPath) {
+                    $content = Get-Content $serviceBatPath -Raw
+                    
+                    # Update JVM memory settings
+                    $content = $content -replace '(?i)--JvmMs\\s+"%JvmMs%"', "--JvmMs \`"${tomcatInitialMemory}\`""
+                    $content = $content -replace '(?i)--JvmMx\\s+"%JvmMx%"', "--JvmMx \`"${tomcatMaxMemory}\`""
+                    
+                    Set-Content -Path $serviceBatPath -Value $content
+                    $ramUpdated = $true
+                    Log-Message "Updated service.bat with memory settings: Initial=${tomcatInitialMemory}MB, Max=${tomcatMaxMemory}MB"
+                } else {
+                    Log-Message "WARNING: service.bat not found at $serviceBatPath"
+                }
+            } catch {
+                Log-Message "ERROR: Failed to update service.bat with memory settings - $($_.Exception.Message)"
+            }
+        }
+
+        if ($EnablePerformanceOptions -and $PerformanceOptions) {
+            try {
+                $content = Get-Content $serviceBatPath -Raw
+                
+                # Replace %JvmArgs% with performance options
+                $content = $content -replace '%JvmArgs%', "${performanceOptions}"
+                
+                Set-Content -Path $serviceBatPath -Value $content
+                $performanceOptionsUpdated = $true
+                Log-Message "Added performance options to service.bat"
+            } catch {
+                Log-Message "ERROR: Failed to add performance options to service.bat - $($_.Exception.Message)"
+            }
+        }
+
+        # Wait to ensure the service.bat is configured.
+        Write-Host "Waiting..."
+        Start-Sleep -Seconds 5
+
         Log-Message "Setting up environment variables and installing the service."
         
         # Set environment variables required for service installation
         $env:CATALINA_HOME = $TomcatPath
         $env:JAVA_HOME = $JavaHome
-        $env:JRE_HOME = "$JavaHome\\jre"
-        
+        $env:JRE_HOME = "$JRE_HOME"
+
         Log-Message "Installing Tomcat service: ${tomcatServiceName}"
-        
+
         Push-Location $TomcatBinPath
 
         # Install service
@@ -300,11 +411,7 @@ try {
             throw "Tomcat service '${tomcatServiceName}' could not be found after installation."
         }
         
-            # Configure memory allocation if enabled
-            if ($RamAllocation) {
-                $env:JAVA_OPTS = "-Xms${tomcatInitialMemory}m -Xmx${tomcatMaxMemory}m"
-                Log-Message "Configured Tomcat memory: Initial=${tomcatInitialMemory}MB, Max=${tomcatMaxMemory}MB"
-            }
+            
             
             # Configure service recovery options
             sc.exe failure ${tomcatServiceName} reset= 86400 actions= restart/60000/restart/60000// | Out-Null
@@ -333,6 +440,13 @@ try {
             # Set service to auto-start
             sc.exe config ${tomcatServiceName} start= auto | Out-Null
             Log-Message "Configured Tomcat service to start automatically"
+
+            # Revert changes to service.bat if they were made
+            if ($ramUpdated -or $performanceOptionsUpdated) {
+                Set-Content -Path $serviceBatPath -Value $serviceBatBackup
+                Log-Message "Reverted service.bat to original state"
+            }
+
         } catch {
         Log-Message "An error occurred during Tomcat service installation."
         }   

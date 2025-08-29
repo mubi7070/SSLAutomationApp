@@ -2086,6 +2086,11 @@ button.navLink {
   margin-top: 8px;
 }
 
+.optionInput p {
+  margin: 5px 0;
+  font-style: italic;
+}
+
 .optionCheckbox {
   width: 18px;
   height: 18px;
