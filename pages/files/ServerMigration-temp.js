@@ -22,8 +22,33 @@ export default function ServerMigration() {
   const [excludePaths, setExcludePaths] = useState([]);
   const [newExcludePath, setNewExcludePath] = useState('');
   const [generatedPassword, setGeneratedPassword] = useState('');
-  const [downloadMethod, setDownloadMethod] = useState('direct');
   const [copied, setCopied] = useState(false);
+  const [pathMode, setPathMode] = useState('include'); // 'include' or 'exclude'
+  const [includePaths, setIncludePaths] = useState([]);
+  const [newIncludePath, setNewIncludePath] = useState('');
+  const [installMySQL, setInstallMySQL] = useState(false);
+  const [installTomcat, setInstallTomcat] = useState(false);
+  const [copyFonts, setCopyFonts] = useState(false);
+  const [ramAllocation, setRamAllocation] = useState(false);
+  const [mysqlServiceName, setMysqlServiceName] = useState('MySQL8');
+  const [tomcatServiceName, setTomcatServiceName] = useState('Tomcat9');
+  const [tomcatDependency, setTomcatDependency] = useState(false);
+  const [tomcatInitialMemory, setTomcatInitialMemory] = useState('1024');
+  const [tomcatMaxMemory, setTomcatMaxMemory] = useState('2048');
+  const [mysqlRamAllocation, setMysqlRamAllocation] = useState(false);
+  const [mysqlRamSize, setMysqlRamSize] = useState('4096');
+
+  const [enablePerformanceOptions, setEnablePerformanceOptions] = useState(false);
+  const [performanceOptions, setPerformanceOptions] = useState([
+    '-Djava.awt.headless=false',
+    '-Dfile.encoding=UTF8',
+    '-XX:MaxPermSize=1024m',
+    '-XX:ReservedCodeCacheSize=128m',
+    '-XX:+UseCodeCacheFlushing',
+    '-XX:-CreateMinidumpOnCrash',
+    '-Xverify:none'
+  ]);
+  const [newPerformanceOption, setNewPerformanceOption] = useState('');
 
   const driveLetters = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
@@ -36,6 +61,32 @@ export default function ServerMigration() {
       }, 5000);
     }
   }, [popupMessage]);
+
+  const addIncludePath = () => {
+    if (newIncludePath.trim()) {
+      setIncludePaths([...includePaths, newIncludePath.trim()]);
+      setNewIncludePath('');
+    }
+  };
+
+  const removeIncludePath = (index) => {
+    const updatedPaths = [...includePaths];
+    updatedPaths.splice(index, 1);
+    setIncludePaths(updatedPaths);
+  };
+
+  const addPerformanceOption = () => {
+    if (newPerformanceOption.trim()) {
+      setPerformanceOptions([...performanceOptions, newPerformanceOption.trim()]);
+      setNewPerformanceOption('');
+    }
+  };
+
+  const removePerformanceOption = (index) => {
+    const updatedOptions = [...performanceOptions];
+    updatedOptions.splice(index, 1);
+    setPerformanceOptions(updatedOptions);
+  };
 
   const handleCopy = () => {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -60,6 +111,11 @@ export default function ServerMigration() {
       setPopupMessage('Please enter client name');
       return;
     }
+    // Validate include paths in include mode
+    if (pathMode === 'include' && includePaths.length === 0) {
+      setPopupMessage('Please add at least one path to include');
+      return;
+    }
     
     setLoadingSource(true);
     try {
@@ -69,7 +125,9 @@ export default function ServerMigration() {
         body: JSON.stringify({ 
           drive: sourceDrive, 
           clientName,
-          excludePaths
+          excludePaths,
+          includePaths: pathMode === 'include' ? includePaths : [],
+          mode: pathMode
         }),
       });
 
@@ -123,7 +181,20 @@ export default function ServerMigration() {
           clientName,
           tomcatPath,
           jdkPath,
-          mysqlPath
+          mysqlPath,
+          installMySQL,
+          installTomcat,
+          copyFonts,
+          ramAllocation,
+          mysqlServiceName,
+          tomcatDependency,
+          tomcatInitialMemory,
+          tomcatMaxMemory,
+          tomcatServiceName,
+          enablePerformanceOptions,
+          performanceOptions: performanceOptions.join(';'),
+          mysqlRamAllocation,
+          mysqlRamSize
         }),
       });
 
@@ -189,18 +260,43 @@ export default function ServerMigration() {
 
             <div className={styles.licenseDescription} >
               <p style={{ color: 'red' }}>
-                <strong>Important:</strong> Both servers must have WinRAR installed. 
-                <a href="https://www.rarlab.com/download.htm" target="_blank" rel="noopener noreferrer">
-                  {" "} Download WinRAR
+                <strong>Important:</strong> Both servers must have <strong>WinRAR</strong> and <strong>NodeJS</strong> installed. 
+                <br />
+                <a 
+                href="https://www.rarlab.com/download.htm" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className={styles.winrarBtn}
+                >
+                  Download WinRAR
+                </a>
+
+                <a 
+                href="https://nodejs.org/en/download" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className={styles.nodeBtn}
+                >
+                  Download NodeJS
                 </a>
               </p>
               <p>
-                <strong>Note:</strong> The script will skip locked files during archiving.
+                <strong>Note:</strong> The script will automatically skip any locked files during archiving. Please ensure that the generated PowerShell script is not saved on the same drive (e.g., D, E, etc.).
               </p>
               <p style={{ fontSize: '1.2rem', color: '#666' }}>
-                  <strong>For folders:</strong> avoid trailing backslash (e.g. D:\data)<br/>
-                  <strong>For faster execution:</strong> Empty the Recycle Bin before running the source script.
+                  <strong>For Faster Execution:</strong> Empty the Recycle Bin before running the source script.
               </p>
+
+              <p>
+                <strong>Steps to run the script:</strong>
+              </p>
+              <ul>
+                <li>Open PowerShell as Administrator.</li>
+                <li>Go to the script path.</li>
+                <li>
+                  Run the script (e.g: <em>.\migration-source-ClientName.ps1</em>)
+                </li>
+              </ul>
             </div>
 
             {/* Left Column - Source Server */}
@@ -237,17 +333,112 @@ export default function ServerMigration() {
                     />
                   </label>
                 </div>
-
+                
+                {/* Radio Buttons */}
                 <div className={styles.licenseDescription}>
                   <label>
-                    Paths to Exclude:
+                    Archive Mode:
+                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                      <label className={styles.radioLabel}>
+                        <input
+                          type="radio"
+                          value="include"
+                          checked={pathMode === 'include'}
+                          onChange={() => setPathMode('include')}
+                          className={styles.radioInput}
+                        />
+                        Include Specific Paths
+                        <Tooltip text="Select the paths you wish to migrate, and the system will archive only those items while applying the defined exclusions.">
+                          <Link href="/files/help" legacyBehavior>
+                            <a className={styles.tooltip}>
+                              <HelpCircle size={20} />
+                            </a>
+                          </Link>
+                        </Tooltip>
+                      </label>
+                      <label className={styles.radioLabel}>
+                        <input
+                          type="radio"
+                          value="exclude"
+                          checked={pathMode === 'exclude'}
+                          onChange={() => setPathMode('exclude')}
+                          className={styles.radioInput}
+                        />
+                        Exclude Specific Paths
+                        <Tooltip text="Select the paths you wish to exclude, and the system will archive all remaining items in the drive.">
+                          <Link href="/files/help" legacyBehavior>
+                            <a className={styles.tooltip}>
+                              <HelpCircle size={20} />
+                            </a>
+                          </Link>
+                        </Tooltip>
+                      </label>
+                    </div>
+                  </label>
+                </div>
+                {/* Include Paths Section */}
+                {pathMode === 'include' && (
+                  <div className={styles.licenseDescription}>
+                    <label>
+                      Paths to Include:
+                      <div style={{ margin: '10px 0' }}>
+                        <div className={styles.pathInputContainer}>
+                          <input
+                            type="text"
+                            value={newIncludePath}
+                            onChange={(e) => setNewIncludePath(e.target.value)}
+                            placeholder="Add path to include (e.g., D:\data)"
+                            className={styles.styledselecttempmargin}
+                            style={{ 
+                              width: 'calc(100% - 100px)', 
+                              padding: '7px', 
+                              marginRight: '10px'
+                            }}
+                          />
+                          <button 
+                            onClick={addIncludePath}
+                            className={styles.addPathButton}
+                          >
+                            Add Path
+                          </button>
+                        </div>
+                        
+                        <div className={styles.pathList}>
+                          {includePaths.map((path, index) => (
+                            <div key={index} className={styles.pathItem}>
+                              <span>{path}</span>
+                              <button 
+                                onClick={() => removeIncludePath(index)}
+                                className={styles.removePathButton}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </label>
+                    <p style={{ fontSize: '0.9rem', color: '#666' }}>
+                      <strong>Note:</strong> Only the above paths will be included in the archive.
+                    </p>
+                  </div>
+                )}
+
+                {/* Exclude Paths Section */}
+                <div className={styles.licenseDescription}>
+                  <label>
+                    {pathMode === 'include' 
+                      ? 'Paths to Exclude (within included paths):' 
+                      : 'Paths to Exclude:'}
                     <div style={{ margin: '10px 0' }}>
                       <div className={styles.pathInputContainer}>
                         <input
                           type="text"
                           value={newExcludePath}
                           onChange={(e) => setNewExcludePath(e.target.value)}
-                          placeholder="Add path to exclude (e.g., D:\data\ use trailing \ for folders)"
+                          placeholder={pathMode === 'include' 
+                            ? "Add path to exclude from included paths" 
+                            : "Add path to exclude (e.g., D:\\data)"}
                           className={styles.styledselecttempmargin}
                           style={{ 
                             width: 'calc(100% - 100px)', 
@@ -279,9 +470,13 @@ export default function ServerMigration() {
                     </div>
                   </label>
                   <p style={{ fontSize: '0.9rem', color: '#666' }}>
-                    <strong>Exclusions:</strong> The above paths will be excluded automatically.
+                    <strong>Exclusions:</strong> {pathMode === 'include' 
+                      ? 'The above paths will be excluded from the included paths' 
+                      : 'The above paths will be excluded automatically'}
                   </p>
                 </div>
+
+                
                 
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
                   <button
@@ -307,7 +502,7 @@ export default function ServerMigration() {
                     <code>{generatedPassword}</code>
                     <button 
                       onClick={handleCopy}
-                      className={styles.copyButton}
+                      className={styles.handlecopy}
                       style={{
                         color: copied ? "green" : "black",
                         display: "flex",
@@ -421,6 +616,219 @@ export default function ServerMigration() {
                     />
                   </label>
                 </div>
+
+                <h3 className={styles.additionalOptionsHeader}>Additional Options</h3>
+
+                <div className={styles.optionGroup}>
+                <label className={styles.optionLabel}>
+                  <input 
+                    type="checkbox" 
+                    checked={installMySQL} 
+                    onChange={(e) => setInstallMySQL(e.target.checked)} 
+                    className={styles.optionCheckbox}
+                  />
+                  Install MySQL Service
+                </label>
+                {installMySQL && (
+                  <>
+                  <div className={styles.optionInput}>
+                    <label>MySQL Service Name:</label>
+                    <input
+                      type="text"
+                      value={mysqlServiceName}
+                      onChange={(e) => setMysqlServiceName(e.target.value)}
+                      className={styles.styledselecttempmargin}
+                      style={{ width: '93%', padding: '7px', margin: '10px 0' }}
+                    />
+                  </div>
+
+                  {/* MySQL RAM Allocation Checkbox */}
+                  <div className={styles.optionInput}>
+                    <label className={styles.optionLabel}>
+                      <input 
+                        type="checkbox" 
+                        checked={mysqlRamAllocation} 
+                        onChange={(e) => setMysqlRamAllocation(e.target.checked)} 
+                        className={styles.optionCheckbox}
+                      />
+                      MySQL RAM Allocation
+                    </label>
+                  </div>
+
+                  {/* MySQL RAM Input (only shown when MySQL RAM Allocation is checked) */}
+                  {mysqlRamAllocation && (
+                    <div className={styles.optionInput}>
+                      <label>MySQL RAM Size (MB):</label>
+                      <input
+                        type="number"
+                        value={mysqlRamSize}
+                        onChange={(e) => setMysqlRamSize(e.target.value)}
+                        className={styles.styledselecttempmargin}
+                        style={{ width: '93%', padding: '7px', margin: '10px 0' }}
+                      />
+                      <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
+                        The app will set the Data Drive automatically based on the MySQL path.
+                      </p>
+                    </div>
+                  )}
+                  </>
+                )}
+              </div>
+              
+
+              <div className={styles.optionGroup}>
+              <label className={styles.optionLabel}>
+                <input 
+                  type="checkbox" 
+                  checked={installTomcat} 
+                  onChange={(e) => setInstallTomcat(e.target.checked)} 
+                  className={styles.optionCheckbox}
+                />
+                Install Tomcat Service
+              </label>
+              {installTomcat && (
+                <>
+                  {/* Add Tomcat Service Name Input */}
+                  <div className={styles.optionInput}>
+                    <label>Tomcat Service Name:</label>
+                    <input
+                      type="text"
+                      value={tomcatServiceName}
+                      onChange={(e) => setTomcatServiceName(e.target.value)}
+                      className={styles.styledselecttempmargin}
+                      style={{ width: '93%', padding: '7px', margin: '10px 0' }}
+                      placeholder="Tomcat9"
+                    />
+                  </div>
+                  
+                  {/* RAM Allocation Checkbox */}
+                  <div className={styles.optionInput}>
+                    <label className={styles.optionLabel}>
+                      <input 
+                        type="checkbox" 
+                        checked={ramAllocation} 
+                        onChange={(e) => setRamAllocation(e.target.checked)} 
+                        className={styles.optionCheckbox}
+                      />
+                      Tomcat RAM Allocation
+                    </label>
+                  </div>
+                  
+                  
+                  {/* Memory Inputs (only shown when RAM Allocation is checked) */}
+                  {ramAllocation && (
+                    <>
+                      <div className={styles.optionInput}>
+                        <label>Initial Memory (MB):</label>
+                        <input
+                          type="number"
+                          value={tomcatInitialMemory}
+                          onChange={(e) => setTomcatInitialMemory(e.target.value)}
+                          className={styles.styledselecttempmargin}
+                          style={{ width: '93%', padding: '7px', margin: '10px 0' }}
+                        />
+                      </div>
+                      <div className={styles.optionInput}>
+                        <label>Max Memory (MB):</label>
+                        <input
+                          type="number"
+                          value={tomcatMaxMemory}
+                          onChange={(e) => setTomcatMaxMemory(e.target.value)}
+                          className={styles.styledselecttempmargin}
+                          style={{ width: '93%', padding: '7px', margin: '10px 0' }}
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {/* Performance Options Section */}
+
+                  <div className={styles.optionInput}>
+                  <label className={styles.optionLabel}>
+                    <input 
+                      type="checkbox" 
+                      checked={enablePerformanceOptions} 
+                      onChange={(e) => setEnablePerformanceOptions(e.target.checked)} 
+                      className={styles.optionCheckbox}
+                    />
+                    Enable Performance Options
+                  </label>
+                  </div>
+
+                  {enablePerformanceOptions && (
+                    <div className={styles.optionInput}>
+                      <label>Performance Options:</label>
+                      <div className={styles.performanceOptionsList}>
+                        {performanceOptions.map((option, index) => (
+                          <div key={index} className={styles.performanceOptionItem}>
+                            <span>{option}</span>
+                            <button 
+                              onClick={() => removePerformanceOption(index)}
+                              className={styles.removePathButton}
+                            >
+                              ×
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className={styles.pathInputContainer}>
+                        <input
+                          type="text"
+                          value={newPerformanceOption}
+                          onChange={(e) => setNewPerformanceOption(e.target.value)}
+                          placeholder="Add new performance option (e.g., -Dsome.option=value)"
+                          className={styles.styledselecttempmargin}
+                          style={{ 
+                            width: 'calc(100% - 100px)', 
+                            padding: '7px', 
+                            marginRight: '10px',
+                            marginTop: '10px'
+                          }}
+                        />
+                        <button 
+                          onClick={addPerformanceOption}
+                          className={styles.addPathButton}
+                          style={{ marginTop: '10px' }}
+                        >
+                          Add Option
+                        </button>
+                      </div>
+                      <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
+                        These options will be added to the Java Options in Tomcat Service
+                      </p>
+                    </div>
+                  )}
+                
+                  
+                  {/* Dependency Checkbox */}
+                  <div className={styles.optionInput}>
+                    <label className={styles.optionLabel}>
+                      <input 
+                        type="checkbox" 
+                        checked={tomcatDependency} 
+                        onChange={(e) => setTomcatDependency(e.target.checked)} 
+                        className={styles.optionCheckbox}
+                      />
+                      Tomcat Dependency on MySQL
+                    </label>
+                  </div>
+                </>
+              )}
+            </div>
+
+
+              <div className={styles.optionGroup}>
+                <label className={styles.optionLabel}>
+                  <input 
+                    type="checkbox" 
+                    checked={copyFonts} 
+                    onChange={(e) => setCopyFonts(e.target.checked)} 
+                    className={styles.optionCheckbox}
+                  />
+                  Copy Fonts
+                </label>
+              </div>
+
                 
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
                   <button
@@ -492,4 +900,3 @@ export default function ServerMigration() {
     </main>
   );
 }
-

@@ -458,16 +458,68 @@ try {
                 Log-Message "Reverted service.bat to original state"
             }
 
+            if ($CopyFonts) {
+                Log-Message "Copying fonts from Tomcat installation..."
+                $fontExtensions = @('.fon', '.ttf', '.TTF', '.otf')
+                $fontDirectories = @(
+                    "webapps\\northstar\\stencils\\fonts",
+                    "webapps\\northstar\\stencils\\fonts\\appfontfamily", 
+                    "webapps\\northstar\\stencils\\fonts\\pdftemplates"
+                )
+                
+                $fontsInstalled = 0
+    
+                foreach ($fontDir in $fontDirectories) {
+                    $fullFontPath = Join-Path -Path $TomcatPath -ChildPath $fontDir
+                    
+                    if (Test-Path $fullFontPath) {
+                        Log-Message "Searching for font files in: $fullFontPath"
+                        
+                        # Get all font files with the specified extensions
+                        $fontFiles = Get-ChildItem -Path $fullFontPath -Recurse | Where-Object {
+                            $fontExtensions -contains $_.Extension
+                        }
+                        
+                        foreach ($fontFile in $fontFiles) {
+                            try {
+                                $fontName = $fontFile.Name
+                                $destinationPath = Join-Path -Path $env:windir -ChildPath "Fonts\\$fontName"
+                                
+                                # Copy the font file to Windows Fonts directory
+                                Copy-Item -Path $fontFile.FullName -Destination $destinationPath -Force
+                                
+                                # Register the font in the registry
+                                $regPath = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts"
+                                $regName = $fontName.Replace($fontFile.Extension, "") + " (TrueType)"
+                                
+                                New-ItemProperty -Path $regPath -Name $regName -Value $fontName -PropertyType String -Force | Out-Null
+                                
+                                $fontsInstalled++
+                                Log-Message "Installed font: $fontName"
+                            } catch {
+                                Log-Message "ERROR: Failed to install font $($fontFile.Name) - $($_.Exception.Message)"
+                            }
+                        }
+                    } else {
+                        Log-Message "Font directory not found: $fullFontPath"
+                    }
+                }
+                
+                if ($fontsInstalled -gt 0) {
+                    Log-Message "Successfully installed $fontsInstalled font(s)"
+                } else {
+                    Log-Message "No font files were found or installed"
+                }
+            }
         } catch {
         Log-Message "An error occurred during Tomcat service installation."
         }   
     }
 
-    if ($CopyFonts) {
-        # Placeholder for font copying functionality
-        # TODO: Implement font copying in the future
-        Log-Message "Font copying feature will be implemented in a future version"
-    }
+
+
+
+    
 
     Log-Message "===== MIGRATION COMPLETED SUCCESSFULLY ====="
     Log-Message "All data restored to drive ${drive}:\\"
