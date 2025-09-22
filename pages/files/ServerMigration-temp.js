@@ -165,12 +165,32 @@ export default function ServerMigration() {
       setPopupMessage('Please enter client name');
       return;
     }
-    
-    if (!tomcatPath || !jdkPath || !mysqlPath) {
-      setPopupMessage('Please provide all required paths');
+
+    if (installMySQL && (!mysqlPath || !mysqlServiceName)) {
+      setPopupMessage('Please provide MySQL path & service name');
+      return;
+    }
+
+    if (mysqlRamAllocation && !mysqlRamSize) {
+      setPopupMessage('Please provide MySQL RAM Size (MBs)');
       return;
     }
     
+    if (installTomcat && (!tomcatPath || !jdkPath)) {
+      setPopupMessage('Please provide Tomcat and JDK paths');
+      return;
+    }
+
+    if (installTomcat && !tomcatServiceName) {
+      setPopupMessage('Please provide Tomcat service name');
+      return;
+    }
+
+    if (ramAllocation && (!tomcatInitialMemory || !tomcatMaxMemory)) {
+      setPopupMessage('Please provide Tomcat Service Initial & Maximum Memory');
+      return;
+    }
+
     setLoadingDestination(true);
     try {
       const response = await fetch('/api/generate-destination-script', {
@@ -570,54 +590,8 @@ export default function ServerMigration() {
                   </label>
                 </div>
                 
-                
-                
-                <div className={styles.licenseDescription}>
-                  <label>
-                    Tomcat Path:
-                    <input
-                      type="text"
-                      placeholder="D:\Northstar\Tomcat9 ..."
-                      value={tomcatPath}
-                      onChange={(e) => setTomcatPath(e.target.value)}
-                      className={styles.styledselecttempmargin}
-                      style={{ width: '98%', padding: '7px', margin: '10px 0' }}
-                      required
-                    />
-                  </label>
-                </div>
-                
-                <div className={styles.licenseDescription}>
-                  <label>
-                    JDK Path:
-                    <input
-                      type="text"
-                      placeholder="D:\jdk1.8.0_181 ..."
-                      value={jdkPath}
-                      onChange={(e) => setJdkPath(e.target.value)}
-                      className={styles.styledselecttempmargin}
-                      style={{ width: '98%', padding: '7px', margin: '10px 0' }}
-                      required
-                    />
-                  </label>
-                </div>
-                
-                <div className={styles.licenseDescription}>
-                  <label>
-                    MySQL Path:
-                    <input
-                      type="text"
-                      placeholder="D:\MySQL8 ..."
-                      value={mysqlPath}
-                      onChange={(e) => setMysqlPath(e.target.value)}
-                      className={styles.styledselecttempmargin}
-                      style={{ width: '98%', padding: '7px', margin: '10px 0' }}
-                      required
-                    />
-                  </label>
-                </div>
 
-                <h3 className={styles.additionalOptionsHeader}>Additional Options</h3>
+                <h3 className={styles.additionalOptionsHeader}>Advanced Options</h3>
 
                 <div className={styles.optionGroup}>
                 <label className={styles.optionLabel}>
@@ -631,6 +605,19 @@ export default function ServerMigration() {
                 </label>
                 {installMySQL && (
                   <>
+                  <div className={styles.optionInput}>
+                    <label>
+                      MySQL Path:
+                      <input
+                        type="text"
+                        placeholder="D:\MySQL8 ..."
+                        value={mysqlPath}
+                        onChange={(e) => setMysqlPath(e.target.value)}
+                        className={styles.styledselecttempmargin}
+                        style={{ width: '98%', padding: '7px', margin: '10px 0' }}
+                      />
+                    </label>
+                  </div>
                   <div className={styles.optionInput}>
                     <label>MySQL Service Name:</label>
                     <input
@@ -689,6 +676,31 @@ export default function ServerMigration() {
               {installTomcat && (
                 <>
                   {/* Add Tomcat Service Name Input */}
+
+                  <div className={styles.optionInput}>
+                    <label>Tomcat Path:</label>
+                    <input
+                      type="text"
+                      placeholder="D:\Northstar\Tomcat9 ..."
+                      value={tomcatPath}
+                      onChange={(e) => setTomcatPath(e.target.value)}
+                      className={styles.styledselecttempmargin}
+                      style={{ width: '93%', padding: '7px', margin: '10px 0' }}
+                    />
+                  </div>
+                  
+                  <div className={styles.optionInput}>
+                    <label>JDK Path:</label>
+                    <input
+                      type="text"
+                      placeholder="D:\jdk1.8.0_181 ..."
+                      value={jdkPath}
+                      onChange={(e) => setJdkPath(e.target.value)}
+                      className={styles.styledselecttempmargin}
+                      style={{ width: '93%', padding: '7px', margin: '10px 0' }}
+                    />
+                  </div>
+
                   <div className={styles.optionInput}>
                     <label>Tomcat Service Name:</label>
                     <input
@@ -812,22 +824,24 @@ export default function ServerMigration() {
                       Tomcat Dependency on MySQL
                     </label>
                   </div>
+
+                  <div className={styles.optionInput}>
+                    <label className={styles.optionLabel}>
+                      <input 
+                        type="checkbox" 
+                        checked={copyFonts} 
+                        onChange={(e) => setCopyFonts(e.target.checked)} 
+                        className={styles.optionCheckbox}
+                      />
+                      Copy Fonts
+                    </label>
+                  </div>
                 </>
               )}
             </div>
 
 
-              <div className={styles.optionGroup}>
-                <label className={styles.optionLabel}>
-                  <input 
-                    type="checkbox" 
-                    checked={copyFonts} 
-                    onChange={(e) => setCopyFonts(e.target.checked)} 
-                    className={styles.optionCheckbox}
-                  />
-                  Copy Fonts
-                </label>
-              </div>
+              
 
                 
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>

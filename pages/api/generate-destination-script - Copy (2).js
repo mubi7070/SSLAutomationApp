@@ -25,7 +25,7 @@ export default async function handler(req, res) {
     } = req.body;
 
   // Validate input parameters
-  if (!drive || !clientName) {
+  if (!drive || !clientName || !tomcatPath || !jdkPath || !mysqlPath) {
     return res.status(400).json({ error: 'All fields are required' });
   }
 
@@ -458,13 +458,8 @@ try {
                 Log-Message "Reverted service.bat to original state"
             }
 
-
-
-
-
-
             if ($CopyFonts) {
-                Log-Message "Installing fonts from Tomcat installation..."
+                Log-Message "Copying fonts from Tomcat installation..."
                 $fontExtensions = @('.fon', '.ttf', '.TTF', '.otf')
                 $fontDirectories = @(
                     "webapps\\northstar\\stencils\\fonts",
@@ -473,8 +468,7 @@ try {
                 )
                 
                 $fontsInstalled = 0
-                $fontsFailed = 0
-
+    
                 foreach ($fontDir in $fontDirectories) {
                     $fullFontPath = Join-Path -Path $TomcatPath -ChildPath $fontDir
                     
@@ -491,31 +485,18 @@ try {
                                 $fontName = $fontFile.Name
                                 $destinationPath = Join-Path -Path $env:windir -ChildPath "Fonts\\$fontName"
                                 
-                                # Check if font already exists
-                                if (Test-Path $destinationPath) {
-                                    Log-Message "Font already exists: $fontName"
-                                    continue
-                                }
+                                # Copy the font file to Windows Fonts directory
+                                Copy-Item -Path $fontFile.FullName -Destination $destinationPath -Force
                                 
-                                # Use proper font installation method
-                                $shell = New-Object -ComObject Shell.Application
-                                $fontsFolder = $shell.Namespace(0x14)  # 0x14 is the Fonts folder
+                                # Register the font in the registry
+                                $regPath = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts"
+                                $regName = $fontName.Replace($fontFile.Extension, "") + " (TrueType)"
                                 
-                                # Copy font to Fonts directory using Shell API
-                                $fontsFolder.CopyHere($fontFile.FullName, 0x14)  # 0x14 = Yes to All
+                                New-ItemProperty -Path $regPath -Name $regName -Value $fontName -PropertyType String -Force | Out-Null
                                 
-                                # Verify installation
-                                Start-Sleep -Seconds 2  # Wait for font to be installed
-                                
-                                if (Test-Path $destinationPath) {
-                                    $fontsInstalled++
-                                    Log-Message "Successfully installed font: $fontName"
-                                } else {
-                                    $fontsFailed++
-                                    Log-Message "WARNING: Font may not have installed correctly: $fontName"
-                                }
+                                $fontsInstalled++
+                                Log-Message "Installed font: $fontName"
                             } catch {
-                                $fontsFailed++
                                 Log-Message "ERROR: Failed to install font $($fontFile.Name) - $($_.Exception.Message)"
                             }
                         }
@@ -524,27 +505,12 @@ try {
                     }
                 }
                 
-                # Provide accurate summary
                 if ($fontsInstalled -gt 0) {
                     Log-Message "Successfully installed $fontsInstalled font(s)"
-                }
-                if ($fontsFailed -gt 0) {
-                    Log-Message "Failed to install $fontsFailed font(s)"
-                }
-                if ($fontsInstalled -eq 0 -and $fontsFailed -eq 0) {
+                } else {
                     Log-Message "No font files were found or installed"
                 }
             }
-
-
-
-
-
-
-
-
-
-
         } catch {
         Log-Message "An error occurred during Tomcat service installation."
         }   

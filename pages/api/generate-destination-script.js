@@ -21,11 +21,13 @@ export default async function handler(req, res) {
     enablePerformanceOptions,
     performanceOptions,
     mysqlRamAllocation,
-    mysqlRamSize
+    mysqlRamSize,
+    unarchiveOption,
+    unarchivePath
     } = req.body;
 
   // Validate input parameters
-  if (!drive || !clientName || !tomcatPath || !jdkPath || !mysqlPath) {
+  if (!drive || !clientName) {
     return res.status(400).json({ error: 'All fields are required' });
   }
 
@@ -47,7 +49,9 @@ export default async function handler(req, res) {
     enablePerformanceOptions: ${enablePerformanceOptions},
     performanceOptions: ${performanceOptions},
     mysqlRamAllocation: ${mysqlRamAllocation},
-    mysqlRamSize: ${mysqlRamSize}
+    mysqlRamSize: ${mysqlRamSize},
+    unarchiveOption: ${unarchiveOption},
+    unarchivePath: ${unarchivePath}
     `);
   
   
@@ -83,7 +87,10 @@ param(
     [bool]$EnablePerformanceOptions = $${enablePerformanceOptions},
     [string]$PerformanceOptions = "${performanceOptions}",
     [bool]$MySQLRamAllocation = $${mysqlRamAllocation},
-    [string]$MySQLRamSize = "${mysqlRamSize}"
+    [string]$MySQLRamSize = "${mysqlRamSize}",
+    [string]$UnarchiveOption = "${unarchiveOption}",
+    [string]$UnarchivePath = "${unarchivePath}"
+    
 )
 
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -231,8 +238,23 @@ try {
     Log-Message "Archive downloaded ($sizeMB MB). Path: $ArchivePath"
 
     # Extract RAR file
-    Log-Message "Extracting archive to drive root..."
-    $extractProcess = Start-Process -FilePath $WinRARPath -ArgumentList "x", "-ibck", "-y", "\`"$ArchivePath\`"", "\`"${drive}:\\\`"" -Wait -NoNewWindow -PassThru
+    Log-Message "Extracting archive..."
+
+    # Determine extraction path based on user selection
+    if ($UnarchiveOption -eq 'specificPath' -and $UnarchivePath) {
+        Log-Message "The UnArchive Path: $UnarchivePath"
+        # Create the directory if it doesn't exist
+        if (-not (Test-Path $UnarchivePath)) {
+            New-Item -ItemType Directory -Path $UnarchivePath -Force | Out-Null
+            Log-Message "Created directory: $UnarchivePath"
+        }
+        $extractPath = $UnarchivePath
+    } else {
+        Log-Message "The UnArchive Path: $extractPath"
+        $extractPath = "${drive}:\\"
+    }
+
+    $extractProcess = Start-Process -FilePath $WinRARPath -ArgumentList "x", "-ibck", "-y", "\`"$ArchivePath\`"", "\`"$extractPath\`"" -Wait -NoNewWindow -PassThru
         
     if ($extractProcess.ExitCode -ne 0) {
         $errorDetails = "Extraction failed with exit code $($extractProcess.ExitCode)"
@@ -458,8 +480,13 @@ try {
                 Log-Message "Reverted service.bat to original state"
             }
 
+
+
+
+
+
             if ($CopyFonts) {
-                Log-Message "Copying fonts from Tomcat installation..."
+                Log-Message "Installing fonts from Tomcat installation..."
                 $fontExtensions = @('.fon', '.ttf', '.TTF', '.otf')
                 $fontDirectories = @(
                     "webapps\\northstar\\stencils\\fonts",
@@ -468,7 +495,8 @@ try {
                 )
                 
                 $fontsInstalled = 0
-    
+                $fontsFailed = 0
+
                 foreach ($fontDir in $fontDirectories) {
                     $fullFontPath = Join-Path -Path $TomcatPath -ChildPath $fontDir
                     
@@ -485,18 +513,31 @@ try {
                                 $fontName = $fontFile.Name
                                 $destinationPath = Join-Path -Path $env:windir -ChildPath "Fonts\\$fontName"
                                 
-                                # Copy the font file to Windows Fonts directory
-                                Copy-Item -Path $fontFile.FullName -Destination $destinationPath -Force
+                                # Check if font already exists
+                                if (Test-Path $destinationPath) {
+                                    Log-Message "Font already exists: $fontName"
+                                    continue
+                                }
                                 
-                                # Register the font in the registry
-                                $regPath = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts"
-                                $regName = $fontName.Replace($fontFile.Extension, "") + " (TrueType)"
+                                # Use proper font installation method
+                                $shell = New-Object -ComObject Shell.Application
+                                $fontsFolder = $shell.Namespace(0x14)  # 0x14 is the Fonts folder
                                 
-                                New-ItemProperty -Path $regPath -Name $regName -Value $fontName -PropertyType String -Force | Out-Null
+                                # Copy font to Fonts directory using Shell API
+                                $fontsFolder.CopyHere($fontFile.FullName, 0x14)  # 0x14 = Yes to All
                                 
-                                $fontsInstalled++
-                                Log-Message "Installed font: $fontName"
+                                # Verify installation
+                                Start-Sleep -Seconds 2  # Wait for font to be installed
+                                
+                                if (Test-Path $destinationPath) {
+                                    $fontsInstalled++
+                                    Log-Message "Successfully installed font: $fontName"
+                                } else {
+                                    $fontsFailed++
+                                    Log-Message "WARNING: Font may not have installed correctly: $fontName"
+                                }
                             } catch {
+                                $fontsFailed++
                                 Log-Message "ERROR: Failed to install font $($fontFile.Name) - $($_.Exception.Message)"
                             }
                         }
@@ -505,12 +546,27 @@ try {
                     }
                 }
                 
+                # Provide accurate summary
                 if ($fontsInstalled -gt 0) {
                     Log-Message "Successfully installed $fontsInstalled font(s)"
-                } else {
+                }
+                if ($fontsFailed -gt 0) {
+                    Log-Message "Failed to install $fontsFailed font(s)"
+                }
+                if ($fontsInstalled -eq 0 -and $fontsFailed -eq 0) {
                     Log-Message "No font files were found or installed"
                 }
             }
+
+
+
+
+
+
+
+
+
+
         } catch {
         Log-Message "An error occurred during Tomcat service installation."
         }   

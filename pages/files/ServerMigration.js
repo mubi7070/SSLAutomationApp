@@ -37,6 +37,8 @@ export default function ServerMigration() {
   const [tomcatMaxMemory, setTomcatMaxMemory] = useState('2048');
   const [mysqlRamAllocation, setMysqlRamAllocation] = useState(false);
   const [mysqlRamSize, setMysqlRamSize] = useState('4096');
+  const [unarchiveOption, setUnarchiveOption] = useState('driveRoot');
+  const [unarchivePath, setUnarchivePath] = useState('');
 
   const [enablePerformanceOptions, setEnablePerformanceOptions] = useState(false);
   const [performanceOptions, setPerformanceOptions] = useState([
@@ -214,7 +216,9 @@ export default function ServerMigration() {
           enablePerformanceOptions,
           performanceOptions: performanceOptions.join(';'),
           mysqlRamAllocation,
-          mysqlRamSize
+          mysqlRamSize,
+          unarchiveOption,
+          unarchivePath: unarchiveOption === 'specificPath' ? unarchivePath : ''
         }),
       });
 
@@ -589,6 +593,64 @@ export default function ServerMigration() {
                     />
                   </label>
                 </div>
+
+                <div className={styles.licenseDescription}>
+                  <label>
+                    Unarchive Location:
+                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                      <label className={styles.radioLabel}>
+                        <input
+                          type="radio"
+                          value="driveRoot"
+                          checked={unarchiveOption === 'driveRoot'}
+                          onChange={() => setUnarchiveOption('driveRoot')}
+                          className={styles.radioInput}
+                        />
+                        Drive Root
+                        <Tooltip text="The App will unarchive all the stuff in the main selected drive.">
+                          <Link href="/files/help" legacyBehavior>
+                            <a className={styles.tooltip}>
+                              <HelpCircle size={20} />
+                            </a>
+                          </Link>
+                        </Tooltip>
+                      </label>
+                      <label className={styles.radioLabel}>
+                        <input
+                          type="radio"
+                          value="specificPath"
+                          checked={unarchiveOption === 'specificPath'}
+                          onChange={() => setUnarchiveOption('specificPath')}
+                          className={styles.radioInput}
+                        />
+                        Specific Path
+                        <Tooltip text="The App will unarchive all the stuff in a specific path in the selected drive which you have to add below.">
+                          <Link href="/files/help" legacyBehavior>
+                            <a className={styles.tooltip}>
+                              <HelpCircle size={20} />
+                            </a>
+                          </Link>
+                        </Tooltip>
+                      </label>
+                    </div>
+                  </label>
+                </div>
+
+                {unarchiveOption === 'specificPath' && (
+                  <div className={styles.licenseDescription}>
+                    <label>
+                      Path to Unarchive:
+                      <input
+                        type="text"
+                        value={unarchivePath}
+                        onChange={(e) => setUnarchivePath(e.target.value)}
+                        placeholder="e.g., D:\mydata"
+                        className={styles.styledselecttempmargin}
+                        style={{ width: '98%', padding: '7px', margin: '10px 0' }}
+                      />
+                    </label>
+                  </div>
+                )}
                 
 
                 <h3 className={styles.additionalOptionsHeader}>Advanced Options</h3>
@@ -615,7 +677,6 @@ export default function ServerMigration() {
                         onChange={(e) => setMysqlPath(e.target.value)}
                         className={styles.styledselecttempmargin}
                         style={{ width: '98%', padding: '7px', margin: '10px 0' }}
-                        required
                       />
                     </label>
                   </div>
@@ -687,7 +748,6 @@ export default function ServerMigration() {
                       onChange={(e) => setTomcatPath(e.target.value)}
                       className={styles.styledselecttempmargin}
                       style={{ width: '93%', padding: '7px', margin: '10px 0' }}
-                      required
                     />
                   </div>
                   
@@ -700,7 +760,6 @@ export default function ServerMigration() {
                       onChange={(e) => setJdkPath(e.target.value)}
                       className={styles.styledselecttempmargin}
                       style={{ width: '93%', padding: '7px', margin: '10px 0' }}
-                      required
                     />
                   </div>
 

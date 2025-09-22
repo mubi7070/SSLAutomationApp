@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '/pages/components/Layout.js';
-import { FiArrowRight, FiShield, FiLock, FiCode, FiMail, FiGrid, FiRefreshCw, FiSliders, FiFileText, FiShoppingCart, FiTool, FiBarChart2, FiHelpCircle, FiZap } from 'react-icons/fi';
+import { FiArrowRight, FiShield, FiLock, FiCode, FiMail, FiRepeat, FiGrid, FiRefreshCw, FiSliders, FiFileText, FiShoppingCart, FiTool, FiBarChart2, FiHelpCircle, FiZap } from 'react-icons/fi';
 import styles from '../styles/Home.module.css';
 
 export default function Home() {
@@ -136,11 +136,11 @@ export default function Home() {
                 <FiArrowRight className={styles.cardArrow} />
               </Link>
 
-              <Link href="/files/help" className={`${styles.card} ${styles.cardHelp}`}>
-                <FiHelpCircle className={styles.cardIcon} />
+              <Link href="/files/ServerMigration" className={`${styles.card} ${styles.cardHelp}`}>
+                <FiRepeat className={styles.cardIcon} />
                 <div>
-                  <h3>Help</h3>
-                  <p>Include the necessary information</p>
+                  <h3>Server Migration</h3>
+                  <p>Manage all the migrations here</p>
                 </div>
                 <FiArrowRight className={styles.cardArrow} />
               </Link>
@@ -198,6 +198,7 @@ export default function Home() {
               { href: 'https://www.sslshopper.com/certificate-key-matcher.html', title: 'CSR Matcher', icon: <FiTool /> },
               { href: 'https://www.ssllabs.com/ssltest/', title: 'SSL Labs Test', icon: <FiShield /> },
               { href: 'https://docs.google.com/spreadsheets/d/1yVCinTBlCnvv1CYWFjSsfpLjvUcQONJAuBLRoBc4rfE/edit', title: 'Tracking Data', icon: <FiFileText /> },
+              { href: '/files/help', title: 'Help', icon: <FiHelpCircle /> },
               
             ].map((link, index) => (
               <a
