@@ -223,19 +223,109 @@ try {
 
     # Execute the download script
     Log-Message "Downloading archive from S3..."
-    $nodeProcess = Start-Process -FilePath "node" -ArgumentList "\`"$downloadScriptPath\`"" -Wait -NoNewWindow -PassThru
-        
-    if ($nodeProcess.ExitCode -ne 0) {
-        $errorDetails = "S3 download failed with exit code $($nodeProcess.ExitCode)"
-        Log-Message $errorDetails
-        throw $errorDetails
+
+
+    # Get the expected file size from S3 first (this is quick and happens before download)
+    $expectedSize = $null
+    try {
+        # Try to get file size using AWS CLI if available
+        $sizeInfo = aws s3api head-object --bucket "$BucketName" --key "$FolderName/$ArchiveName" --region "$env:AWS_REGION" 2>$null
+        if ($sizeInfo) {
+            $sizeObj = $sizeInfo | ConvertFrom-Json
+            $expectedSize = $sizeObj.ContentLength
+            Log-Message "Expected file size: $([math]::Round($expectedSize / 1MB, 2)) MB"
+        }
+    } catch {
+        Log-Message "Note: Could not determine expected file size. Showing progress without percentage."
     }
-    
+
+    # Start the download process and monitor it
+    $startTime = Get-Date
+    $lastSize = 0
+    $stallCount = 0
+    $maxStallCount = 18 # 3 minutes of stalling (18 checks * 10 seconds)
+
+
+    # Start the download process
+    $nodeProcess = Start-Process -FilePath "node" -ArgumentList "\`"$downloadScriptPath\`"" -PassThru -NoNewWindow
+
+    # Monitor progress without interfering with the download process
+    do {
+        Start-Sleep -Seconds 10
+        
+        if (Test-Path $ArchivePath) {
+            $currentSize = (Get-Item $ArchivePath).Length
+            
+            if ($currentSize -gt $lastSize) {
+                # Download is progressing
+                $sizeMB = [math]::Round($currentSize / 1MB, 2)
+                $stallCount = 0 # Reset stall counter
+                
+                if ($expectedSize) {
+                    $percentComplete = [math]::Round(($currentSize / $expectedSize) * 100, 1)
+                    Log-Message "Download progress: $percentComplete% ($sizeMB MB downloaded)"
+                } else {
+                    Write-Host "Download in progress: $sizeMB MB downloaded"
+                    Log-Message "Download in progress: $sizeMB MB downloaded"
+                }
+                
+                $lastSize = $currentSize
+            } else {
+                # File size hasn't changed - might be stalled
+                $stallCount++
+                if ($currentSize -gt 0) {
+                    Write-Host "Download seems to have stalled at $([math]::Round($currentSize / 1MB, 2)) MB (stall count: $stallCount/$maxStallCount)"
+                    if ($stallCount -ge $maxStallCount) {
+                        $nodeProcess.Kill()
+                        throw "Download stalled for 3 minutes. Please check your network connection."
+                    }
+                }
+            }
+        } else {
+            # File doesn't exist yet
+            Write-Host "Download starting..."
+        }
+        
+        # Check if process has exited
+        if ($nodeProcess.HasExited) {
+            break
+        }
+        
+        # Timeout after 2 hours (720 checks * 10 seconds)
+        if ((Get-Date) - $startTime -gt [TimeSpan]::FromHours(2)) {
+            $nodeProcess.Kill()
+            throw "Download timed out after 2 hours"
+        }
+    } while ($true)
+
+    # Wait a moment for the process to fully exit
+    Start-Sleep -Seconds 2
+
+    # Check if the file was downloaded successfully
     if (-not (Test-Path $ArchivePath)) {
         throw "Downloaded archive not found at $ArchivePath"
     }
-    $sizeMB = [math]::Round((Get-Item $ArchivePath).Length / 1MB, 2)
-    Log-Message "Archive downloaded ($sizeMB MB). Path: $ArchivePath"
+
+    # Verify the file size is reasonable (at least 1KB)
+    $finalSize = (Get-Item $ArchivePath).Length
+    if ($finalSize -lt 1024) {
+        throw "Downloaded file is too small ($finalSize bytes). Download may have failed."
+    }
+
+    $finalSizeMB = [math]::Round($finalSize / 1MB, 2)
+    Log-Message "Archive downloaded successfully ($finalSizeMB MB). Path: $ArchivePath"
+
+    # If we have an expected size, verify it matches (within 10% tolerance)
+    if ($expectedSize) {
+        $sizeDifference = [math]::Abs($finalSize - $expectedSize)
+        $sizeTolerance = $expectedSize * 0.10 # 10% tolerance
+        
+        if ($sizeDifference -gt $sizeTolerance) {
+            Log-Message "WARNING: Downloaded file size ($finalSizeMB MB) differs from expected size ($([math]::Round($expectedSize / 1MB, 2)) MB) by more than 10%"
+        } else {
+            Log-Message "Download verification: File size matches expected size within tolerance"
+        }
+    }
 
     # Extract RAR file
     Log-Message "Extracting archive..."
