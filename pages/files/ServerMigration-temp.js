@@ -22,7 +22,9 @@ export default function ServerMigration() {
   const [excludePaths, setExcludePaths] = useState([]);
   const [newExcludePath, setNewExcludePath] = useState('');
   const [generatedPassword, setGeneratedPassword] = useState('');
+  const [generatedPassword2, setGeneratedPassword2] = useState('');
   const [copied, setCopied] = useState(false);
+  const [copied2, setCopied2] = useState(false);
   const [pathMode, setPathMode] = useState('include'); // 'include' or 'exclude'
   const [includePaths, setIncludePaths] = useState([]);
   const [newIncludePath, setNewIncludePath] = useState('');
@@ -37,6 +39,8 @@ export default function ServerMigration() {
   const [tomcatMaxMemory, setTomcatMaxMemory] = useState('2048');
   const [mysqlRamAllocation, setMysqlRamAllocation] = useState(false);
   const [mysqlRamSize, setMysqlRamSize] = useState('4096');
+  const [unarchiveOption, setUnarchiveOption] = useState('driveRoot');
+  const [unarchivePath, setUnarchivePath] = useState('');
 
   const [enablePerformanceOptions, setEnablePerformanceOptions] = useState(false);
   const [performanceOptions, setPerformanceOptions] = useState([
@@ -106,6 +110,24 @@ export default function ServerMigration() {
     }
   };
 
+  const handleCopy2 = () => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(generatedPassword2).then(() => {
+        setCopied2(true);
+        setTimeout(() => setCopied2(false), 2000);
+      }).catch(err => console.error("Failed to copy:", err));
+    } else {
+      const textArea = document.createElement("textarea");
+      textArea.value = generatedPassword2;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      setCopied2(true);
+      setTimeout(() => setCopied2(false), 2000);
+    }
+  };
+
   const handleGenerateSourceScript = async () => {
     if (!clientName) {
       setPopupMessage('Please enter client name');
@@ -151,7 +173,7 @@ export default function ServerMigration() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
-      setSourceStatus('RAR file downloaded. Password required to extract script.');
+      setSourceStatus('Source RAR file downloaded. Password required to extract script.');
       setPopupMessage(`Source script generated. Password: ${password}`);
     } catch (error) {
       setPopupMessage(error.message || 'An error occurred');
@@ -214,23 +236,35 @@ export default function ServerMigration() {
           enablePerformanceOptions,
           performanceOptions: performanceOptions.join(';'),
           mysqlRamAllocation,
-          mysqlRamSize
+          mysqlRamSize,
+          unarchiveOption,
+          unarchivePath: unarchiveOption === 'specificPath' ? unarchivePath : ''
         }),
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to generate script');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate script');
+      }
+
+      // Get password from response header
+      const password = response.headers.get('X-Password');
+      setGeneratedPassword2(password);
       
-      // Trigger download
-      const element = document.createElement('a');
-      element.href = `data:application/octet-stream;base64,${btoa(data.script)}`;
-      element.download = `migration-destination-${clientName}.ps1`;
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
-      
-      setDestinationStatus('Script downloaded. Please run as administrator on destination server.');
-      setPopupMessage('Destination script generated successfully');
+      // Trigger RAR download
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `migration-destination-${clientName}.rar`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setDestinationStatus('Destination RAR file downloaded. Password required to extract script.');
+      setPopupMessage(`Destination script generated. Password: ${password}`);
+
     } catch (error) {
       setPopupMessage(error.message || 'An error occurred');
     } finally {
@@ -516,8 +550,12 @@ export default function ServerMigration() {
               </div>
 
               {generatedPassword && (
-                <div className={styles.passwordSection}>
-                  <h3>RAR File Password</h3>
+                <div className={styles.passwordSection}
+                style={{
+                        marginTop: "-18px",
+                      }}
+                >
+                  <h3>Source RAR File Password</h3>
                   <div className={styles.passwordBox}>
                     <code>{generatedPassword}</code>
                     <button 
@@ -539,7 +577,7 @@ export default function ServerMigration() {
                     </button>
                   </div>
                   <p className={styles.passwordNote}>
-                    This password is required to extract the PowerShell script
+                    This password is required to extract the Source PowerShell script
                   </p>
                 </div>
               )}
@@ -589,6 +627,64 @@ export default function ServerMigration() {
                     />
                   </label>
                 </div>
+
+                <div className={styles.licenseDescription}>
+                  <label>
+                    Unarchive Location:
+                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
+                      <label className={styles.radioLabel}>
+                        <input
+                          type="radio"
+                          value="driveRoot"
+                          checked={unarchiveOption === 'driveRoot'}
+                          onChange={() => setUnarchiveOption('driveRoot')}
+                          className={styles.radioInput}
+                        />
+                        Drive Root
+                        <Tooltip text="The App will unarchive all the stuff in the main selected drive.">
+                          <Link href="/files/help" legacyBehavior>
+                            <a className={styles.tooltip}>
+                              <HelpCircle size={20} />
+                            </a>
+                          </Link>
+                        </Tooltip>
+                      </label>
+                      <label className={styles.radioLabel}>
+                        <input
+                          type="radio"
+                          value="specificPath"
+                          checked={unarchiveOption === 'specificPath'}
+                          onChange={() => setUnarchiveOption('specificPath')}
+                          className={styles.radioInput}
+                        />
+                        Specific Path
+                        <Tooltip text="The App will unarchive all the stuff in a specific path in the selected drive which you have to add below.">
+                          <Link href="/files/help" legacyBehavior>
+                            <a className={styles.tooltip}>
+                              <HelpCircle size={20} />
+                            </a>
+                          </Link>
+                        </Tooltip>
+                      </label>
+                    </div>
+                  </label>
+                </div>
+
+                {unarchiveOption === 'specificPath' && (
+                  <div className={styles.licenseDescription}>
+                    <label>
+                      Path to Unarchive:
+                      <input
+                        type="text"
+                        value={unarchivePath}
+                        onChange={(e) => setUnarchivePath(e.target.value)}
+                        placeholder="e.g., D:\mydata"
+                        className={styles.styledselecttempmargin}
+                        style={{ width: '98%', padding: '7px', margin: '10px 0' }}
+                      />
+                    </label>
+                  </div>
+                )}
                 
 
                 <h3 className={styles.additionalOptionsHeader}>Advanced Options</h3>
@@ -859,8 +955,40 @@ export default function ServerMigration() {
                     {destinationStatus}
                   </div>
                 )}
+
+                
               </div>
+
+              {generatedPassword2 && (
+                <div className={styles.passwordSection}>
+                  <h3>Destination RAR File Password</h3>
+                  <div className={styles.passwordBox}>
+                    <code>{generatedPassword2}</code>
+                    <button 
+                      onClick={handleCopy2}
+                      className={styles.handlecopy}
+                      style={{
+                        color: copied2 ? "green" : "black",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px"
+                      }}
+                    >
+                      <img
+                        src="/copy-icon.svg"
+                        alt="Copy"
+                        style={{ width: "20px", height: "20px" }}
+                      />
+                      {copied2 ? "Copied!" : "Copy"}
+                    </button>
+                  </div>
+                  <p className={styles.passwordNote}>
+                    This password is required to extract the Destination PowerShell script
+                  </p>
+                </div>
+              )}
             </div>
+            
           </div>
         
 

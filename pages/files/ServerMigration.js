@@ -22,7 +22,9 @@ export default function ServerMigration() {
   const [excludePaths, setExcludePaths] = useState([]);
   const [newExcludePath, setNewExcludePath] = useState('');
   const [generatedPassword, setGeneratedPassword] = useState('');
+  const [generatedPassword2, setGeneratedPassword2] = useState('');
   const [copied, setCopied] = useState(false);
+  const [copied2, setCopied2] = useState(false);
   const [pathMode, setPathMode] = useState('include'); // 'include' or 'exclude'
   const [includePaths, setIncludePaths] = useState([]);
   const [newIncludePath, setNewIncludePath] = useState('');
@@ -63,6 +65,11 @@ export default function ServerMigration() {
       }, 5000);
     }
   }, [popupMessage]);
+
+  // Sanitize client name by removing spaces
+  const sanitizeClientName = (name) => {
+    return name.replace(/\s+/g, '');
+  };
 
   const addIncludePath = () => {
     if (newIncludePath.trim()) {
@@ -108,6 +115,68 @@ export default function ServerMigration() {
     }
   };
 
+  const handleCopy2 = () => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(generatedPassword2).then(() => {
+        setCopied2(true);
+        setTimeout(() => setCopied2(false), 2000);
+      }).catch(err => console.error("Failed to copy:", err));
+    } else {
+      const textArea = document.createElement("textarea");
+      textArea.value = generatedPassword2;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textArea);
+      setCopied2(true);
+      setTimeout(() => setCopied2(false), 2000);
+    }
+  };
+
+
+  // Clear all form fields
+  const handleClearForm = () => {
+    setSourceDrive('D');
+    setDestinationDrive('D');
+    setClientName('');
+    setTomcatPath('');
+    setJdkPath('');
+    setMysqlPath('');
+    setSourceStatus('');
+    setDestinationStatus('');
+    setExcludePaths([]);
+    setNewExcludePath('');
+    setGeneratedPassword('');
+    setGeneratedPassword2('');
+    setPathMode('include');
+    setIncludePaths([]);
+    setNewIncludePath('');
+    setInstallMySQL(false);
+    setInstallTomcat(false);
+    setCopyFonts(false);
+    setRamAllocation(false);
+    setMysqlServiceName('MySQL8');
+    setTomcatServiceName('Tomcat9');
+    setTomcatDependency(false);
+    setTomcatInitialMemory('1024');
+    setTomcatMaxMemory('2048');
+    setMysqlRamAllocation(false);
+    setMysqlRamSize('4096');
+    setUnarchiveOption('driveRoot');
+    setUnarchivePath('');
+    setEnablePerformanceOptions(false);
+    setPerformanceOptions([
+      '-Djava.awt.headless=false',
+      '-Dfile.encoding=UTF8',
+      '-XX:MaxPermSize=1024m',
+      '-XX:ReservedCodeCacheSize=128m',
+      '-XX:+UseCodeCacheFlushing',
+      '-XX:-CreateMinidumpOnCrash',
+      '-Xverify:none'
+    ]);
+    setNewPerformanceOption('');
+  };
+
   const handleGenerateSourceScript = async () => {
     if (!clientName) {
       setPopupMessage('Please enter client name');
@@ -121,12 +190,15 @@ export default function ServerMigration() {
     
     setLoadingSource(true);
     try {
+      // Sanitize client name by removing spaces
+      const sanitizedClientName = sanitizeClientName(clientName);
+      
       const response = await fetch('/api/generate-source-script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           drive: sourceDrive, 
-          clientName,
+          clientName: sanitizedClientName,
           excludePaths,
           includePaths: pathMode === 'include' ? includePaths : [],
           mode: pathMode
@@ -147,13 +219,13 @@ export default function ServerMigration() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `migration-source-${clientName}.rar`;
+      a.download = `migration-source-${sanitizedClientName}.rar`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
-      setSourceStatus('RAR file downloaded. Password required to extract script.');
+      setSourceStatus('Source RAR file downloaded. Password required to extract script.');
       setPopupMessage(`Source script generated. Password: ${password}`);
     } catch (error) {
       setPopupMessage(error.message || 'An error occurred');
@@ -195,12 +267,15 @@ export default function ServerMigration() {
 
     setLoadingDestination(true);
     try {
+      // Sanitize client name by removing spaces
+      const sanitizedClientName = sanitizeClientName(clientName);
+
       const response = await fetch('/api/generate-destination-script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           drive: destinationDrive, 
-          clientName,
+          clientName: sanitizedClientName,
           tomcatPath,
           jdkPath,
           mysqlPath,
@@ -222,19 +297,29 @@ export default function ServerMigration() {
         }),
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to generate script');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate script');
+      }
+
+      // Get password from response header
+      const password = response.headers.get('X-Password');
+      setGeneratedPassword2(password);
       
-      // Trigger download
-      const element = document.createElement('a');
-      element.href = `data:application/octet-stream;base64,${btoa(data.script)}`;
-      element.download = `migration-destination-${clientName}.ps1`;
-      document.body.appendChild(element);
-      element.click();
-      document.body.removeChild(element);
-      
-      setDestinationStatus('Script downloaded. Please run as administrator on destination server.');
-      setPopupMessage('Destination script generated successfully');
+      // Trigger RAR download
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `migration-destination-${sanitizedClientName}.rar`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setDestinationStatus('Destination RAR file downloaded. Password required to extract script.');
+      setPopupMessage(`Destination script generated. Password: ${password}`);
+
     } catch (error) {
       setPopupMessage(error.message || 'An error occurred');
     } finally {
@@ -323,6 +408,8 @@ export default function ServerMigration() {
               </ul>
             </div>
 
+            
+
             {/* Left Column - Source Server */}
               <div className={styles.mainbox2} style={{ marginBottom: '2rem' }}>
                 <h2 style={{ color: 'rgb(16, 31, 118)', marginBottom: '1rem' }}>Source Server</h2>
@@ -356,6 +443,9 @@ export default function ServerMigration() {
                       required
                     />
                   </label>
+                  <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '1px' }}>
+                    <strong>Note:</strong> Spaces will be automatically removed from the client name.
+                  </p>
                 </div>
                 
                 {/* Radio Buttons */}
@@ -442,7 +532,7 @@ export default function ServerMigration() {
                         </div>
                       </div>
                     </label>
-                    <p style={{ fontSize: '0.9rem', color: '#666' }}>
+                    <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '1px' }}>
                       <strong>Note:</strong> Only the above paths will be included in the archive.
                     </p>
                   </div>
@@ -493,7 +583,7 @@ export default function ServerMigration() {
                       </div>
                     </div>
                   </label>
-                  <p style={{ fontSize: '0.9rem', color: '#666' }}>
+                  <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '1px' }}>
                     <strong>Exclusions:</strong> {pathMode === 'include' 
                       ? 'The above paths will be excluded from the included paths' 
                       : 'The above paths will be excluded automatically'}
@@ -520,8 +610,12 @@ export default function ServerMigration() {
               </div>
 
               {generatedPassword && (
-                <div className={styles.passwordSection}>
-                  <h3>RAR File Password</h3>
+                <div className={styles.passwordSection}
+                style={{
+                        marginTop: "-18px",
+                      }}
+                >
+                  <h3>Source RAR File Password</h3>
                   <div className={styles.passwordBox}>
                     <code>{generatedPassword}</code>
                     <button 
@@ -543,7 +637,7 @@ export default function ServerMigration() {
                     </button>
                   </div>
                   <p className={styles.passwordNote}>
-                    This password is required to extract the PowerShell script
+                    This password is required to extract the Source PowerShell script
                   </p>
                 </div>
               )}
@@ -592,6 +686,10 @@ export default function ServerMigration() {
                       required
                     />
                   </label>
+                  <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '1px' }}>
+                    <strong>Note:</strong> Spaces will be automatically removed from the client name.
+                  </p>
+                  
                 </div>
 
                 <div className={styles.licenseDescription}>
@@ -921,10 +1019,52 @@ export default function ServerMigration() {
                     {destinationStatus}
                   </div>
                 )}
+
+                
               </div>
+
+              {generatedPassword2 && (
+                <div className={styles.passwordSection}>
+                  <h3>Destination RAR File Password</h3>
+                  <div className={styles.passwordBox}>
+                    <code>{generatedPassword2}</code>
+                    <button 
+                      onClick={handleCopy2}
+                      className={styles.handlecopy}
+                      style={{
+                        color: copied2 ? "green" : "black",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px"
+                      }}
+                    >
+                      <img
+                        src="/copy-icon.svg"
+                        alt="Copy"
+                        style={{ width: "20px", height: "20px" }}
+                      />
+                      {copied2 ? "Copied!" : "Copy"}
+                    </button>
+                  </div>
+                  <p className={styles.passwordNote}>
+                    This password is required to extract the Destination PowerShell script
+                  </p>
+                </div>
+              )}
+
+              
             </div>
+            
           </div>
-        
+            {/* Clear Button */}
+            <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
+              <button
+                onClick={handleClearForm}
+                className={styles.clearbtn}
+              >
+                Clear Form
+              </button>
+            </div>
 
           
         

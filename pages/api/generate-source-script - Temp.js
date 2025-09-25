@@ -156,12 +156,120 @@ function Remove-TemporaryFiles {
                     Remove-Item -LiteralPath $file -Force -ErrorAction Stop
                 }
                 Log-Message "Deleted temporary file: $file"
-            } catch {
+            } 
+            catch {
                 Log-Message "WARNING: Failed to delete $file - $($_.Exception.Message)"
             }
         }
     }
 }
+
+function Invoke-RobustWinRAR {
+    param(
+        [string]$WinRARPath,
+        [array]$RarCommand,
+        [string]$ArchivePath,
+        [int]$MaxRetries = 2
+    )
+    
+    for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
+        try {
+            Log-Message "WinRAR attempt $attempt of $MaxRetries"
+            
+            # Only adjust memory and threads on retry, keep volume splitting as set
+            if ($attempt -gt 1) {
+                Log-Message "Optimizing parameters for retry attempt..."
+                # Remove memory and thread parameters only (keep volume splitting)
+                $RarCommand = $RarCommand | Where-Object { 
+                    $_ -notlike "-md*" -and $_ -notlike "-mt*" 
+                }
+                
+                # Add optimized parameters
+                $RarCommand += "-md1024m"  # Increase dictionary size
+                $RarCommand += "-mt4"      # Use 4 threads
+                Log-Message "Increased dictionary size and threads for retry"
+            }
+            
+            Log-Message "Executing: $WinRARPath $($RarCommand -join ' ')"
+            
+            $process = Start-Process -FilePath $WinRARPath -ArgumentList $RarCommand -Wait -NoNewWindow -PassThru
+            
+            # Handle WinRAR exit codes
+            switch ($process.ExitCode) {
+                0 { 
+                    Log-Message "WinRAR completed successfully"
+                    return $true 
+                }
+                1 { 
+                    # Check for volume files first (multi-volume archive)
+                    $volumeFiles = Get-ChildItem -Path (Split-Path $ArchivePath) -Filter "$(Split-Path $ArchivePath -Leaf).part*.rar" -ErrorAction SilentlyContinue
+                    if ($volumeFiles.Count -gt 0) {
+                        $totalSizeGB = [math]::Round(($volumeFiles | Measure-Object -Property Length -Sum).Sum / 1GB, 2)
+                        Log-Message "Multi-volume archive created with warnings. Total size: $totalSizeGB GB, Parts: $($volumeFiles.Count)"
+                        return $true
+                    }
+                    # Fall back to single file check
+                    if (Test-Path $ArchivePath) {
+                        $sizeGB = [math]::Round((Get-Item $ArchivePath).Length / 1GB, 2)
+                        Log-Message "Single archive created with warnings (exit code 1). Size: $sizeGB GB"
+                        return $true
+                    }
+                    throw "WinRAR completed with warnings but no archive was created"
+                }
+
+                2 { throw "Fatal error in WinRAR" }
+                3 { throw "CRC error in WinRAR" }
+                4 { throw "Attempt to modify locked archive" }
+                5 { throw "Write error in WinRAR" }
+                6 { 
+                    if ($attempt -eq $MaxRetries) {
+                        throw "WinRAR archive creation failed - insufficient memory for large files (exit code 6)"
+                    } else {
+                        Log-Message "WinRAR exit code 6 (memory issue) - retrying with optimized settings"
+                        Start-Sleep -Seconds 10
+                        continue
+                    }
+                }
+                7 { throw "User break in WinRAR" }
+                8 { 
+                    if ($attempt -eq $MaxRetries) {
+                        throw "WinRAR archive creation failed - not enough memory (exit code 8)"
+                    } else {
+                        Log-Message "WinRAR exit code 8 (memory issue) - retrying with optimized settings"
+                        Start-Sleep -Seconds 10
+                        continue
+                    }
+                }
+                9 { 
+                    if ($attempt -eq $MaxRetries) {
+                        throw "WinRAR archive creation failed - create file error (exit code 9)"
+                    } else {
+                        Log-Message "WinRAR exit code 9 (file creation issue) - retrying with optimized settings"
+                        Start-Sleep -Seconds 10
+                        continue
+                    }
+                }
+
+                10 { throw "Wrong password for WinRAR" }
+                255 { throw "User break or WinRAR process killed" }
+                default { 
+                    if ($process.ExitCode -ne 0) {
+                        throw "WinRAR failed with exit code $($process.ExitCode)"
+                    }
+                }
+            }
+        }
+        catch {
+            if ($attempt -eq $MaxRetries) {
+                throw "All WinRAR attempts failed: $($_.Exception.Message)"
+            }
+            Log-Message "Attempt $attempt failed: $($_.Exception.Message). Retrying..."
+            Start-Sleep -Seconds (10 * $attempt)
+        }
+    }
+    return $false
+}
+
 
 # INITIAL SETUP
 try {
@@ -202,6 +310,16 @@ try {
         throw $msg
     }
 
+    # Check available disk space (need at least 50GB free for operations)
+    $driveInfo = Get-PSDrive -Name $DriveLetter
+    $freeSpaceGB = [math]::Round($driveInfo.Free / 1GB, 2)
+    if ($freeSpaceGB -lt 50) {
+        Log-Message "WARNING: Low disk space on $DriveLetter. Available: $freeSpaceGB GB, Recommended: 50GB+"
+    } else {
+        Log-Message "Disk space check: $freeSpaceGB GB available on $DriveLetter"
+    }
+
+
     # Build proper exclusion arguments
     $exclusionArgs = New-Object System.Collections.Generic.List[string]
     foreach ($ex in $ExcludePaths) {
@@ -214,9 +332,16 @@ try {
         Log-Message "Deleted existing archive: $ArchivePath"
     }
 
+    # Also delete any existing volume files
+    $volumePattern = "$ArchiveName.part*.rar"
+    Get-ChildItem -Path (Split-Path $ArchivePath) -Filter $volumePattern -ErrorAction SilentlyContinue | ForEach-Object {
+        Remove-Item -Path $_.FullName -Force
+        Log-Message "Deleted existing volume: $($_.Name)"
+    }
+
     # Archive based on mode
     if ($Mode -eq 'include') {
-        Log-Message "Starting archive process for included paths with WinRAR..."
+        Log-Message "Starting archive process for included paths with WinRAR (5GB volumes)..."
         
         $rarCommand = @(
             "a",           # Add to archive
@@ -224,6 +349,9 @@ try {
             "-ep1",        # Exclude base folder from names
             "-y",          # Assume Yes to all queries
             "-idq",        # Quiet mode (suppress progress)
+            "-v3g",        # Split into 3GB volumes
+            "-md512m",     # Medium dictionary size
+            "-mt4",        # Use 4 threads for better performance
             "$ArchivePath"
         )
         
@@ -236,7 +364,7 @@ try {
         $rarCommand += $exclusionArgs
     }
     else {    
-    Log-Message "Starting archive process for drive ${drive} with WinRAR..."
+    Log-Message "Starting archive process for drive ${drive} with WinRAR (5GB volumes)..."
     
     $rarCommand = @(
         "a",           # Add to archive
@@ -244,74 +372,92 @@ try {
         "-ep1",        # Exclude base folder from names
         "-y",          # Assume Yes to all queries
         "-idq",        # Quiet mode (suppress progress)
+        "-v3g",        # Split into 3GB volumes - ALWAYS ENABLED
+        "-md512m",     # Medium dictionary size
+        "-mt4",        # Use 4 threads for better performance
         "$ArchivePath",
         "${drive}:\\*"
     ) + $exclusionArgs
 
     }
 
-    Log-Message "Executing: $WinRARPath $($rarCommand -join ' ')"
-    
-    $process = Start-Process -FilePath $WinRARPath -ArgumentList $rarCommand -Wait -NoNewWindow -PassThru
-    
-    if ($process.ExitCode -eq 1) {
-        # Exit code 1 can occur when some files are skipped but the archive is still created
-        if (Test-Path $ArchivePath) {
-            Log-Message "Archive created successfully despite exit code 1"
-        } else {
-            $errorDetails = "WinRAR archive creation failed with exit code $($process.ExitCode)"
-            Log-Message $errorDetails
-            throw $errorDetails
-        }
-    } elseif ($process.ExitCode -ne 0) {
-        $errorDetails = "WinRAR archive creation failed with exit code $($process.ExitCode)"
-        Log-Message $errorDetails
-        throw $errorDetails
+    # Use robust WinRAR function with retry logic
+    $success = Invoke-RobustWinRAR -WinRARPath $WinRARPath -RarCommand $rarCommand -ArchivePath $ArchivePath
+
+    if (-not $success) {
+        throw "WinRAR archive creation failed after all retry attempts"
     }
 
-    $sizeGB = [math]::Round((Get-Item $ArchivePath).Length / 1GB, 2)
-    Log-Message "Archive created at $ArchivePath (Size: $sizeGB GB)"
+    # Check if we have volume files or single archive
+    $archiveFiles = @()
+    if (Test-Path $ArchivePath) {
+        $sizeGB = [math]::Round((Get-Item $ArchivePath).Length / 1GB, 2)
+        Log-Message "Single archive created at $ArchivePath (Size: $sizeGB GB)"
+        $archiveFiles += (Get-Item $ArchivePath)
+    } else {
+        # Check for volume files
+        $volumeFiles = Get-ChildItem -Path (Split-Path $ArchivePath) -Filter "$(Split-Path $ArchivePath -Leaf).part*.rar" | Sort-Object Name
+        if ($volumeFiles.Count -gt 0) {
+            $totalSizeGB = [math]::Round(($volumeFiles | Measure-Object -Property Length -Sum).Sum / 1GB, 2)
+            Log-Message "Multi-volume archive created with $($volumeFiles.Count) parts. Total size: $totalSizeGB GB"
+            $archiveFiles = $volumeFiles
+        } else {
+            throw "No archive files found after successful WinRAR operation"
+        }
+    }
+
 
     # Upload to S3 using AWS SDK for JavaScript
     Log-Message "Uploading to S3 bucket $BucketName..."
 
     $uploadScript = @"
-    const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+    const { S3Client } = require("@aws-sdk/client-s3");
+    const { Upload } = require("@aws-sdk/lib-storage");
     const fs = require("fs");
     const path = require("path");
 
     async function uploadToS3() {
-      const filePath = "$($ArchivePath.Replace('\\', '\\\\'))";
-      const fileContent = fs.readFileSync(filePath);
-
-      const params = {
-          Bucket: "$BucketName",
-          Key: "$FolderName/$ArchiveName",
-          Body: fileContent,
-      };
-
-      const s3Client = new S3Client({
-        region: "$env:AWS_REGION",
-        credentials: {
-          accessKeyId: "$env:AWS_ACCESS_KEY_ID",
-          secretAccessKey: "$env:AWS_SECRET_ACCESS_KEY"
-        }
-      });
+      const filePath = path.resolve(process.argv[2]);
+      const bucketName = "${process.env.S3_MIGRATION_BUCKET_NAME}";
+      const key = process.argv[3];
 
       try {
-        await s3Client.send(new PutObjectCommand(params));
-        return "Uploaded $ArchiveName to S3 successfully";
+        const s3Client = new S3Client({
+          region: "$env:AWS_REGION",
+          credentials: {
+            accessKeyId: "$env:AWS_ACCESS_KEY_ID",
+            secretAccessKey: "$env:AWS_SECRET_ACCESS_KEY"
+          }
+        });
+      
+        const parallelUploads3 = new Upload({
+          client: s3Client,
+          params: {
+            Bucket: bucketName,
+            Key: key,
+            Body: fs.createReadStream(filePath)
+          },
+          leavePartsOnError: false,
+          queueSize: 4,        // Optional: concurrent parts
+          partSize: 1024 * 1024 * 500 // 500MB
+        });
+
+        parallelUploads3.on("httpUploadProgress", (progress) => {
+          console.log("Uploaded:", progress.loaded, "of", progress.total);
+        });
+
+        await parallelUploads3.done();
+        console.log("Upload completed successfully.");
+        process.exit(0);
       } catch (err) {
-        throw new Error("S3 upload failed: \${err.message}");
+        console.error("S3 upload failed:", err);
+        process.exit(1);
+      } finally {
+        console.log("Finally finished.");
       }
     }
 
-    uploadToS3()
-      .then(result => console.log(result))
-      .catch(error => {
-        console.error(error.message);
-        process.exit(1);
-      });
+    uploadToS3();
 "@
 
     # Save the upload script to a temporary file
@@ -323,20 +469,29 @@ try {
     Log-Message "Installing AWS SDK for S3..."
     Set-Location -Path $MigrationFolder
     npm init -y --quiet
-    npm install @aws-sdk/client-s3
+    npm install @aws-sdk/client-s3 @aws-sdk/lib-storage
 
-    Log-Message "Uploading the Archive to S3... Please Wait..."
-    # Execute the upload script
-    \$nodeProcess = Start-Process -FilePath "node" -ArgumentList "\`\"\$uploadScriptPath\`\"" -Wait -NoNewWindow -PassThru
-        
+    # Upload all archive files (single or multi-volume)
+    foreach ($archiveFile in $archiveFiles) {
+        Log-Message "Uploading: $($archiveFile.Name)..."
+
+    $nodeArgs = @(
+        "\`"$uploadScriptPath\`"",
+        "\`"$($archiveFile.FullName)\`"",
+        "\`"$FolderName/$($archiveFile.Name)\`""
+    )
+
+    $nodeProcess = Start-Process -FilePath "node" -ArgumentList $nodeArgs -Wait -NoNewWindow -PassThru
+
     if ($nodeProcess.ExitCode -ne 0) {
-        $errorDetails = "S3 upload failed with exit code $($nodeProcess.ExitCode)"
-        Log-Message $errorDetails
-        throw $errorDetails
+        throw "S3 upload failed for $($archiveFile.Name) with exit code $($nodeProcess.ExitCode)."
+    }
+
+    Log-Message "Upload completed for: $($archiveFile.Name)"
     }
         
-    Log-Message "Upload completed successfully"
-    Log-Message "Migration completed successfully"
+    Log-Message "All uploads completed successfully"
+    Log-Message "===== MIGRATION COMPLETED SUCCESSFULLY ====="
 
     } catch {
         $errorMsg = $_.Exception.Message
@@ -348,7 +503,14 @@ try {
         Remove-TemporaryFiles -FolderPath $MigrationFolder
 
         Log-Message "Log file maintained at: $LogPath"
-        Log-Message "Archive maintained at: $ArchivePath"
+        if (Test-Path $ArchivePath) {
+            Log-Message "Archive maintained at: $ArchivePath"
+        } else {
+            $volumeFiles = Get-ChildItem -Path (Split-Path $ArchivePath) -Filter "$(Split-Path $ArchivePath -Leaf).part*.rar" -ErrorAction SilentlyContinue
+            if ($volumeFiles.Count -gt 0) {
+                Log-Message "Archive volumes maintained at: $(Split-Path $ArchivePath)"
+            }
+        }
         Log-Message "Script completed at $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
         
         # Schedule self-deletion of this script
