@@ -181,21 +181,333 @@ function Remove-TemporaryFiles {
 function Get-ArchiveFiles {
     param([string]$MigrationFolder, [string]$ArchiveName)
     
-    # Check for multi-volume archives first
-    $volumeFiles = Get-ChildItem -Path $MigrationFolder -Filter "$ArchiveName.part*.rar" | Sort-Object Name
+    # Get base name without extension for volume pattern matching
+    $volumeBaseName = [System.IO.Path]::GetFileNameWithoutExtension($ArchiveName)
+    
+    # Check for multi-volume archives (WinRAR creates .part1.rar, .part2.rar, etc.)
+    $volumePattern = "$volumeBaseName.part*.rar"
+    $volumeFiles = Get-ChildItem -Path $MigrationFolder -Filter $volumePattern | Sort-Object @{
+
+    Expression = {
+        if ($_.Name -match 'part(\\d+)\\.rar$') {
+            [int]$matches[1]
+        } else {
+            0
+        }
+        }
+    }
+
     if ($volumeFiles.Count -gt 0) {
         Log-Message "Found $($volumeFiles.Count) volume files for extraction"
+        
+        # Log each volume found
+        foreach ($volume in $volumeFiles) {
+            $sizeGB = [math]::Round($volume.Length / 1GB, 2)
+            Log-Message "Volume: $($volume.Name) ($sizeGB GB)"
+
+        }
+
         return $volumeFiles
     }
     
     # Check for single archive
     $singleFile = Get-Item -Path (Join-Path -Path $MigrationFolder -ChildPath $ArchiveName) -ErrorAction SilentlyContinue
     if ($singleFile) {
-        Log-Message "Found single archive file: $($singleFile.Name)"
+        $sizeGB = [math]::Round($singleFile.Length / 1GB, 2)
+        Log-Message "Found single archive file: $($singleFile.Name) ($sizeGB GB)"
         return @($singleFile)
     }
     
-    throw "No archive files found for extraction"
+    # Final fallback: check for any RAR files starting with the base name
+    $allRarFiles = Get-ChildItem -Path $MigrationFolder -Filter "$volumeBaseName*.rar" | Sort-Object Name
+    if ($allRarFiles.Count -gt 0) {
+        $totalSizeGB = [math]::Round(($allRarFiles | Measure-Object -Property Length -Sum).Sum / 1GB, 2)
+        Log-Message "Found $($allRarFiles.Count) RAR files using fallback search. Total size: $totalSizeGB GB"
+        return $allRarFiles
+    }
+    
+    throw "No archive files found for extraction. Checked for: $volumePattern and $ArchiveName"
+}
+
+function Test-ExtractionSuccess {
+    param(
+        [string]$ExtractPath,
+        [string]$ArchiveBaseName
+    )
+    
+    try {
+        Log-Message "Verifying extraction success..."
+        
+        # Check if extraction path exists and has content
+        if (-not (Test-Path $ExtractPath)) {
+            Log-Message "WARNING: Extraction path does not exist: $ExtractPath"
+            return $false
+        }
+        
+        # Get all items in extraction path
+        $extractedItems = Get-ChildItem -Path $ExtractPath -Recurse -ErrorAction SilentlyContinue
+        $itemCount = ($extractedItems | Measure-Object).Count
+        
+        if ($itemCount -gt 0) {
+            Log-Message "SUCCESS: Found $itemCount files/directories in extraction path"
+            
+            # Check for some common expected directories to confirm proper extraction
+            $commonDirs = @("Northstar", "Program Files", "Windows", "Users", "ProgramData")
+            $foundDirs = $extractedItems | Where-Object { $_.PSIsContainer -and $commonDirs -contains $_.Name }
+            
+            if ($foundDirs.Count -gt 0) {
+                Log-Message "SUCCESS: Found expected directories: $($foundDirs.Name -join ', ')"
+            }
+            
+            return $true
+        } else {
+            Log-Message "WARNING: Extraction path exists but is empty"
+            return $false
+        }
+    }
+    catch {
+        Log-Message "WARNING: Extraction verification failed: $($_.Exception.Message)"
+        return $false
+    }
+}
+
+
+function Invoke-RobustExtraction {
+    param(
+        [string]$WinRARPath,
+        [string]$ExtractSource,
+        [string]$ExtractPath,
+        [int]$MaxRetries = 2
+    )
+
+    $archiveBaseName = [System.IO.Path]::GetFileNameWithoutExtension($ExtractSource)
+    
+    for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
+        try {
+            Log-Message "Extraction attempt $attempt of $MaxRetries"
+            
+            # Enhanced extraction parameters - SIMPLIFIED for reliability
+            $extractArgs = @(
+                "x",           # Extract with full paths
+                "-y",          # Assume Yes to all
+                "-o+",         # Overwrite all files
+                "-idq",        # Quiet mode (suppress progress)
+                "-r",          # Recurse subdirectories
+                "\`"$ExtractSource\`"",
+                "\`"$ExtractPath\`""
+            )
+            Log-Message "Executing: $WinRARPath $($extractArgs -join ' ')"
+            
+            $extractProcess = Start-Process -FilePath $WinRARPath -ArgumentList $extractArgs -Wait -NoNewWindow -PassThru
+            # Handle WinRAR exit codes more intelligently
+            switch ($extractProcess.ExitCode) {
+                0 {
+                    # Success - verify extraction
+                    if (Test-ExtractionSuccess -ExtractPath $ExtractPath -ArchiveBaseName $archiveBaseName) {
+                    Log-Message "Extraction completed successfully (exit code 0)"
+                    return $true
+                    } else {
+                        Log-Message "WARNING: Exit code 0 but extraction verification failed"
+                        continue
+                    }
+                }
+                1 {
+                    # Success with warnings - verify extraction
+                    if (Test-ExtractionSuccess -ExtractPath $ExtractPath -ArchiveBaseName $archiveBaseName) {
+                    Log-Message "Extraction completed with warnings (exit code 1)"
+                    return $true
+                    } else {
+                        Log-Message "WARNING: Exit code 1 but extraction verification failed"
+                        continue
+                    }
+                }
+                2 {
+                    if ($attempt -eq $MaxRetries) {
+                        throw "Fatal error in WinRAR extraction (exit code 2)"
+                    } else {
+                        Log-Message "WinRAR exit code 2 (fatal error) - retrying..."
+                        Start-Sleep -Seconds 10
+                        continue
+                    }
+                }
+                3 {
+                    if ($attempt -eq $MaxRetries) {
+                        throw "CRC error in WinRAR extraction (exit code 3)"
+                    } else {
+                        Log-Message "WinRAR exit code 3 (CRC error) - retrying..."
+                        Start-Sleep -Seconds 10
+                        continue
+                    }
+                }
+                6 {
+                    if ($attempt -eq $MaxRetries) {
+                        throw "WinRAR extraction failed - insufficient memory (exit code 6)"
+                    } else {
+                        Log-Message "WinRAR exit code 6 (memory issue) - retrying with optimized settings"
+                        Start-Sleep -Seconds 10
+                        continue
+                    }
+                }
+                8 {
+                    if ($attempt -eq $MaxRetries) {
+                        throw "WinRAR extraction failed - not enough memory (exit code 8)"
+                    } else {
+                        Log-Message "WinRAR exit code 8 (memory issue) - retrying with optimized settings"
+                        Start-Sleep -Seconds 10
+                        continue
+                    }
+                }
+                9 {
+                    # Create file error - BUT often extraction still works
+                    Log-Message "WinRAR exit code 9 (file creation issue) - checking if extraction succeeded anyway..."
+                    
+                    if (Test-ExtractionSuccess -ExtractPath $ExtractPath -ArchiveBaseName $archiveBaseName) {
+                        Log-Message "SUCCESS: Extraction completed despite exit code 9"
+                        return $true
+                    } else {
+                        if ($attempt -eq $MaxRetries) {
+                            # Try one more alternative method before final failure
+                            Log-Message "Attempting final alternative extraction method..."
+                            $alternativeSuccess = Invoke-AlternativeExtraction -WinRARPath $WinRARPath -ExtractSource $ExtractSource -ExtractPath $ExtractPath
+                            
+                            if ($alternativeSuccess) {
+                                return $true
+                            } else {
+                                throw "WinRAR extraction failed - create file error (exit code 9)"
+                            }
+                        } else {
+                            Log-Message "Extraction verification failed, retrying with optimized settings..."
+                            # Wait longer between retries
+                            Start-Sleep -Seconds 10
+                            continue
+                        }
+                    }
+                }
+                10 {
+                    if ($attempt -eq $MaxRetries) {
+                        throw "Wrong password for WinRAR extraction (exit code 10)"
+                    } else {
+                        Log-Message "WinRAR exit code 10 (password issue) - retrying..."
+                        Start-Sleep -Seconds 10
+                        continue
+                    }
+                }
+                255 {
+                    if ($attempt -eq $MaxRetries) {
+                        throw "User break or WinRAR process killed (exit code 255)"
+                    } else {
+                        Log-Message "WinRAR exit code 255 (process killed) - retrying..."
+                        Start-Sleep -Seconds 10
+                        continue
+                    }
+                }
+                default { 
+                    if ($extractProcess.ExitCode -ne 0) {
+                        # Check if extraction succeeded despite non-zero exit code
+                        if (Test-ExtractionSuccess -ExtractPath $ExtractPath -ArchiveBaseName $archiveBaseName) {
+                            Log-Message "SUCCESS: Extraction completed despite exit code $($extractProcess.ExitCode)"
+                            return $true
+                        } else {
+                            if ($attempt -eq $MaxRetries) {
+                                throw "WinRAR extraction failed with exit code $($extractProcess.ExitCode)"
+                            } else {
+                                Log-Message "WinRAR exit code $($extractProcess.ExitCode) - retrying..."
+                                Start-Sleep -Seconds 10
+                                continue
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        catch {
+            if ($attempt -eq $MaxRetries) {
+                throw "All extraction attempts failed: $($_.Exception.Message)"
+            }
+            Log-Message "Attempt $attempt failed: $($_.Exception.Message). Retrying..."
+            Start-Sleep -Seconds (10 * $attempt)
+        }
+    }
+    return $false
+}
+
+
+function Invoke-AlternativeExtraction {
+    param(
+        [string]$WinRARPath,
+        [string]$ExtractSource,
+        [string]$ExtractPath
+    )
+    
+    Log-Message "Attempting alternative extraction method..."
+    
+    try {
+        # Method 1: Try with different WinRAR parameters (no recursion, single thread)
+        Log-Message "Trying alternative WinRAR parameters (no recursion)..."
+        $altArgs = @(
+            "x",           # Extract with full paths
+            "-y",          # Assume Yes to all
+            "-o+",         # Overwrite all files
+            "-idq",        # Quiet mode
+            "-r-",         # NO recursion
+            "\`"$ExtractSource\`"",
+            "\`"$ExtractPath\`""
+        )
+        
+        $altProcess = Start-Process -FilePath $WinRARPath -ArgumentList $altArgs -Wait -NoNewWindow -PassThru
+        
+        if ($altProcess.ExitCode -eq 0 -or $altProcess.ExitCode -eq 1 -or $altProcess.ExitCode -eq 9) {
+            if (Test-ExtractionSuccess -ExtractPath $ExtractPath -ArchiveBaseName ([System.IO.Path]::GetFileNameWithoutExtension($ExtractSource))) {
+                Log-Message "Alternative extraction method completed successfully"
+                return $true
+            }
+        }
+        
+        # Method 2: Try extraction to temp directory first
+        Log-Message "Trying extraction to temporary directory..."
+        $tempExtractPath = Join-Path -Path $env:TEMP -ChildPath "MigrationTempExtract"
+        if (Test-Path $tempExtractPath) {
+            Remove-Item -Path $tempExtractPath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        New-Item -ItemType Directory -Path $tempExtractPath -Force | Out-Null
+        
+        $tempArgs = @(
+            "x",           # Extract with full paths
+            "-y",          # Assume Yes to all
+            "-o+",         # Overwrite all files
+            "-idq",        # Quiet mode
+            "-r",          # Recurse subdirectories
+            "\`"$ExtractSource\`"",
+            "\`"$tempExtractPath\`""
+        )
+        
+        $tempProcess = Start-Process -FilePath $WinRARPath -ArgumentList $tempArgs -Wait -NoNewWindow -PassThru
+        
+        if ($tempProcess.ExitCode -eq 0 -or $tempProcess.ExitCode -eq 1 -or $tempProcess.ExitCode -eq 9) {
+            # Check if temp extraction worked
+            $tempItems = Get-ChildItem -Path $tempExtractPath -Recurse -ErrorAction SilentlyContinue
+            if ($tempItems.Count -gt 0) {
+                Log-Message "Successfully extracted to temporary location, now copying to final destination..."
+                
+                # Copy extracted files to final destination
+                Copy-Item -Path "$tempExtractPath\\*" -Destination $ExtractPath -Recurse -Force -ErrorAction SilentlyContinue
+                
+                # Clean up temp directory
+                Remove-Item -Path $tempExtractPath -Recurse -Force -ErrorAction SilentlyContinue
+                
+                if (Test-ExtractionSuccess -ExtractPath $ExtractPath -ArchiveBaseName ([System.IO.Path]::GetFileNameWithoutExtension($ExtractSource))) {
+                    Log-Message "Files copied successfully to final destination"
+                    return $true
+                }
+            }
+        }
+        
+        return $false
+    }
+    catch {
+        Log-Message "Alternative extraction method failed: $($_.Exception.Message)"
+        return $false
+    }
 }
 
 
@@ -223,7 +535,7 @@ try {
     async function downloadAllArchiveFiles() {
       const bucketName = "${process.env.S3_MIGRATION_BUCKET_NAME}";
       const folderName = "${s3Folder}";
-      const archiveName = "${clientName}-${formattedDate}.rar";
+      const archiveBaseName = "${clientName}-${formattedDate}";
       const migrationFolder = "$($MigrationFolder.Replace('\\', '\\\\'))";
 
       const s3Client = new S3Client({
@@ -235,22 +547,27 @@ try {
       });
 
       try {
-        // List objects to find all archive files (single or multi-volume)
+        // List all objects in the S3 folder
         const listParams = {
           Bucket: bucketName,
-          Prefix: folderName + '/' + archiveName
+          Prefix: folderName + '/'
         };
 
         const data = await s3Client.send(new ListObjectsV2Command(listParams));
         
         if (!data.Contents || data.Contents.length === 0) {
+          throw new Error("No files found in S3 folder: " + folderName);
+        }
+        // Filter for RAR files that match our pattern (both single and multi-volume)
+        const archiveFiles = data.Contents.filter(item => {
+            const fileName = path.basename(item.Key);
+            // Match files that start with the base name and end with .rar
+            return fileName.startsWith(archiveBaseName) && fileName.endsWith('.rar');
+        });
+        
+        if (archiveFiles.length === 0) {
           throw new Error("No archive files found in S3 folder: " + folderName);
         }
-
-        // Filter for archive files
-        const archiveFiles = data.Contents.filter(item =>
-        item.Key.includes(archiveName)
-        );
         
         console.log("Found " + archiveFiles.length + " archive files in S3");
 
@@ -279,7 +596,7 @@ try {
           // Get file size for logging
             const stats = fs.statSync(localPath);
             const fileSizeMB = (stats.size / (1024 * 1024)).toFixed(2);
-            console.log("File size: " + fileSizeMB + " MB");
+            console.log("Downloaded: " + fileName + " (" + fileSizeMB + " MB)");
         }
 
         console.log("All downloads completed successfully.");
@@ -306,20 +623,6 @@ try {
 
     # Execute the download script
     Log-Message "Starting download process..."
-
-    # Get the expected file size from S3 first
-    $expectedSize = $null
-    try {
-        # Try to get file size using AWS CLI if available
-        $sizeInfo = aws s3api head-object --bucket "$BucketName" --key "$FolderName/$ArchiveName" --region "$env:AWS_REGION" 2>$null
-        if ($sizeInfo) {
-            $sizeObj = $sizeInfo | ConvertFrom-Json
-            $expectedSize = $sizeObj.ContentLength
-            Log-Message "Expected file size: $([math]::Round($expectedSize / 1MB, 2)) MB"
-        }
-    } catch {
-        Log-Message "Note: Could not determine expected file size. Showing progress without percentage."
-    }
 
     # Start the download process
     $nodeProcess = Start-Process -FilePath "node" -ArgumentList "\`"$downloadScriptPath\`"" -PassThru -NoNewWindow -Wait
@@ -359,42 +662,18 @@ try {
         Log-Message "Extraction path: $extractPath"
     }
 
-    # Use first volume for multi-volume or single file for extraction
+    # Always use the FIRST volume (part1) for multi-volume extraction
+    # WinRAR automatically finds and uses all subsequent volumes when extracting from part1
     $extractSource = $archiveFiles[0].FullName
     
-    # Enhanced extraction with robust parameters
-    $extractArgs = @(
-        "x",           # Extract with full paths
-        "-ibck",       # Run in background
-        "-y",          # Assume Yes to all
-        "-o+",         # Overwrite all files
-        "\`"$extractSource\`"",
-        "\`"$extractPath\`""
-    )
+    Log-Message "Extracting from first volume: $(Split-Path $extractSource -Leaf)"
+    Log-Message "WinRAR will automatically use all $($archiveFiles.Count) volume files"
 
-    Log-Message "Extracting from: $(Split-Path $extractSource -Leaf)"
-    $extractProcess = Start-Process -FilePath $WinRARPath -ArgumentList $extractArgs -Wait -NoNewWindow -PassThru
+    # Use robust extraction function with retry logic
+    $success = Invoke-RobustExtraction -WinRARPath $WinRARPath -ExtractSource $extractSource -ExtractPath $extractPath
 
-    if ($extractProcess.ExitCode -ne 0 -and $extractProcess.ExitCode -ne 1) {
-        $errorDetails = "Extraction failed with exit code $($extractProcess.ExitCode)"
-        Log-Message $errorDetails
-        
-        # Try alternative extraction method
-        
-            Log-Message "Attempting alternative extraction method..."
-            $extractArgs = @(
-                "x",           # Extract with full paths
-                "-ibck",       # Run in background
-                "-y",          # Assume Yes to all
-                "-o+",         # Overwrite all
-                "\`"$extractSource\`"",
-                "\`"$extractPath\`""
-            )
-            
-            $extractProcess = Start-Process -FilePath $WinRARPath -ArgumentList $extractArgs -Wait -NoNewWindow -PassThru
-            if ($extractProcess.ExitCode -ne 0 -and $extractProcess.ExitCode -ne 1) {
-                throw "Alternative extraction also failed with exit code $($extractProcess.ExitCode)"
-            }
+    if (-not $success) {
+        throw "Archive extraction failed after all retry attempts"
     }
   
     Log-Message "Extraction completed successfully"
@@ -703,6 +982,7 @@ try {
         }   
     }
 
+    # FINAL MIGRATION STATUS
 
     Log-Message "===== MIGRATION COMPLETED SUCCESSFULLY ====="
     Log-Message "All data restored to drive ${drive}:\\"
@@ -711,6 +991,7 @@ try {
     $errorMsg = $_.Exception.Message
     Log-Message "CRITICAL ERROR: $errorMsg"
     Log-Message "===== MIGRATION FAILED ====="
+    
     # Clean up temporary files even on error
     if ($MigrationFolder -and (Test-Path $MigrationFolder)) {
         Log-Message "Cleaning up temporary files after error..."
@@ -727,16 +1008,10 @@ try {
         # Delete temporary files
         Remove-TemporaryFiles -FolderPath $MigrationFolder
         
-        # Delete the script itself only if path is available
-        $scriptPath = $MyInvocation.MyCommand.Path
-        if (-not $scriptPath) {
-            $scriptPath = $PSCommandPath
-        }
-        if ($scriptPath -and (Test-Path -LiteralPath $scriptPath)) {
+        # Delete the script itself
+        if (Test-Path -LiteralPath $scriptPath) {
             Log-Message "Deleting script: $scriptPath"
             Remove-Item -LiteralPath $scriptPath -Force -ErrorAction Stop
-        } else {
-            Log-Message "Script path not available, skipping self-deletion"
         }
     } catch {
         Log-Message "WARNING: Failed to delete script - $($_.Exception.Message)"

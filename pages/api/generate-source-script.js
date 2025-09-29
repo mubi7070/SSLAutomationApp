@@ -399,22 +399,42 @@ try {
 
     # Check if we have volume files or single archive
     $archiveFiles = @()
-    if (Test-Path $ArchivePath) {
+
+    # First check for multi-volume archives (WinRAR creates .part01.rar, .part02.rar, etc.)
+    $volumeBaseName = [System.IO.Path]::GetFileNameWithoutExtension($ArchiveName)
+    $volumePattern = "$volumeBaseName.part*.rar"
+    $volumeFiles = Get-ChildItem -Path (Split-Path $ArchivePath) -Filter $volumePattern | Sort-Object Name
+
+    if ($volumeFiles.Count -gt 0) {
+        $totalSizeGB = [math]::Round(($volumeFiles | Measure-Object -Property Length -Sum).Sum / 1GB, 2)
+        Log-Message "Multi-volume archive created with $($volumeFiles.Count) parts. Total size: $totalSizeGB GB"
+        $archiveFiles = $volumeFiles
+
+        # Log each volume file found
+        foreach ($volume in $volumeFiles) {
+            $sizeGB = [math]::Round($volume.Length / 1GB, 2)
+            Log-Message "Volume: $($volume.Name) ($sizeGB GB)"
+        }
+    } 
+
+    # Check for single archive file
+    elseif (Test-Path $ArchivePath) {
         $sizeGB = [math]::Round((Get-Item $ArchivePath).Length / 1GB, 2)
         Log-Message "Single archive created at $ArchivePath (Size: $sizeGB GB)"
         $archiveFiles += (Get-Item $ArchivePath)
-    } else {
-        # Check for volume files
-        $volumeFiles = Get-ChildItem -Path (Split-Path $ArchivePath) -Filter "$(Split-Path $ArchivePath -Leaf).part*.rar" | Sort-Object Name
-        if ($volumeFiles.Count -gt 0) {
-            $totalSizeGB = [math]::Round(($volumeFiles | Measure-Object -Property Length -Sum).Sum / 1GB, 2)
-            Log-Message "Multi-volume archive created with $($volumeFiles.Count) parts. Total size: $totalSizeGB GB"
-            $archiveFiles = $volumeFiles
+    } 
+
+    else {
+        # Final attempt: check for any .rar files in the migration folder
+        $allRarFiles = Get-ChildItem -Path $MigrationFolder -Filter "*.rar" | Sort-Object Name
+        if ($allRarFiles.Count -gt 0) {
+            $totalSizeGB = [math]::Round(($allRarFiles | Measure-Object -Property Length -Sum).Sum / 1GB, 2)
+            Log-Message "Found $($allRarFiles.Count) RAR files using fallback search. Total size: $totalSizeGB GB"
+            $archiveFiles = $allRarFiles
         } else {
-            throw "No archive files found after successful WinRAR operation"
+            throw "No archive files found after successful WinRAR operation. Checked for: $volumePattern and $ArchiveName"
         }
     }
-
 
     # Upload to S3 using AWS SDK for JavaScript
     Log-Message "Uploading to S3 bucket $BucketName..."
