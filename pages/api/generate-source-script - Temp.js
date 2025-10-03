@@ -18,18 +18,101 @@ function generatePassword(length = 12) {
   return password;
 }
 
+// Function to properly escape paths for PowerShell
+function escapePowerShellPath(path) {
+  // Replace backslashes with double backslashes and escape quotes
+  return path.replace(/\\/g, '\\\\').replace(/"/g, '`"');
+}
+
+// Function to process exclude paths for include mode
+function processExcludePathsForIncludeMode(includePaths, excludePaths) {
+  const processedExclusions = [];
+
+  console.log('Processing exclusions for include mode:');
+  console.log('Include paths:', includePaths);
+  console.log('Exclude paths:', excludePaths);
+  
+  // Process each exclusion path
+  excludePaths.forEach(excludePath => {
+    let foundInInclude = false;
+    
+    // Check if this exclusion is within any include path
+    for (const includePath of includePaths) {
+      // Normalize paths for comparison (remove trailing slashes)
+      const normalizedInclude = includePath.replace(/[\\/]+$/, '');
+      const normalizedExclude = excludePath.replace(/[\\/]+$/, '');
+
+      console.log(`Checking if '${normalizedExclude}' is within '${normalizedInclude}'`);
+      
+      // Check if exclude path starts with include path
+      if (normalizedExclude.toLowerCase().startsWith(normalizedInclude.toLowerCase())) {
+        foundInInclude = true;
+        
+        // Get the relative path
+        let relativePath = normalizedExclude.substring(normalizedInclude.length);
+        
+        // Remove leading backslash if present
+        if (relativePath.startsWith('\\') || relativePath.startsWith('/')) {
+          relativePath = relativePath.substring(1);
+        }
+        
+        // Only add if we have a valid relative path
+        if (relativePath && relativePath.trim() !== '') {
+          processedExclusions.push(relativePath);
+          console.log(`✓ Converted exclusion: '${excludePath}' -> '${relativePath}'`);
+        } else {
+          console.log(`⚠ Warning: Empty relative path for exclusion '${excludePath}' under include '${includePath}'`);
+        }
+        break;
+      }
+    }
+    
+    if (!foundInInclude) {
+      console.log(`Info: Exclusion path '${excludePath}' is not within any include path - ignoring`);
+    }
+  });
+  console.log('Final processed exclusions:', processedExclusions);
+  return processedExclusions;
+}
+
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { drive, clientName, excludePaths = [], includePaths = [], mode = 'exclude' } = req.body;
+     const {
+        drive,
+        clientName,
+        excludePaths = [],
+        includePaths = [],
+        mode = 'exclude',
+        stopDisableServices = false,
+        stopTomcat = false,
+        stopMySQL = false,
+        sourceTomcatServiceName = 'Tomcat9',
+        sourceMySQLServiceName = 'MySQL8'
+    } = req.body;
+
+
 
     // Validate input parameters
     if (!drive || !clientName) {
         return res.status(400).json({ error: 'Drive and client name are required' });
     }
 
+    console.log(`
+    drive: ${drive},
+    clientName: ${clientName},
+    excludePaths: ${JSON.stringify(excludePaths)},
+    includePaths: ${JSON.stringify(includePaths)},
+    mode: ${mode},
+    stopDisableServices: ${stopDisableServices},
+    stopTomcat: ${stopTomcat},
+    stopMySQL: ${stopMySQL},
+    sourceTomcatServiceName: ${sourceTomcatServiceName},
+    sourceMySQLServiceName: ${sourceMySQLServiceName}
+    `);
+    
     // Generate formatted date (MMDDYY)
     const today = new Date();
     const formattedDate = `${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}${String(today.getFullYear()).slice(-2)}`;
@@ -78,10 +161,26 @@ export default async function handler(req, res) {
     `${drive}:\\${clientName}-ServerMigration-${formattedDate}.ps1`
     ];
 
-    const allExclusions = [
-        ...defaultExclusions,
-        ...excludePaths,
-    ];
+    // Process exclusions based on mode
+    let allExclusions;
+    if (mode === 'include') {
+        // For include mode, process exclusions to be relative to include paths
+        allExclusions = [
+            ...defaultExclusions,
+            ...processExcludePathsForIncludeMode(includePaths, excludePaths)
+        ];
+    } else {
+        // For exclude mode, use all exclusions as-is
+        allExclusions = [
+            ...defaultExclusions,
+            ...excludePaths
+        ];
+    }
+
+    // Format paths for PowerShell - wrap each path in quotes and escape
+    const includePathsFormatted = includePaths.map(path => `'${escapePowerShellPath(path)}'`);
+    const excludePathsFormatted = allExclusions.map(path => `"${escapePowerShellPath(path)}"`);
+    
 
     // Create PowerShell script
     const script = `
@@ -96,11 +195,16 @@ param(
     [string]$ClientName = "${clientName}",
     [string]$Mode = "${mode}",
     [string[]]$IncludePaths = @(
-        ${includePaths.map(e => `"${e.replace(/"/g, '""')}"`).join(",\n        ")}
+        ${includePathsFormatted.join(",\n        ")}
     ),
     [string[]]$ExcludePaths = @(
-        ${allExclusions.map(e => `"${e.replace(/"/g, '""')}"`).join(",\n        ")}
-    )
+        ${excludePathsFormatted.join(",\n        ")}
+    ),
+    [bool]$StopDisableServices = $${stopDisableServices},
+    [bool]$StopTomcat = $${stopTomcat},
+    [bool]$StopMySQL = $${stopMySQL},
+    [string]$TomcatServiceName = "${sourceTomcatServiceName}",
+    [string]$MySQLServiceName = "${sourceMySQLServiceName}"
 )
 
 # AWS Configuration
@@ -161,6 +265,49 @@ function Remove-TemporaryFiles {
                 Log-Message "WARNING: Failed to delete $file - $($_.Exception.Message)"
             }
         }
+    }
+}
+
+# NEW: Function to stop and disable services
+function Stop-AndDisableService {
+    param(
+        [string]$ServiceName,
+        [string]$ServiceType
+    )
+    
+    try {
+        Log-Message "Checking if $ServiceType service '$ServiceName' exists..."
+        $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+        
+        if ($service) {
+            Log-Message "$ServiceType service '$ServiceName' found. Current status: $($service.Status)"
+            
+            # Stop the service if it's running
+            if ($service.Status -eq 'Running') {
+                Log-Message "Stopping $ServiceType service: $ServiceName"
+                Stop-Service -Name $ServiceName -Force -ErrorAction Stop
+                # Wait for service to stop
+                do {
+                    Start-Sleep -Seconds 2
+                    $service = Get-Service -Name $ServiceName
+                } while ($service.Status -eq 'StopPending' -or $service.Status -eq 'Running')
+                Log-Message "$ServiceType service stopped successfully"
+            } else {
+                Log-Message "$ServiceType service is already stopped"
+            }
+            
+            # Disable the service
+            Log-Message "Disabling $ServiceType service: $ServiceName"
+            Set-Service -Name $ServiceName -StartupType Disabled -ErrorAction Stop
+            Log-Message "$ServiceType service disabled successfully"
+            
+        } else {
+            Log-Message "WARNING: $ServiceType service '$ServiceName' not found. Skipping..."
+        }
+    }
+    catch {
+        Log-Message "ERROR: Failed to stop/disable $ServiceType service '$ServiceName' - $($_.Exception.Message)"
+        throw "Failed to stop/disable $ServiceType service"
     }
 }
 
@@ -303,6 +450,17 @@ try {
     }
     Log-Message "  Exclude Paths: $($ExcludePaths -join ', ')"
 
+    # NEW: Check NodeJS installation
+    Log-Message "Checking NodeJS installation..."
+    if (-not (Test-CommandExists "npm")) {
+        $msg = "NodeJS (npm) not found. Please install NodeJS from: https://nodejs.org/en/download"
+        Log-Message $msg
+        throw $msg
+    }
+    $nodeVersion = npm -v
+    Log-Message "NodeJS version: $nodeVersion"
+
+    Log-Message "Checking Winrar installation..."
     # Verify WinRAR installation
     if (-not (Test-Path $WinRARPath)) {
         $msg = "WinRAR not found at '$WinRARPath'. Please install from: https://www.rarlab.com/download.htm"
@@ -319,11 +477,35 @@ try {
         Log-Message "Disk space check: $freeSpaceGB GB available on $DriveLetter"
     }
 
-
-    # Build proper exclusion arguments
+        # NEW: Stop and disable services if requested
+    if ($StopDisableServices) {
+        Log-Message "===== STOPPING AND DISABLING SERVICES ====="
+        
+        if ($StopTomcat) {
+            Log-Message "Processing Tomcat service: $TomcatServiceName"
+            Stop-AndDisableService -ServiceName $TomcatServiceName -ServiceType "Tomcat"
+        } else {
+            Log-Message "Tomcat service stop/disable skipped (not selected)"
+        }
+        
+        if ($StopMySQL) {
+            Log-Message "Processing MySQL service: $MySQLServiceName"
+            Stop-AndDisableService -ServiceName $MySQLServiceName -ServiceType "MySQL"
+        } else {
+            Log-Message "MySQL service stop/disable skipped (not selected)"
+        }
+        
+        Log-Message "===== SERVICE STOP/DISABLE COMPLETED ====="
+    } else {
+        Log-Message "Service stop/disable skipped (not enabled)"
+    }
+    
+    # Build proper exclusion arguments - SIMPLIFIED VERSION
     $exclusionArgs = New-Object System.Collections.Generic.List[string]
     foreach ($ex in $ExcludePaths) {
-        $exclusionArgs.Add("-x$ex")
+        $safeEx = $ex -replace '\`', '\`\`' -replace '"', '\`"'
+        $exclusionArgs.Add("-x\`"$safeEx\`"")
+        Log-Message "Added exclusion: $ex"
     }
 
     # Delete existing archive if present
@@ -341,31 +523,46 @@ try {
 
     # Archive based on mode
     if ($Mode -eq 'include') {
-        Log-Message "Starting archive process for included paths with WinRAR (5GB volumes)..."
-        
-        $rarCommand = @(
-            "a",           # Add to archive
-            "-r",          # Recurse subdirectories
-            "-ep1",        # Exclude base folder from names
-            "-y",          # Assume Yes to all queries
-            "-idq",        # Quiet mode (suppress progress)
-            "-v3g",        # Split into 3GB volumes
-            "-md512m",     # Medium dictionary size
-            "-mt4",        # Use 4 threads for better performance
-            "$ArchivePath"
-        )
-        
-        # Add each included path
-        foreach ($inc in $IncludePaths) {
-            $rarCommand += $inc
-        }
-        
-        # Add exclusions
-        $rarCommand += $exclusionArgs
+    Log-Message "Starting archive process for included paths with WinRAR (3GB volumes)..."
+    
+    $cores   = [Environment]::ProcessorCount
+    $threads = [Math]::Max(1, $cores - 1)    # leave 1 core free
+    $mtSwitch = "-mt$threads"                # build the -mt string here
+
+    Log-Message "MT VALUE: $mtSwitch"
+
+    $rarCommand = @(
+        "a",            # Add to archive
+        "-r",           # Recurse subdirectories
+        "-ep1",         # Exclude base folder from names
+        "-y",           # Assume Yes to all queries
+        "-idq",         # Quiet mode (suppress progress)
+        "-v3g",         # Split into 3GB volumes
+        "-m3",          # Normal compression (fast + decent ratio)
+        "-md128m",      # 128 MB dictionary (better ratio, still fast)
+        $mtSwitch,  # Use (cores - 1) threads
+        "\`"$ArchivePath\`""
+    )
+    
+    # Add each included path - CRITICAL FIX: Use proper quoting for paths with spaces
+    foreach ($inc in $IncludePaths) {
+        $rarCommand += "\`"$inc\`""
+    }
+    
+    # Add exclusions
+    $rarCommand += $exclusionArgs
+    
+    Log-Message "Include mode command built with $($IncludePaths.Count) include paths and $($exclusionArgs.Count) exclusion patterns"
+    Log-Message "Full WinRAR command: $WinRARPath $($rarCommand -join ' ')"
     }
     else {    
-    Log-Message "Starting archive process for drive ${drive} with WinRAR (5GB volumes)..."
-    
+    Log-Message "Starting archive process for drive ${drive} with WinRAR (3GB volumes)..."
+    $cores   = [Environment]::ProcessorCount
+    $threads = [Math]::Max(1, $cores - 1)    # leave 1 core free
+    $mtSwitch = "-mt$threads"                # build the -mt string here
+
+    Log-Message "MT VALUE: $mtSwitch"
+
     $rarCommand = @(
         "a",           # Add to archive
         "-r",          # Recurse subdirectories
@@ -373,8 +570,9 @@ try {
         "-y",          # Assume Yes to all queries
         "-idq",        # Quiet mode (suppress progress)
         "-v3g",        # Split into 3GB volumes - ALWAYS ENABLED
-        "-md512m",     # Medium dictionary size
-        "-mt4",        # Use 4 threads for better performance
+        "-m3",          # Normal compression (fast + decent ratio)
+        "-md128m",      # 128 MB dictionary (better ratio, still fast)
+        $mtSwitch,  # Use (cores - 1) threads
         "$ArchivePath",
         "${drive}:\\*"
     ) + $exclusionArgs
@@ -390,22 +588,42 @@ try {
 
     # Check if we have volume files or single archive
     $archiveFiles = @()
-    if (Test-Path $ArchivePath) {
+
+    # First check for multi-volume archives (WinRAR creates .part01.rar, .part02.rar, etc.)
+    $volumeBaseName = [System.IO.Path]::GetFileNameWithoutExtension($ArchiveName)
+    $volumePattern = "$volumeBaseName.part*.rar"
+    $volumeFiles = Get-ChildItem -Path (Split-Path $ArchivePath) -Filter $volumePattern | Sort-Object Name
+
+    if ($volumeFiles.Count -gt 0) {
+        $totalSizeGB = [math]::Round(($volumeFiles | Measure-Object -Property Length -Sum).Sum / 1GB, 2)
+        Log-Message "Multi-volume archive created with $($volumeFiles.Count) parts. Total size: $totalSizeGB GB"
+        $archiveFiles = $volumeFiles
+
+        # Log each volume file found
+        foreach ($volume in $volumeFiles) {
+            $sizeGB = [math]::Round($volume.Length / 1GB, 2)
+            Log-Message "Volume: $($volume.Name) ($sizeGB GB)"
+        }
+    } 
+
+    # Check for single archive file
+    elseif (Test-Path $ArchivePath) {
         $sizeGB = [math]::Round((Get-Item $ArchivePath).Length / 1GB, 2)
         Log-Message "Single archive created at $ArchivePath (Size: $sizeGB GB)"
         $archiveFiles += (Get-Item $ArchivePath)
-    } else {
-        # Check for volume files
-        $volumeFiles = Get-ChildItem -Path (Split-Path $ArchivePath) -Filter "$(Split-Path $ArchivePath -Leaf).part*.rar" | Sort-Object Name
-        if ($volumeFiles.Count -gt 0) {
-            $totalSizeGB = [math]::Round(($volumeFiles | Measure-Object -Property Length -Sum).Sum / 1GB, 2)
-            Log-Message "Multi-volume archive created with $($volumeFiles.Count) parts. Total size: $totalSizeGB GB"
-            $archiveFiles = $volumeFiles
+    } 
+
+    else {
+        # Final attempt: check for any .rar files in the migration folder
+        $allRarFiles = Get-ChildItem -Path $MigrationFolder -Filter "*.rar" | Sort-Object Name
+        if ($allRarFiles.Count -gt 0) {
+            $totalSizeGB = [math]::Round(($allRarFiles | Measure-Object -Property Length -Sum).Sum / 1GB, 2)
+            Log-Message "Found $($allRarFiles.Count) RAR files using fallback search. Total size: $totalSizeGB GB"
+            $archiveFiles = $allRarFiles
         } else {
-            throw "No archive files found after successful WinRAR operation"
+            throw "No archive files found after successful WinRAR operation. Checked for: $volumePattern and $ArchiveName"
         }
     }
-
 
     # Upload to S3 using AWS SDK for JavaScript
     Log-Message "Uploading to S3 bucket $BucketName..."
@@ -443,7 +661,10 @@ try {
         });
 
         parallelUploads3.on("httpUploadProgress", (progress) => {
-          console.log("Uploaded:", progress.loaded, "of", progress.total);
+            const loadedMB = (progress.loaded / (1024 * 1024)).toFixed(2);
+            const totalMB = progress.total ? (progress.total / (1024 * 1024)).toFixed(2) : 'Unknown';
+
+            console.log("Uploaded:", loadedMB, "MB of", totalMB, "MB");
         });
 
         await parallelUploads3.done();
@@ -468,8 +689,8 @@ try {
     # Install required npm package
     Log-Message "Installing AWS SDK for S3..."
     Set-Location -Path $MigrationFolder
-    npm init -y --quiet
-    npm install @aws-sdk/client-s3 @aws-sdk/lib-storage
+    npm init -y --quiet 2>&1 | Out-Null
+    npm install @aws-sdk/client-s3 @aws-sdk/lib-storage 2>&1 | Out-Null
 
     # Upload all archive files (single or multi-volume)
     foreach ($archiveFile in $archiveFiles) {

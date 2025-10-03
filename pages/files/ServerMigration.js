@@ -42,6 +42,12 @@ export default function ServerMigration() {
   const [unarchiveOption, setUnarchiveOption] = useState('driveRoot');
   const [unarchivePath, setUnarchivePath] = useState('');
 
+  const [stopDisableServices, setStopDisableServices] = useState(false);
+  const [stopTomcat, setStopTomcat] = useState(false);
+  const [stopMySQL, setStopMySQL] = useState(false);
+  const [sourceTomcatServiceName, setSourceTomcatServiceName] = useState('Tomcat9');
+  const [sourceMySQLServiceName, setSourceMySQLServiceName] = useState('MySQL8');
+
   const [enablePerformanceOptions, setEnablePerformanceOptions] = useState(false);
   const [performanceOptions, setPerformanceOptions] = useState([
     '-Djava.awt.headless=false',
@@ -175,6 +181,11 @@ export default function ServerMigration() {
       '-Xverify:none'
     ]);
     setNewPerformanceOption('');
+    setStopDisableServices(false);
+    setStopTomcat(false);
+    setStopMySQL(false);
+    setSourceTomcatServiceName('Tomcat9');
+    setSourceMySQLServiceName('MySQL8');
   };
 
   const handleGenerateSourceScript = async () => {
@@ -201,7 +212,12 @@ export default function ServerMigration() {
           clientName: sanitizedClientName,
           excludePaths,
           includePaths: pathMode === 'include' ? includePaths : [],
-          mode: pathMode
+          mode: pathMode,
+          stopDisableServices,
+          stopTomcat,
+          stopMySQL,
+          sourceTomcatServiceName,
+          sourceMySQLServiceName
         }),
       });
 
@@ -590,7 +606,73 @@ export default function ServerMigration() {
                   </p>
                 </div>
 
+                {/* NEW: Source Advanced Options */}
+                <h3 className={styles.additionalOptionsHeader}>Advanced Options</h3>
+
+                <div className={styles.optionGroup}>
+                  <label className={styles.optionLabel}>
+                    <input
+                      type="checkbox"
+                      checked={stopDisableServices}
+                      onChange={(e) => setStopDisableServices(e.target.checked)}
+                      className={styles.optionCheckbox}
+                    />
+                    Stop & Disable Services
+                  </label>
+                  {stopDisableServices && (
+                    <>
+                      <div className={styles.optionInput}>
+                        <label className={styles.optionLabel}>
+                          <input
+                            type="checkbox"
+                            checked={stopTomcat}
+                            onChange={(e) => setStopTomcat(e.target.checked)}
+                            className={styles.optionCheckbox}
+                          />
+                          Tomcat Service
+                        </label>
+                        {stopTomcat && (
+                          <div className={styles.optionInput}>
+                            <label>Tomcat Service Name:</label>
+                            <input
+                              type="text"
+                              value={sourceTomcatServiceName}
+                              onChange={(e) => setSourceTomcatServiceName(e.target.value)}
+                              className={styles.styledselecttempmargin}
+                              style={{ width: '93%', padding: '7px', margin: '10px 0' }}
+                              placeholder="Tomcat9"
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <div className={styles.optionInput}>
+                        <label className={styles.optionLabel}>
+                          <input
+                            type="checkbox"
+                            checked={stopMySQL}
+                            onChange={(e) => setStopMySQL(e.target.checked)}
+                            className={styles.optionCheckbox}
+                          />
+                          MySQL Service
+                        </label>
+                        {stopMySQL && (
+                          <div className={styles.optionInput}>
+                            <label>MySQL Service Name:</label>
+                            <input
+                              type="text"
+                              value={sourceMySQLServiceName}
+                              onChange={(e) => setSourceMySQLServiceName(e.target.value)}
+                              className={styles.styledselecttempmargin}
+                              style={{ width: '93%', padding: '7px', margin: '10px 0' }}
+                              placeholder="MySQL8"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </>
                 
+                  )}
+                </div>
                 
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
                   <button

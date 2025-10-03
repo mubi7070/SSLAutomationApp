@@ -19,23 +19,129 @@ function generatePassword(length = 12) {
 }
 
 // Function to properly escape paths for PowerShell
-function escapePowerShellPath(path) {
-  // Replace backslashes with double backslashes and escape quotes
-  return path.replace(/\\/g, '\\\\').replace(/"/g, '`"');
+function escapePowerShellPath(p) {
+  if (!p) return '';
+  // Convert forward slashes to backslashes
+  let fixed = p.replace(/\//g, '\\');
+
+  // Remove duplicate backslashes (e.g. E:\\\ -> E:\)
+  fixed = fixed.replace(/\\\\+/g, '\\');
+
+  // Escape only quotes for PowerShell
+  fixed = fixed.replace(/"/g, '`"');
+
+  return fixed;
 }
+
+// Function to process exclude paths for include mode (robust, returns ABSOLUTE excludes)
+function processExcludePathsForIncludeMode(includePaths, excludePaths) {
+  const processedExclusions = [];
+  const seen = new Set();
+
+  function normalize(p) {
+    if (!p) return '';
+    // Trim and convert forward to backslashes, remove trailing slashes
+    return p.trim().replace(/\//g, '\\').replace(/[\\]+$/, '');
+  }
+
+  function looksLikeFile(lastSegment) {
+    // Heuristic: has an extension (dot followed by chars) OR starts with '.' (e.g. .env)
+    return /\.[^\\\/]+$/.test(lastSegment) || /^\.[^\\\/]+$/.test(lastSegment);
+  }
+
+  console.log('Processing exclusions for include mode (producing absolute excludes):');
+  console.log('Include paths:', includePaths);
+  console.log('Exclude paths:', excludePaths);
+
+  // Normalize includes to compare (no filesystem calls)
+  const normalizedIncludes = includePaths.map(inc => normalize(inc));
+
+  for (const rawExclude of excludePaths) {
+    const exclude = normalize(rawExclude);
+    let matched = false;
+
+    for (const inc of normalizedIncludes) {
+      // Case-insensitive comparison
+      if (exclude.toLowerCase().startsWith(inc.toLowerCase())) {
+        matched = true;
+
+        // If exclude equals include (user asked to exclude the include root)
+        if (exclude.toLowerCase() === inc.toLowerCase()) {
+          // Exclude all contents of that include root (absolute)
+          const pattern = `${inc}\\*`;
+          if (!seen.has(pattern)) { seen.add(pattern); processedExclusions.push(pattern); }
+          console.log(`✓ Excluding all contents under include root: '${pattern}'`);
+          break;
+        }
+
+        // Exclude is inside include: decide file vs directory by heuristic on last segment
+        const rel = exclude.substring(inc.length).replace(/^\\+/, ''); // relative path inside include
+        const lastSegment = rel.split('\\').pop() || '';
+
+        if (looksLikeFile(lastSegment)) {
+          // Treat as file -> exclude exact absolute file
+          const pattern = exclude; // absolute file path
+          if (!seen.has(pattern)) { seen.add(pattern); processedExclusions.push(pattern); }
+          console.log(`✓ Excluding file: '${pattern}'`);
+        } else {
+          // Treat as directory -> exclude contents only (absolute dir\*)
+          const pattern = exclude;
+          if (!seen.has(pattern)) { seen.add(pattern); processedExclusions.push(pattern); }
+          console.log(`✓ Excluding entire folder: '${pattern}'`);
+        }
+        break; // stop checking other includes
+      }
+    }
+
+    if (!matched) {
+      // Exclude not under any include => ignore (you already handle absolute exclude mode separately)
+      console.log(`Info: Exclusion '${rawExclude}' is not inside any include path - ignoring`);
+    }
+  }
+
+  console.log('Final processed exclusions (absolute patterns):', processedExclusions);
+  return processedExclusions;
+}
+
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { drive, clientName, excludePaths = [], includePaths = [], mode = 'exclude' } = req.body;
+     const {
+        drive,
+        clientName,
+        excludePaths = [],
+        includePaths = [],
+        mode = 'exclude',
+        stopDisableServices = false,
+        stopTomcat = false,
+        stopMySQL = false,
+        sourceTomcatServiceName = 'Tomcat9',
+        sourceMySQLServiceName = 'MySQL8'
+    } = req.body;
+
+
 
     // Validate input parameters
     if (!drive || !clientName) {
         return res.status(400).json({ error: 'Drive and client name are required' });
     }
 
+    console.log(`
+    drive: ${drive},
+    clientName: ${clientName},
+    excludePaths: ${JSON.stringify(excludePaths)},
+    includePaths: ${JSON.stringify(includePaths)},
+    mode: ${mode},
+    stopDisableServices: ${stopDisableServices},
+    stopTomcat: ${stopTomcat},
+    stopMySQL: ${stopMySQL},
+    sourceTomcatServiceName: ${sourceTomcatServiceName},
+    sourceMySQLServiceName: ${sourceMySQLServiceName}
+    `);
+    
     // Generate formatted date (MMDDYY)
     const today = new Date();
     const formattedDate = `${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}${String(today.getFullYear()).slice(-2)}`;
@@ -84,10 +190,26 @@ export default async function handler(req, res) {
     `${drive}:\\${clientName}-ServerMigration-${formattedDate}.ps1`
     ];
 
-    const allExclusions = [
-        ...defaultExclusions,
-        ...excludePaths.map(path => escapePowerShellPath(path)),
-    ];
+    // Process exclusions based on mode
+    let allExclusions;
+    if (mode === 'include') {
+        // For include mode, process exclusions to be relative to include paths
+        allExclusions = [
+            ...defaultExclusions,
+            ...processExcludePathsForIncludeMode(includePaths, excludePaths)
+        ];
+    } else {
+        // For exclude mode, use all exclusions as-is
+        allExclusions = [
+            ...defaultExclusions,
+            ...excludePaths
+        ];
+    }
+
+    // Format paths for PowerShell - wrap each path in quotes and escape
+    const includePathsFormatted = includePaths.map(path => `'${escapePowerShellPath(path)}'`);
+    const excludePathsFormatted = allExclusions.map(path => `"${escapePowerShellPath(path)}"`);
+    
 
     // Create PowerShell script
     const script = `
@@ -102,11 +224,16 @@ param(
     [string]$ClientName = "${clientName}",
     [string]$Mode = "${mode}",
     [string[]]$IncludePaths = @(
-        ${includePaths.map(e => `"${escapePowerShellPath(e)}"`).join(",\n        ")}
+        ${includePathsFormatted.join(",\n        ")}
     ),
     [string[]]$ExcludePaths = @(
-        ${allExclusions.map(e => `"${e}"`).join(",\n        ")}
-    )
+        ${excludePathsFormatted.join(",\n        ")}
+    ),
+    [bool]$StopDisableServices = $${stopDisableServices},
+    [bool]$StopTomcat = $${stopTomcat},
+    [bool]$StopMySQL = $${stopMySQL},
+    [string]$TomcatServiceName = "${sourceTomcatServiceName}",
+    [string]$MySQLServiceName = "${sourceMySQLServiceName}"
 )
 
 # AWS Configuration
@@ -167,6 +294,49 @@ function Remove-TemporaryFiles {
                 Log-Message "WARNING: Failed to delete $file - $($_.Exception.Message)"
             }
         }
+    }
+}
+
+# NEW: Function to stop and disable services
+function Stop-AndDisableService {
+    param(
+        [string]$ServiceName,
+        [string]$ServiceType
+    )
+    
+    try {
+        Log-Message "Checking if $ServiceType service '$ServiceName' exists..."
+        $service = Get-Service -Name $ServiceName -ErrorAction SilentlyContinue
+        
+        if ($service) {
+            Log-Message "$ServiceType service '$ServiceName' found. Current status: $($service.Status)"
+            
+            # Stop the service if it's running
+            if ($service.Status -eq 'Running') {
+                Log-Message "Stopping $ServiceType service: $ServiceName"
+                Stop-Service -Name $ServiceName -Force -ErrorAction Stop
+                # Wait for service to stop
+                do {
+                    Start-Sleep -Seconds 2
+                    $service = Get-Service -Name $ServiceName
+                } while ($service.Status -eq 'StopPending' -or $service.Status -eq 'Running')
+                Log-Message "$ServiceType service stopped successfully"
+            } else {
+                Log-Message "$ServiceType service is already stopped"
+            }
+            
+            # Disable the service
+            Log-Message "Disabling $ServiceType service: $ServiceName"
+            Set-Service -Name $ServiceName -StartupType Disabled -ErrorAction Stop
+            Log-Message "$ServiceType service disabled successfully"
+            
+        } else {
+            Log-Message "WARNING: $ServiceType service '$ServiceName' not found. Skipping..."
+        }
+    }
+    catch {
+        Log-Message "ERROR: Failed to stop/disable $ServiceType service '$ServiceName' - $($_.Exception.Message)"
+        throw "Failed to stop/disable $ServiceType service"
     }
 }
 
@@ -309,6 +479,17 @@ try {
     }
     Log-Message "  Exclude Paths: $($ExcludePaths -join ', ')"
 
+    # NEW: Check NodeJS installation
+    Log-Message "Checking NodeJS installation..."
+    if (-not (Test-CommandExists "npm")) {
+        $msg = "NodeJS (npm) not found. Please install NodeJS from: https://nodejs.org/en/download"
+        Log-Message $msg
+        throw $msg
+    }
+    $nodeVersion = npm -v
+    Log-Message "NodeJS version: $nodeVersion"
+
+    Log-Message "Checking Winrar installation..."
     # Verify WinRAR installation
     if (-not (Test-Path $WinRARPath)) {
         $msg = "WinRAR not found at '$WinRARPath'. Please install from: https://www.rarlab.com/download.htm"
@@ -325,14 +506,35 @@ try {
         Log-Message "Disk space check: $freeSpaceGB GB available on $DriveLetter"
     }
 
-
-    # Build proper exclusion arguments
+        # NEW: Stop and disable services if requested
+    if ($StopDisableServices) {
+        Log-Message "===== STOPPING AND DISABLING SERVICES ====="
+        
+        if ($StopTomcat) {
+            Log-Message "Processing Tomcat service: $TomcatServiceName"
+            Stop-AndDisableService -ServiceName $TomcatServiceName -ServiceType "Tomcat"
+        } else {
+            Log-Message "Tomcat service stop/disable skipped (not selected)"
+        }
+        
+        if ($StopMySQL) {
+            Log-Message "Processing MySQL service: $MySQLServiceName"
+            Stop-AndDisableService -ServiceName $MySQLServiceName -ServiceType "MySQL"
+        } else {
+            Log-Message "MySQL service stop/disable skipped (not selected)"
+        }
+        
+        Log-Message "===== SERVICE STOP/DISABLE COMPLETED ====="
+    } else {
+        Log-Message "Service stop/disable skipped (not enabled)"
+    }
+    
+    # Build proper exclusion arguments - SIMPLIFIED VERSION
     $exclusionArgs = New-Object System.Collections.Generic.List[string]
     foreach ($ex in $ExcludePaths) {
-
         $safeEx = $ex -replace '\`', '\`\`' -replace '"', '\`"'
-
         $exclusionArgs.Add("-x\`"$safeEx\`"")
+        Log-Message "Added exclusion: $ex"
     }
 
     # Delete existing archive if present
@@ -350,31 +552,47 @@ try {
 
     # Archive based on mode
     if ($Mode -eq 'include') {
-        Log-Message "Starting archive process for included paths with WinRAR (3GB volumes)..."
-        
-        $rarCommand = @(
-            "a",           # Add to archive
-            "-r",          # Recurse subdirectories
-            "-ep1",        # Exclude base folder from names
-            "-y",          # Assume Yes to all queries
-            "-idq",        # Quiet mode (suppress progress)
-            "-v3g",        # Split into 3GB volumes
-            "-md512m",     # Medium dictionary size
-            "-mt4",        # Use 4 threads for better performance
-            "$ArchivePath"
-        )
-        
-        # Add each included path
-        foreach ($inc in $IncludePaths) {
-            $rarCommand += $inc
-        }
-        
-        # Add exclusions
-        $rarCommand += $exclusionArgs
+    Log-Message "Starting archive process for included paths with WinRAR (3GB volumes)..."
+    
+    $cores   = [Environment]::ProcessorCount
+    $threads = [Math]::Max(1, $cores - 1)    # leave 1 core free
+    $mtSwitch = "-mt$threads"                # build the -mt string here
+
+    Log-Message "MT VALUE: $mtSwitch"
+
+    $rarCommand = @(
+        "a",            # Add to archive
+        "-r",           # Recurse subdirectories
+        "-ep1",         # Exclude base folder from names - KEEP THIS
+        "-y",           # Assume Yes to all queries
+        "-idq",         # Quiet mode (suppress progress)
+        "-v3g",         # Split into 3GB volumes
+        "-m3",          # Normal compression (fast + decent ratio)
+        "-md128m",      # 128 MB dictionary (better ratio, still fast)
+        $mtSwitch,      # Use (cores - 1) threads
+        "\`"$ArchivePath\`""
+    )
+    
+    # Add each included path - CRITICAL FIX: Use proper quoting for paths with spaces
+    foreach ($inc in $IncludePaths) {
+        $rarCommand += "\`"$inc\`""
     }
+    
+    # Add exclusions - IMPORTANT: With -ep1, exclusions are relative to the included paths
+    $rarCommand += $exclusionArgs
+    
+    Log-Message "Include mode command built with $($IncludePaths.Count) include paths and $($exclusionArgs.Count) exclusion patterns"
+    Log-Message "Full WinRAR command: $WinRARPath $($rarCommand -join ' ')"
+    }
+
     else {    
     Log-Message "Starting archive process for drive ${drive} with WinRAR (3GB volumes)..."
-    
+    $cores   = [Environment]::ProcessorCount
+    $threads = [Math]::Max(1, $cores - 1)    # leave 1 core free
+    $mtSwitch = "-mt$threads"                # build the -mt string here
+
+    Log-Message "MT VALUE: $mtSwitch"
+
     $rarCommand = @(
         "a",           # Add to archive
         "-r",          # Recurse subdirectories
@@ -382,8 +600,9 @@ try {
         "-y",          # Assume Yes to all queries
         "-idq",        # Quiet mode (suppress progress)
         "-v3g",        # Split into 3GB volumes - ALWAYS ENABLED
-        "-md512m",     # Medium dictionary size
-        "-mt4",        # Use 4 threads for better performance
+        "-m3",          # Normal compression (fast + decent ratio)
+        "-md128m",      # 128 MB dictionary (better ratio, still fast)
+        $mtSwitch,  # Use (cores - 1) threads
         "$ArchivePath",
         "${drive}:\\*"
     ) + $exclusionArgs
@@ -472,7 +691,10 @@ try {
         });
 
         parallelUploads3.on("httpUploadProgress", (progress) => {
-          console.log("Uploaded:", progress.loaded, "of", progress.total);
+            const loadedMB = (progress.loaded / (1024 * 1024)).toFixed(2);
+            const totalMB = progress.total ? (progress.total / (1024 * 1024)).toFixed(2) : 'Unknown';
+
+            console.log("Uploaded:", loadedMB, "MB of", totalMB, "MB");
         });
 
         await parallelUploads3.done();

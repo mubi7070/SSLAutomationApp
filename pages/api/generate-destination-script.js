@@ -151,6 +151,15 @@ function Log-Message {
     $logEntry | Out-File -FilePath $LogPath -Append -Encoding utf8
 }
 
+function Test-CommandExists {
+    param([string]$command)
+    $oldPreference = $ErrorActionPreference
+    $ErrorActionPreference = 'stop'
+    try { if(Get-Command $command){ return $true } }
+    catch { return $false }
+    finally { $ErrorActionPreference = $oldPreference }
+}
+
 function Remove-TemporaryFiles {
     param(
         [string]$FolderPath
@@ -517,6 +526,16 @@ try {
     New-Item -ItemType Directory -Path $MigrationFolder -Force | Out-Null
     "=======================================================" | Out-File -FilePath $LogPath -Encoding utf8
     Log-Message "Starting migration for client ${clientName} on drive ${drive}"
+
+    # NEW: Check NodeJS installation
+    Log-Message "Checking NodeJS installation..."
+    if (-not (Test-CommandExists "npm")) {
+        $msg = "NodeJS (npm) not found. Please install NodeJS from: https://nodejs.org/en/download"
+        Log-Message $msg
+        throw $msg
+    }
+    $nodeVersion = npm -v
+    Log-Message "NodeJS version: $nodeVersion"
 
     # Verify WinRAR installation
     if (-not (Test-Path $WinRARPath)) {
