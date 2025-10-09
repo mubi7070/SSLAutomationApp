@@ -41,6 +41,7 @@ export default function Header() {
         { name: 'License Renewal', path: '/files/LicenseRenewal' },
         { name: 'Disable Twilio', path: '/files/TwilioDisable' },
         { name: 'Sendgrid', path: '/files/Sendgrid' },
+        { name: 'Server Migration', path: '/files/ServerMigration' },
       ],
     },
     {
