@@ -555,8 +555,8 @@ try {
     Log-Message "Starting archive process for included paths with WinRAR (3GB volumes)..."
     
     $cores   = [Environment]::ProcessorCount
-    $threads = [Math]::Max(1, $cores - 1)    # leave 1 core free
-    $mtSwitch = "-mt$threads"                # build the -mt string here
+    $threads = $cores                               # use ALL cores now
+    $mtSwitch = "-mt$threads"                       # build the -mt string
 
     Log-Message "MT VALUE: $mtSwitch"
 
@@ -567,9 +567,9 @@ try {
         "-y",           # Assume Yes to all queries
         "-idq",         # Quiet mode (suppress progress)
         "-v3g",         # Split into 3GB volumes
-        "-m3",          # Normal compression (fast + decent ratio)
-        "-md128m",      # 128 MB dictionary (better ratio, still fast)
-        $mtSwitch,      # Use (cores - 1) threads
+        "-m1",          # Normal compression (fast + decent ratio)
+        "-md32m",       # 32 MB dictionary (better ratio, fastest)
+        $mtSwitch,      # Use all threads
         "\`"$ArchivePath\`""
     )
     
@@ -588,8 +588,8 @@ try {
     else {    
     Log-Message "Starting archive process for drive ${drive} with WinRAR (3GB volumes)..."
     $cores   = [Environment]::ProcessorCount
-    $threads = [Math]::Max(1, $cores - 1)    # leave 1 core free
-    $mtSwitch = "-mt$threads"                # build the -mt string here
+    $threads = $cores                               # use ALL cores now
+    $mtSwitch = "-mt$threads"                       # build the -mt string
 
     Log-Message "MT VALUE: $mtSwitch"
 
@@ -600,9 +600,9 @@ try {
         "-y",          # Assume Yes to all queries
         "-idq",        # Quiet mode (suppress progress)
         "-v3g",        # Split into 3GB volumes - ALWAYS ENABLED
-        "-m3",          # Normal compression (fast + decent ratio)
-        "-md128m",      # 128 MB dictionary (better ratio, still fast)
-        $mtSwitch,  # Use (cores - 1) threads
+        "-m1",         # Normal compression (fast + decent ratio)
+        "-md32m",      # 32 MB dictionary (better ratio, fastest)
+        $mtSwitch,     # Use all threads
         "$ArchivePath",
         "${drive}:\\*"
     ) + $exclusionArgs
