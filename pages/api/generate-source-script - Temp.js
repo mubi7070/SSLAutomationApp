@@ -19,61 +19,90 @@ function generatePassword(length = 12) {
 }
 
 // Function to properly escape paths for PowerShell
-function escapePowerShellPath(path) {
-  // Replace backslashes with double backslashes and escape quotes
-  return path.replace(/\\/g, '\\\\').replace(/"/g, '`"');
+function escapePowerShellPath(p) {
+  if (!p) return '';
+  // Convert forward slashes to backslashes
+  let fixed = p.replace(/\//g, '\\');
+
+  // Remove duplicate backslashes (e.g. E:\\\ -> E:\)
+  fixed = fixed.replace(/\\\\+/g, '\\');
+
+  // Escape only quotes for PowerShell
+  fixed = fixed.replace(/"/g, '`"');
+
+  return fixed;
 }
 
-// Function to process exclude paths for include mode
+// Function to process exclude paths for include mode (robust, returns ABSOLUTE excludes)
 function processExcludePathsForIncludeMode(includePaths, excludePaths) {
   const processedExclusions = [];
+  const seen = new Set();
 
-  console.log('Processing exclusions for include mode:');
+  function normalize(p) {
+    if (!p) return '';
+    // Trim and convert forward to backslashes, remove trailing slashes
+    return p.trim().replace(/\//g, '\\').replace(/[\\]+$/, '');
+  }
+
+  function looksLikeFile(lastSegment) {
+    // Heuristic: has an extension (dot followed by chars) OR starts with '.' (e.g. .env)
+    return /\.[^\\\/]+$/.test(lastSegment) || /^\.[^\\\/]+$/.test(lastSegment);
+  }
+
+  console.log('Processing exclusions for include mode (producing absolute excludes):');
   console.log('Include paths:', includePaths);
   console.log('Exclude paths:', excludePaths);
-  
-  // Process each exclusion path
-  excludePaths.forEach(excludePath => {
-    let foundInInclude = false;
-    
-    // Check if this exclusion is within any include path
-    for (const includePath of includePaths) {
-      // Normalize paths for comparison (remove trailing slashes)
-      const normalizedInclude = includePath.replace(/[\\/]+$/, '');
-      const normalizedExclude = excludePath.replace(/[\\/]+$/, '');
 
-      console.log(`Checking if '${normalizedExclude}' is within '${normalizedInclude}'`);
-      
-      // Check if exclude path starts with include path
-      if (normalizedExclude.toLowerCase().startsWith(normalizedInclude.toLowerCase())) {
-        foundInInclude = true;
-        
-        // Get the relative path
-        let relativePath = normalizedExclude.substring(normalizedInclude.length);
-        
-        // Remove leading backslash if present
-        if (relativePath.startsWith('\\') || relativePath.startsWith('/')) {
-          relativePath = relativePath.substring(1);
+  // Normalize includes to compare (no filesystem calls)
+  const normalizedIncludes = includePaths.map(inc => normalize(inc));
+
+  for (const rawExclude of excludePaths) {
+    const exclude = normalize(rawExclude);
+    let matched = false;
+
+    for (const inc of normalizedIncludes) {
+      // Case-insensitive comparison
+      if (exclude.toLowerCase().startsWith(inc.toLowerCase())) {
+        matched = true;
+
+        // If exclude equals include (user asked to exclude the include root)
+        if (exclude.toLowerCase() === inc.toLowerCase()) {
+          // Exclude all contents of that include root (absolute)
+          const pattern = `${inc}\\*`;
+          if (!seen.has(pattern)) { seen.add(pattern); processedExclusions.push(pattern); }
+          console.log(`✓ Excluding all contents under include root: '${pattern}'`);
+          break;
         }
-        
-        // Only add if we have a valid relative path
-        if (relativePath && relativePath.trim() !== '') {
-          processedExclusions.push(relativePath);
-          console.log(`✓ Converted exclusion: '${excludePath}' -> '${relativePath}'`);
+
+        // Exclude is inside include: decide file vs directory by heuristic on last segment
+        const rel = exclude.substring(inc.length).replace(/^\\+/, ''); // relative path inside include
+        const lastSegment = rel.split('\\').pop() || '';
+
+        if (looksLikeFile(lastSegment)) {
+          // Treat as file -> exclude exact absolute file
+          const pattern = exclude; // absolute file path
+          if (!seen.has(pattern)) { seen.add(pattern); processedExclusions.push(pattern); }
+          console.log(`✓ Excluding file: '${pattern}'`);
         } else {
-          console.log(`⚠ Warning: Empty relative path for exclusion '${excludePath}' under include '${includePath}'`);
+          // Treat as directory -> exclude contents only (absolute dir\*)
+          const pattern = exclude;
+          if (!seen.has(pattern)) { seen.add(pattern); processedExclusions.push(pattern); }
+          console.log(`✓ Excluding entire folder: '${pattern}'`);
         }
-        break;
+        break; // stop checking other includes
       }
     }
-    
-    if (!foundInInclude) {
-      console.log(`Info: Exclusion path '${excludePath}' is not within any include path - ignoring`);
+
+    if (!matched) {
+      // Exclude not under any include => ignore (you already handle absolute exclude mode separately)
+      console.log(`Info: Exclusion '${rawExclude}' is not inside any include path - ignoring`);
     }
-  });
-  console.log('Final processed exclusions:', processedExclusions);
+  }
+
+  console.log('Final processed exclusions (absolute patterns):', processedExclusions);
   return processedExclusions;
 }
+
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -526,21 +555,21 @@ try {
     Log-Message "Starting archive process for included paths with WinRAR (3GB volumes)..."
     
     $cores   = [Environment]::ProcessorCount
-    $threads = [Math]::Max(1, $cores - 1)    # leave 1 core free
-    $mtSwitch = "-mt$threads"                # build the -mt string here
+    $threads = $cores                               # use ALL cores now
+    $mtSwitch = "-mt$threads"                       # build the -mt string
 
     Log-Message "MT VALUE: $mtSwitch"
 
     $rarCommand = @(
         "a",            # Add to archive
         "-r",           # Recurse subdirectories
-        "-ep1",         # Exclude base folder from names
+        "-ep1",         # Exclude base folder from names - KEEP THIS
         "-y",           # Assume Yes to all queries
         "-idq",         # Quiet mode (suppress progress)
         "-v3g",         # Split into 3GB volumes
-        "-m3",          # Normal compression (fast + decent ratio)
-        "-md128m",      # 128 MB dictionary (better ratio, still fast)
-        $mtSwitch,  # Use (cores - 1) threads
+        "-m1",          # Normal compression (fast + decent ratio)
+        "-md32m",       # 32 MB dictionary (better ratio, fastest)
+        $mtSwitch,      # Use all threads
         "\`"$ArchivePath\`""
     )
     
@@ -549,17 +578,18 @@ try {
         $rarCommand += "\`"$inc\`""
     }
     
-    # Add exclusions
+    # Add exclusions - IMPORTANT: With -ep1, exclusions are relative to the included paths
     $rarCommand += $exclusionArgs
     
     Log-Message "Include mode command built with $($IncludePaths.Count) include paths and $($exclusionArgs.Count) exclusion patterns"
     Log-Message "Full WinRAR command: $WinRARPath $($rarCommand -join ' ')"
     }
+
     else {    
     Log-Message "Starting archive process for drive ${drive} with WinRAR (3GB volumes)..."
     $cores   = [Environment]::ProcessorCount
-    $threads = [Math]::Max(1, $cores - 1)    # leave 1 core free
-    $mtSwitch = "-mt$threads"                # build the -mt string here
+    $threads = $cores                               # use ALL cores now
+    $mtSwitch = "-mt$threads"                       # build the -mt string
 
     Log-Message "MT VALUE: $mtSwitch"
 
@@ -570,9 +600,9 @@ try {
         "-y",          # Assume Yes to all queries
         "-idq",        # Quiet mode (suppress progress)
         "-v3g",        # Split into 3GB volumes - ALWAYS ENABLED
-        "-m3",          # Normal compression (fast + decent ratio)
-        "-md128m",      # 128 MB dictionary (better ratio, still fast)
-        $mtSwitch,  # Use (cores - 1) threads
+        "-m1",         # Normal compression (fast + decent ratio)
+        "-md32m",      # 32 MB dictionary (better ratio, fastest)
+        $mtSwitch,     # Use all threads
         "$ArchivePath",
         "${drive}:\\*"
     ) + $exclusionArgs
