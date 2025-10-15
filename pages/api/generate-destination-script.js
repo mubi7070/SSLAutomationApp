@@ -15,10 +15,18 @@ function generatePassword(length = 12) {
 }
 
 // Function to properly escape paths for PowerShell
-function escapePowerShellPath(path) {
-    if (!path) return '';
-    // Replace backslashes with double backslashes and escape quotes
-    return path.replace(/\\/g, '\\\\').replace(/"/g, '`"');
+function escapePowerShellPath(p) {
+  if (!p) return '';
+  // Convert forward slashes to backslashes
+  let fixed = p.replace(/\//g, '\\');
+
+  // Remove duplicate backslashes (e.g. E:\\\ -> E:\)
+  fixed = fixed.replace(/\\\\+/g, '\\');
+
+  // Escape only quotes for PowerShell
+  fixed = fixed.replace(/"/g, '`"');
+
+  return fixed;
 }
 
 
@@ -544,24 +552,52 @@ try {
         throw $msg
     }
 
-    # Download RAR from S3 using AWS SDK for JavaScript
-    Log-Message "Downloading archive files from S3..."
+    # Download RAR from S3 using AWS SDK for JavaScript - PARALLEL DOWNLOAD
+    Log-Message "Downloading archive files from S3 with parallel downloads..."
     $downloadScript = @"
     const { S3Client, GetObjectCommand, ListObjectsV2Command } = require("@aws-sdk/client-s3");
     const fs = require("fs");
     const path = require("path");
 
-    async function downloadAllArchiveFiles() {
+    async function downloadFile(s3Client, bucketName, key, localPath) {
+      try {
+        console.log("Starting download: " + path.basename(key));
+        
+        const getParams = {
+          Bucket: bucketName,
+          Key: key
+        };
+
+        const fileData = await s3Client.send(new GetObjectCommand(getParams));
+        const fileStream = fs.createWriteStream(localPath);
+        
+        await new Promise((resolve, reject) => {
+          fileData.Body.pipe(fileStream);
+          fileData.Body.on("error", reject);
+          fileStream.on("error", reject);
+          fileStream.on("finish", resolve);
+        });
+        
+        const stats = fs.statSync(localPath);
+        const fileSizeMB = (stats.size / (1024 * 1024)).toFixed(2);
+        console.log("SUCCESS:" + path.basename(key) + ":" + fileSizeMB + " MB");
+      } catch (err) {
+        console.error("ERROR:" + path.basename(key) + ":" + err.message);
+        throw err;
+      }
+    }
+
+    async function downloadAllFiles() {
       const bucketName = "${process.env.S3_MIGRATION_BUCKET_NAME}";
       const folderName = "${s3Folder}";
       const archiveBaseName = "${clientName}-${formattedDate}";
       const migrationFolder = "$($MigrationFolder.Replace('\\', '\\\\'))";
 
       const s3Client = new S3Client({
-        region: "${process.env.AWS_REGION}",
+        region: "$env:AWS_REGION",
         credentials: {
-          accessKeyId: "${process.env.AWS_ACCESS_KEY_ID}",
-          secretAccessKey: "${process.env.AWS_SECRET_ACCESS_KEY}"
+          accessKeyId: "$env:AWS_ACCESS_KEY_ID",
+          secretAccessKey: "$env:AWS_SECRET_ACCESS_KEY"
         }
       });
 
@@ -577,10 +613,10 @@ try {
         if (!data.Contents || data.Contents.length === 0) {
           throw new Error("No files found in S3 folder: " + folderName);
         }
+
         // Filter for RAR files that match our pattern (both single and multi-volume)
         const archiveFiles = data.Contents.filter(item => {
             const fileName = path.basename(item.Key);
-            // Match files that start with the base name and end with .rar
             return fileName.startsWith(archiveBaseName) && fileName.endsWith('.rar');
         });
         
@@ -590,49 +626,39 @@ try {
         
         console.log("Found " + archiveFiles.length + " archive files in S3");
 
-        // Download each file
-        for (const item of archiveFiles) {
-        const fileName = path.basename(item.Key);
-        const localPath = path.join(migrationFolder, fileName);
+        // Download files in batches of 5
+        const batchSize = 5;
+        for (let i = 0; i < archiveFiles.length; i += batchSize) {
+          const batch = archiveFiles.slice(i, i + batchSize);
+          const batchNumber = Math.floor(i/batchSize) + 1;
+          const batchFileNames = batch.map(item => path.basename(item.Key)).join(', ');
 
-        console.log("Downloading: " + fileName);
-
-        const getParams = {
-            Bucket: bucketName,
-            Key: item.Key
-        };
-
-          const fileData = await s3Client.send(new GetObjectCommand(getParams));
-          const fileStream = fs.createWriteStream(localPath);
+          console.log("Downloading batch " + batchNumber + ": " + batchFileNames);
           
-          await new Promise((resolve, reject) => {
-            fileData.Body.pipe(fileStream);
-            fileData.Body.on("error", reject);
-            fileStream.on("error", reject);
-            fileStream.on("finish", resolve);
-        });
-          
-          // Get file size for logging
-            const stats = fs.statSync(localPath);
-            const fileSizeMB = (stats.size / (1024 * 1024)).toFixed(2);
-            console.log("Downloaded: " + fileName + " (" + fileSizeMB + " MB)");
+          const downloadPromises = batch.map(item => {
+            const fileName = path.basename(item.Key);
+            const localPath = path.join(migrationFolder, fileName);
+            return downloadFile(s3Client, bucketName, item.Key, localPath);
+          });
+
+          await Promise.all(downloadPromises);
+          console.log("Batch " + batchNumber + " completed successfully");
         }
 
-        console.log("All downloads completed successfully.");
-        process.exit(0);
+        console.log("ALL_DOWNLOADS_COMPLETED");
       } catch (err) {
-        console.error("Download failed: " + err.message);
+        console.error("ALL_DOWNLOADS_FAILED:" + err.message);
         process.exit(1);
       }
     }
 
-    downloadAllArchiveFiles();
+    downloadAllFiles();
 "@
 
     # Save the download script
     $downloadScriptPath = Join-Path -Path $MigrationFolder -ChildPath "download-from-s3.js"
     $downloadScript | Out-File -FilePath $downloadScriptPath -Encoding UTF8
-    Log-Message "Created download script: $downloadScriptPath"
+    Log-Message "Created parallel download script: $downloadScriptPath"
 
     # Install required npm package
     Log-Message "Installing AWS SDK for S3..."
@@ -641,7 +667,7 @@ try {
     npm install @aws-sdk/client-s3 2>&1 | Out-Null
 
     # Execute the download script
-    Log-Message "Starting download process..."
+    Log-Message "Starting parallel download process..."
 
     # Start the download process
     $nodeProcess = Start-Process -FilePath "node" -ArgumentList "\`"$downloadScriptPath\`"" -PassThru -NoNewWindow -Wait

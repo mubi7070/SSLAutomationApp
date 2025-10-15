@@ -686,7 +686,7 @@ try {
             Body: fs.createReadStream(filePath)
           },
           leavePartsOnError: false,
-          queueSize: 4,        // Optional: concurrent parts
+          queueSize: 8,        // Optional: concurrent parts
           partSize: 1024 * 1024 * 500 // 500MB
         });
 
