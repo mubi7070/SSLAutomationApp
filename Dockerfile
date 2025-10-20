@@ -12,11 +12,12 @@ ENV PATH="${JAVA_HOME}/bin:${PATH}"
 # Copy and Install RAR (Offline)
 COPY utils/rarlinux-x64-621.tar.gz /tmp/rarlinux-x64-621.tar.gz
 
-RUN cd /tmp && \
-    tar -xzvf rarlinux-x64-621.tar.gz && \
+RUN cd /app/utils && \
+    tar -xzf rarlinux-x64-621.tar.gz && \
     cd rar && \
-    install -v rar unrar /usr/local/bin/ && \
-    cd .. && rm -rf rar rarlinux-x64-621.tar.gz
+    chmod +x rar unrar && \
+    mv rar unrar /usr/local/bin/ && \
+    cd / && rm -rf /app/utils/rar /app/utils/rarlinux-x64-621.tar.gz
 
 # Working Dir
 
