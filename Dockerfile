@@ -3,7 +3,8 @@
 FROM node:18-bullseye
 
 # Install Java, OpenSSL, wget, and rar
-RUN apt-get update && \
+RUN sed -i '/deb http:\/\/deb.debian.org\/debian bullseye main/ s/$/ contrib non-free/' /etc/apt/sources.list && \
+    apt-get update && \
     apt-get install -y openjdk-17-jdk openssl wget rar && \
     rm -rf /var/lib/apt/lists/*
 
