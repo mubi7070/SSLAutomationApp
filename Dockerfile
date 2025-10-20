@@ -1,16 +1,22 @@
 #Base Image
 
-FROM node:18-bullseye
+FROM node:18-alpine
 
 # Install Java, OpenSSL, wget, and rar
-RUN sed -i '/deb http:\/\/deb.debian.org\/debian bullseye main/ s/$/ contrib non-free/' /etc/apt/sources.list && \
-    apt-get update && \
-    apt-get install -y openjdk-17-jdk openssl wget rar && \
-    rm -rf /var/lib/apt/lists/*
+RUN apk add --no-cache openjdk17 openssl tar
 
 # Set JAVA_HOME for OpenJDK 17
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
+# Copy and Install RAR (Offline)
+COPY utils/rarlinux-x64-621.tar.gz /tmp/rarlinux-x64-621.tar.gz
+
+RUN cd /tmp && \
+    tar -xzvf rarlinux-x64-621.tar.gz && \
+    cd rar && \
+    install -v rar unrar /usr/local/bin/ && \
+    cd .. && rm -rf rar rarlinux-x64-621.tar.gz
 
 # Working Dir
 
