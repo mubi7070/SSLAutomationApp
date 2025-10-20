@@ -946,9 +946,7 @@ try {
 
 
 
-
-
-
+            
             if ($CopyFonts) {
                 Log-Message "Installing fonts from Tomcat installation..."
                 $fontExtensions = @('.fon', '.ttf', '.TTF', '.otf')
@@ -1021,6 +1019,9 @@ try {
                     Log-Message "No font files were found or installed"
                 }
             }
+
+
+            
 
         } catch {
         Log-Message "An error occurred during Tomcat service installation."
