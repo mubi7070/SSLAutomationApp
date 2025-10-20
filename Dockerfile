@@ -1,23 +1,15 @@
 #Base Image
 
-FROM node:18-alpine
+FROM node:18-bullseye
 
-# Install Java (for keytool)
-RUN apk add --no-cache openjdk17
-RUN apk add --no-cache openssl
-RUN apk add --no-cache wget
-RUN apk add --no-cache tar
+# Install Java, OpenSSL, wget, and rar
+RUN apt-get update && \
+    apt-get install -y openjdk-17-jdk openssl wget rar && \
+    rm -rf /var/lib/apt/lists/*
 
 # Set JAVA_HOME for OpenJDK 17
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
-
-# Install official RAR CLI
-RUN wget https://www.rarlab.com/rar/rarlinux-x64-621.tar.gz && \
-    tar -xzvf rarlinux-x64-621.tar.gz && \
-    cd rar && \
-    install -v rar unrar /usr/local/bin/ && \
-    cd .. && rm -rf rar rarlinux-x64-621.tar.gz
 
 # Working Dir
 
