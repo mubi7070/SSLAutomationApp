@@ -1,23 +1,25 @@
 #Base Image
 
-FROM node:18-alpine
+FROM node:18-bullseye
 
 # Install Java, OpenSSL, wget, and rar
-RUN apk add --no-cache openjdk17 openssl tar
+RUN apt-get update && \
+    apt-get install -y openjdk-17-jdk openssl tar && \
+    rm -rf /var/lib/apt/lists/*
 
 # Set JAVA_HOME for OpenJDK 17
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
 # Copy and Install RAR (Offline)
-COPY utils/rarlinux-x64-621.tar.gz /tmp/rarlinux-x64-621.tar.gz
+COPY utils/rarlinux-x64-621.tar.gz /tmp/
 
-RUN cd /app/utils && \
+RUN cd /tmp && \
     tar -xzf rarlinux-x64-621.tar.gz && \
     cd rar && \
     chmod +x rar unrar && \
     mv rar unrar /usr/local/bin/ && \
-    cd / && rm -rf /app/utils/rar /app/utils/rarlinux-x64-621.tar.gz
+    cd / && rm -rf /tmp/rar /tmp/rarlinux-x64-621.tar.gz
 
 # Working Dir
 
