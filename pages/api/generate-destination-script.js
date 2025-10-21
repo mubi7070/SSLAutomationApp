@@ -958,6 +958,7 @@ try {
                 
                 $fontsInstalled = 0
                 $fontsFailed = 0
+                $fontsSkipped = 0
 
                 foreach ($fontDir in $fontDirectories) {
                     $fullFontPath = Join-Path -Path $TomcatPath -ChildPath $fontDir
@@ -978,22 +979,41 @@ try {
                                 # Check if font already exists
                                 if (Test-Path $destinationPath) {
                                     Log-Message "Font already exists: $fontName"
+                                    $fontsSkipped++
                                     continue
                                 }
                                 
-                                # Use proper font installation method
-                                $shell = New-Object -ComObject Shell.Application
-                                $fontsFolder = $shell.Namespace(0x14)  # 0x14 is the Fonts folder
+                                # Copy font file to Windows Fonts directory
+                                Log-Message "Installing font: $fontName"
+                                Copy-Item -Path $fontFile.FullName -Destination $destinationPath -Force -ErrorAction Stop
                                 
-                                # Copy font to Fonts directory using Shell API
-                                $fontsFolder.CopyHere($fontFile.FullName, 0x14)  # 0x14 = Yes to All
+                                # Wait for file system to register the copy
+                                Start-Sleep -Milliseconds 500
                                 
                                 # Verify installation
-                                Start-Sleep -Seconds 2  # Wait for font to be installed
-                                
                                 if (Test-Path $destinationPath) {
                                     $fontsInstalled++
                                     Log-Message "Successfully installed font: $fontName"
+                                    
+                                    # Update registry to register the font
+                                    $registryPath = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts"
+                                    $fontRegistryName = $fontName -replace '\.[^.]*$', ''  # Remove extension
+                                    
+                                    # For TrueType fonts
+                                    if ($fontName -match '\.ttf$|\.TTF$') {
+                                        $fontRegistryName += " (TrueType)"
+                                    }
+                                    # For OpenType fonts
+                                    elseif ($fontName -match '\.otf$') {
+                                        $fontRegistryName += " (OpenType)"
+                                    }
+                                    
+                                    # Add font to registry if it doesn't exist
+                                    $existingValue = Get-ItemProperty -Path $registryPath -Name $fontRegistryName -ErrorAction SilentlyContinue
+                                    if (-not $existingValue) {
+                                        Set-ItemProperty -Path $registryPath -Name $fontRegistryName -Value $fontName -ErrorAction SilentlyContinue
+                                        Log-Message "Added font to registry: $fontRegistryName"
+                                    }
                                 } else {
                                     $fontsFailed++
                                     Log-Message "WARNING: Font may not have installed correctly: $fontName"
@@ -1008,21 +1028,22 @@ try {
                     }
                 }
                 
-                # Provide accurate summary
-                if ($fontsInstalled -gt 0) {
-                    Log-Message "Successfully installed $fontsInstalled font(s)"
-                }
+                # Provide comprehensive summary
+                Log-Message "Font installation summary:"
+                Log-Message "  - Successfully installed: $fontsInstalled font(s)"
+                Log-Message "  - Already existed (skipped): $fontsSkipped font(s)"
+                Log-Message "  - Failed to install: $fontsFailed font(s)"
+                
                 if ($fontsFailed -gt 0) {
-                    Log-Message "Failed to install $fontsFailed font(s)"
-                }
-                if ($fontsInstalled -eq 0 -and $fontsFailed -eq 0) {
-                    Log-Message "No font files were found or installed"
+                    Log-Message "WARNING: Some fonts failed to install. The application may still work, but some fonts might not be available."
+                } else {
+                    Log-Message "SUCCESS: All fonts processed successfully"
                 }
             }
 
 
-            
 
+            
         } catch {
         Log-Message "An error occurred during Tomcat service installation."
         }   
