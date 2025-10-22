@@ -6,12 +6,16 @@ import Layout from '/pages/components/Layout.js';
 import { 
   Info, FileText, Key, Shield, RefreshCw, Mail, HelpCircle,
   BookOpen, Link as LinkIcon, ShoppingCart, Settings, Calendar,
-  Lock, Code, Database, Cloud, Clipboard, AlertOctagon, Server
+  Lock, Code, Database, Cloud, Clipboard, AlertOctagon, Server,
+  Upload, Download, Folder, Send, Activity
 } from "lucide-react";
 import Tooltip from "/pages/components/Tooltip.js";
 
 const HelpPage = () => {
   const sections = [
+    { id: 'server-migration', icon: <Upload size={20} />, title: "Server Migration" },
+    { id: 'sendgrid', icon: <Send size={20} />, title: "SendGrid Management" },
+    { id: 'system-config', icon: <Settings size={20} />, title: "System Configuration" },
     { id: 'ssl-basics', icon: <Info size={20} />, title: "SSL/TLS Basics" },
     { id: 'csr-gen', icon: <FileText size={20} />, title: "CSR & Key Generation" },
     { id: 'cert-install', icon: <Key size={20} />, title: "Certificate Installation" },
@@ -23,7 +27,8 @@ const HelpPage = () => {
     { id: 'ssl-store', icon: <ShoppingCart size={20} />, title: "SSL Store" },
     { id: 'ssl-labs', icon: <Cloud size={20} />, title: "SSL Health Check" },
     { id: 'tracking', icon: <Clipboard size={20} />, title: "Data Tracking" },
-    { id: 'faq', icon: <HelpCircle size={20} />, title: "FAQs" }
+    { id: 'faq', icon: <HelpCircle size={20} />, title: "FAQs" },
+    { id: 'phase-info', icon: <Activity size={20} />, title: "Phase Details" },
   ];
 
   return (
@@ -37,7 +42,7 @@ const HelpPage = () => {
           <div className={styles.licenseContent2}>
             <div className={styles.licenseHeader}>
               <h1 style={{ color: 'rgb(16, 31, 118)', fontWeight: 'bold' }}>
-                SSL Automation Tool - Help Center
+                Northstar Automation Tool - Help Center
               </h1>
               <Tooltip text="Explore comprehensive documentation and guides">
                 <BookOpen size={24} color="#64748b" className={styles.tooltip} />
@@ -45,8 +50,96 @@ const HelpPage = () => {
             </div>
 
             <p className={styles.licenseDescription}>
-              Comprehensive guide to managing SSL/TLS certificates, License Renewals, Twilio Account Disable and related operations. Also it includes the details regarding the features of the application.
+              Comprehensive guide to managing Server Migrations, SendGrid operations, SSL/TLS certificates, License Renewals, Twilio Account Disable, and related automations. This help page explains each feature included in the application.
             </p>
+
+            {/* Server Migration Section */}
+            <section id="server-migration" className={styles.licenseDescription}>
+              <div className={styles.sectionHeader}>
+                <Upload size={24} className={styles.sectionIcon} />
+                <h2 className={styles.sectionTitle}>Server Migration Automation</h2>
+              </div>
+              <div className={styles.sectionContent}>
+                <div className={styles.grid3Col}>
+                  <div className={styles.featureCard}>
+                    <h4>Selective Archiving</h4>
+                    <p>Select specific paths or entire drives with custom exclusions.</p>
+                  </div>
+                  <div className={styles.featureCard}>
+                    <h4>Service Handling</h4>
+                    <p>Automatically stops and disables Tomcat and MySQL services before archiving.</p>
+                  </div>
+                  <div className={styles.featureCard}>
+                    <h4>Parallel Uploads</h4>
+                    <p>Archives files into multiple small parts and uploads them efficiently to the designated storage.</p>
+                  </div>
+                  <div className={styles.featureCard}>
+                    <h4>Download & Restore</h4>
+                    <p>Downloads archived data on the new server and performs unarchiving automatically.</p>
+                  </div>
+                  <div className={styles.featureCard}>
+                    <h4>Fonts & Dependencies</h4>
+                    <p>Automatically installs required fonts and restores service dependencies.</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* SendGrid Section */}
+            <section id="sendgrid" className={styles.licenseDescription}>
+              <div className={styles.sectionHeader}>
+                <Send size={24} className={styles.sectionIcon} />
+                <h2 className={styles.sectionTitle}>SendGrid Management</h2>
+              </div>
+              <div className={styles.sectionContent}>
+                <div className={styles.grid3Col}>
+                  <div className={styles.featureCard}>
+                    <h4>Subaccount Overview</h4>
+                    <p>View monthly recurring limits and remaining credits per subaccount.</p>
+                  </div>
+                  <div className={styles.featureCard}>
+                    <h4>Temporary Limit Updates</h4>
+                    <p>Update club email limits directly from the app without accessing SendGrid.</p>
+                  </div>
+                  <div className={styles.featureCard}>
+                    <h4>Suppression Management</h4>
+                    <p>View, delete, or download Bounces, Blocks, Invalids, and Spam Reports.</p>
+                  </div>
+                  <div className={styles.featureCard}>
+                    <h4>Sender Authentication</h4>
+                    <p>Check Domain Authentication and Link Branding status for any club.</p>
+                  </div>
+                  <div className={styles.featureCard}>
+                    <h4>Activity Logging</h4>
+                    <p>All actions automatically recorded in Google Sheets for tracking and audits.</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* System Configuration Section */}
+            <section id="system-config" className={styles.licenseDescription}>
+              <div className={styles.sectionHeader}>
+                <Settings size={24} className={styles.sectionIcon} />
+                <h2 className={styles.sectionTitle}>System Configuration Automation</h2>
+              </div>
+              <div className={styles.sectionContent}>
+                <div className={styles.grid3Col}>
+                  <div className={styles.featureCard}>
+                    <h4>MySQL Setup</h4>
+                    <p>Automatically configures MySQL with environment variables and RAM allocation.</p>
+                  </div>
+                  <div className={styles.featureCard}>
+                    <h4>Tomcat Configuration</h4>
+                    <p>Sets Tomcat Java Options, variables, and service dependencies.</p>
+                  </div>
+                  <div className={styles.featureCard}>
+                    <h4>Service Linking</h4>
+                    <p>Ensures Tomcat startup dependency on MySQL to maintain stability.</p>
+                  </div>
+                </div>
+              </div>
+            </section>
 
             {/* SSL Basics Section */}
             <section id="ssl-basics" className={styles.licenseDescription}>
@@ -334,7 +427,6 @@ const HelpPage = () => {
               src="/help.png" 
               alt="SSL Security Diagram" 
               className={styles.licenseImage2}
-              //style={{ borderRadius: '8px', marginBottom: '20px' }}
             />
             <div className={styles.quickLinks2}>
               <h3 className={styles.quickLinksTitle2}><LinkIcon size={20} /> Navigation</h3>

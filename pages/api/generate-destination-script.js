@@ -784,9 +784,45 @@ try {
 
         # Check if MySQL bin directory exists
         $MySQLBinPath = Join-Path -Path $MySQLPath -ChildPath "bin"
-        if (-not (Test-Path $MySQLBinPath)) {
-            throw "MySQL bin directory not found: $MySQLBinPath"
-        }
+
+        $mysqlPathValidated = $false
+        while (-not $mysqlPathValidated -and $InstallMySQLService) {
+            if (-not (Test-Path $MySQLPath)) {
+                Log-Message "ERROR: MySQL path not found: $MySQLPath"
+                Write-Host "The MySQL path is incorrect. Please enter the correct MySQL path (without quotes) or type 'skip' to skip MySQL service installation:" -ForegroundColor Yellow
+                
+                $userInput = Read-Host
+
+                if ($userInput -eq 'skip') {
+                    $InstallMySQLService = $false
+                    Log-Message "User chose to skip MySQL service installation."
+                    break
+                } else {
+                    $MySQLPath = $userInput.Trim()
+                    # Remove any trailing backslash for consistency
+                    $MySQLPath = $MySQLPath.TrimEnd('\')
+                    $MySQLBinPath = Join-Path -Path $MySQLPath -ChildPath "bin"
+                    continue
+                }
+            }
+        
+            if (-not (Test-Path $MySQLBinPath)) {
+                Log-Message "ERROR: MySQL bin directory not found: $MySQLBinPath"
+                Write-Host "The MySQL bin directory is incorrect. Please enter the correct MySQL path (without quotes) or type 'skip' to skip MySQL service installation:" -ForegroundColor Yellow
+
+                $userInput = Read-Host
+
+                if ($userInput -eq 'skip') {
+                    $InstallMySQLService = $false
+                    Log-Message "User chose to skip MySQL service installation."
+                    break
+                } else {
+                    $MySQLPath = $userInput.Trim()
+                    $MySQLPath = $MySQLPath.TrimEnd('\')
+                    $MySQLBinPath = Join-Path -Path $MySQLPath -ChildPath "bin"
+                    continue
+                }
+            }
 
         Push-Location "$MySQLPath\\bin"
         
@@ -795,11 +831,28 @@ try {
 
         $mysqldExe = ".\\mysqld.exe"
         if (-not (Test-Path $mysqldExe)) {
-            Log-Message "CRITICAL ERROR: mysqld.exe not found at $(Get-Location)"
-            throw "mysqld.exe not found at $(Get-Location)"
+            Log-Message "ERROR: mysqld.exe not found at $(Get-Location)"
+            Write-Host "mysqld.exe not found in the MySQL bin directory. Please enter the correct MySQL path (without quotes) or type 'skip' to skip MySQL service installation:" -ForegroundColor Yellow
+            $userInput = Read-Host
+
+            if ($userInput -eq 'skip') {
+                $InstallMySQLService = $false
+                Log-Message "User chose to skip MySQL service installation."
+                Pop-Location
+                break
+            } else {
+                $MySQLPath = $userInput.Trim()
+                $MySQLPath = $MySQLPath.TrimEnd('\')
+                $MySQLBinPath = Join-Path -Path $MySQLPath -ChildPath "bin"
+                Pop-Location
+                continue
+            }
+
         } else {
+            $mysqlPathValidated = $true
             # Install MySQL service
             & $mysqldExe "-install" $MySQLServiceName
+            Pop-Location
         }
 
         if ($LASTEXITCODE -ne 0) {
@@ -812,11 +865,12 @@ try {
             Log-Message "Configured MySQL service to start automatically"
         }
         
-        Pop-Location
+            Pop-Location
+        }
     } catch {
             Log-Message "ERROR: Failed during MySQL service installation - $($_.Exception.Message)"
         }
-    }
+    }    
 
     if ($InstallTomcatService) {
     try {
@@ -826,21 +880,81 @@ try {
         $ramUpdated = $false
         $performanceOptionsUpdated = $false
 
-        # Validate paths
-        if (-Not (Test-Path $TomcatBinPath)) {
-            throw "Tomcat bin path not found: $TomcatBinPath"
+
+        # Validate Tomcat path first
+        $tomcatPathValidated = $false
+        while (-not $tomcatPathValidated -and $InstallTomcatService) {
+            if (-Not (Test-Path $TomcatBinPath)) {
+                Log-Message "ERROR: Tomcat bin path not found: $TomcatBinPath"
+                Write-Host "The Tomcat path is incorrect. Please enter the correct Tomcat path (without quotes) or type 'skip' to skip Tomcat service installation:" -ForegroundColor Yellow
+                $userInputTomcat = Read-Host
+                
+                if ($userInputTomcat -eq 'skip') {
+                    $InstallTomcatService = $false
+                    Log-Message "User chose to skip Tomcat service installation."
+                    break
+                } else {
+                    $TomcatPath = $userInputTomcat.Trim()
+                    $TomcatPath = $TomcatPath.TrimEnd('\')
+                    $TomcatBinPath = Join-Path -Path $TomcatPath -ChildPath "bin"
+                    $serviceBatPath = Join-Path -Path $TomcatBinPath -ChildPath "service.bat"
+                    continue
+                }
+            }
+            
+            # Check service.bat after Tomcat path is validated
+            if (-Not (Test-Path $serviceBatPath)) {
+                Log-Message "ERROR: service.bat not found in: $TomcatBinPath"
+                Write-Host "service.bat not found in the Tomcat bin directory. Please enter the correct Tomcat path (without quotes) or type 'skip' to skip Tomcat service installation:" -ForegroundColor Yellow
+                $userInputTomcat = Read-Host
+                
+                if ($userInputTomcat -eq 'skip') {
+                    $InstallTomcatService = $false
+                    Log-Message "User chose to skip Tomcat service installation."
+                    break
+                } else {
+                    $TomcatPath = $userInputTomcat.Trim()
+                    $TomcatPath = $TomcatPath.TrimEnd('\')
+                    $TomcatBinPath = Join-Path -Path $TomcatPath -ChildPath "bin"
+                    $serviceBatPath = Join-Path -Path $TomcatBinPath -ChildPath "service.bat"
+                    continue
+                }
+            }
+            
+            $tomcatPathValidated = $true
         }
-        if (-Not (Test-Path $serviceBatPath)) {
-            throw "service.bat not found in: $TomcatBinPath"
+
+        # Validate Java Home separately
+        $javaPathValidated = $false
+        while (-not $javaPathValidated -and $InstallTomcatService) {
+            if (-Not (Test-Path $JavaHome)) {
+                Log-Message "ERROR: Java Home not found: $JavaHome"
+                Write-Host "The JDK path is incorrect. Please enter the correct JDK path (without quotes) or type 'skip' to skip Tomcat service installation:" -ForegroundColor Yellow
+                $userInputJDK = Read-Host
+
+                if ($userInputJDK -eq 'skip') {
+                    $InstallTomcatService = $false
+                    Log-Message "User chose to skip Tomcat service installation."
+                    break
+                } else {
+                    $JavaHome = $userInputJDK.Trim()
+                    $JavaHome = $JavaHome.TrimEnd('\')
+                    $JRE_HOME = "$JavaHome\\jre"
+                    continue
+                }
+            }
+            $javaPathValidated = $true
         }
-        if (-Not (Test-Path $JavaHome)) {
-            throw "Java Home not found: $JavaHome"
+
+        # If user skipped installation, break out
+        if (-not $InstallTomcatService) {
+            Log-Message "Skipping Tomcat service installation as requested by user."
+            continue
         }
 
         # Backup original service.bat content
         $serviceBatBackup = Get-Content $serviceBatPath -Raw
 
-        
         if ($RamAllocation) {
             try {
                 # Update service.bat with memory settings
@@ -935,8 +1049,8 @@ try {
             }
             
             # Set service to auto-start
-            sc.exe config ${tomcatServiceName} start= auto | Out-Null
-            Log-Message "Configured Tomcat service to start automatically"
+            sc.exe config ${tomcatServiceName} start= delayed-auto | Out-Null
+            Log-Message "Configured Tomcat service to start automatically (delayed)"
 
             # Revert changes to service.bat if they were made
             if ($ramUpdated -or $performanceOptionsUpdated) {
@@ -1042,8 +1156,6 @@ try {
             }
 
 
-
-            
         } catch {
         Log-Message "An error occurred during Tomcat service installation."
         }   
