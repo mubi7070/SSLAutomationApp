@@ -195,6 +195,84 @@ function Remove-TemporaryFiles {
     }
 }
 
+function Copy-RequiredDLLs {
+    Log-Message "Checking for required DLL files for MySQL service installation..."
+    
+    $requiredDLLs = @(
+        "vcruntime140.dll",
+        "msvcp140.dll", 
+        "vcruntime140_1.dll"
+    )
+    
+    # Get the script directory dynamically - AUTO DETECT SCRIPT LOCATION
+    $scriptPath = $MyInvocation.MyCommand.Path
+    if (-not $scriptPath) {
+        $scriptPath = $PSCommandPath
+    }
+    $scriptDirectory = Split-Path -Path $scriptPath -Parent
+    $dllSourceFolder = Join-Path -Path $scriptDirectory -ChildPath "dlls"
+    $system32Path = "C:\\Windows\\System32"
+    
+    $dllsCopied = 0
+    $dllsSkipped = 0
+    $dllsFailed = 0
+    
+    # Check if DLL source folder exists
+    if (-not (Test-Path -LiteralPath $dllSourceFolder)) {
+        Log-Message "WARNING: DLL source folder not found: $dllSourceFolder"
+        Log-Message "Skipping DLL installation - MySQL service might fail if required DLLs are missing"
+        return
+    }
+    
+    foreach ($dll in $requiredDLLs) {
+        $sourcePath = Join-Path -Path $dllSourceFolder -ChildPath $dll
+        $destinationPath = Join-Path -Path $system32Path -ChildPath $dll
+        
+        # Check if DLL already exists in System32
+        if (Test-Path -LiteralPath $destinationPath) {
+            Log-Message "DLL already exists in System32: $dll"
+            $dllsSkipped++
+            continue
+        }
+        
+        # Check if source DLL exists in our dlls folder
+        if (-not (Test-Path -LiteralPath $sourcePath)) {
+            Log-Message "WARNING: Source DLL not found: $sourcePath"
+            $dllsFailed++
+            continue
+        }
+        
+        try {
+            Log-Message "Copying DLL to System32: $dll"
+            Copy-Item -Path $sourcePath -Destination $destinationPath -Force -ErrorAction Stop
+            
+            # Verify the copy was successful
+            if (Test-Path -LiteralPath $destinationPath) {
+                Log-Message "SUCCESS: Copied DLL to System32: $dll"
+                $dllsCopied++
+            } else {
+                Log-Message "WARNING: DLL copy verification failed: $dll"
+                $dllsFailed++
+            }
+        } catch {
+            Log-Message "ERROR: Failed to copy DLL $dll - $($_.Exception.Message)"
+            $dllsFailed++
+        }
+    }
+    
+    # Provide summary
+    Log-Message "DLL installation summary:"
+    Log-Message "  - Successfully copied: $dllsCopied DLL(s)"
+    Log-Message "  - Already existed (skipped): $dllsSkipped DLL(s)"
+    Log-Message "  - Failed to copy: $dllsFailed DLL(s)"
+    
+    if ($dllsFailed -gt 0) {
+        Log-Message "WARNING: Some DLL files failed to copy. MySQL service installation might fail."
+    } else {
+        Log-Message "SUCCESS: All required DLL files are available in System32"
+    }
+}
+
 function Get-ArchiveFiles {
     param([string]$MigrationFolder, [string]$ArchiveName)
     
@@ -850,6 +928,14 @@ try {
 
         } else {
             $mysqlPathValidated = $true
+
+            # Copy required DLL files for MySQL service installation
+            Copy-RequiredDLLs
+
+            # Wait to ensure the DLL files are copied.
+            Write-Host "Waiting For the DLL files..."
+            Start-Sleep -Seconds 4
+            
             # Install MySQL service
             & $mysqldExe "-install" $MySQLServiceName
             Pop-Location
@@ -1201,42 +1287,62 @@ try {
 }
 `;
 
-// Generate strong password for RAR download
-  const rarPassword = generatePassword();
-  const tempDir = path.join(os.tmpdir(), 'migration-scripts');
-  fs.mkdirSync(tempDir, { recursive: true });
+    // Generate strong password for RAR download
+    const rarPassword = generatePassword();
+    const tempDir = path.join(os.tmpdir(), 'migration-scripts');
+    fs.mkdirSync(tempDir, { recursive: true });
 
-  const uniqueId = uuidv4();
-  const scriptName = `migration-destination-${clientName}.ps1`;
-  const scriptPath = path.join(tempDir, `${scriptName}`);
-  const rarFilePath = path.join(tempDir, `migration-destination-${clientName}-${uniqueId}.rar`);
+    const uniqueId = uuidv4();
+    const scriptName = `migration-destination-${clientName}.ps1`;
 
-  // Write PowerShell script to temp file
-  fs.writeFileSync(scriptPath, script);
+    // Create the script file directly in temp directory (not in package folder)
+    const scriptPath = path.join(tempDir, scriptName);
+    fs.writeFileSync(scriptPath, script);
 
-  // Create password-protected RAR using rar CLI
-  const rarCommand = `rar a -ep -hp"${rarPassword}" "${rarFilePath}" "${scriptPath}"`;
+    // Create dlls folder directly in temp directory
+    const dllsFolder = path.join(tempDir, 'dlls');
+    fs.mkdirSync(dllsFolder, { recursive: true });
 
-  exec(rarCommand, (err, stdout, stderr) => {
-    // Always clean up script file immediately
+    // Copy DLL files to the dlls folder
+    const dllSourcePath = path.join(process.cwd(), 'utils', 'dll');
+    const dllFiles = ['vcruntime140.dll', 'msvcp140.dll', 'vcruntime140_1.dll'];
+
+    dllFiles.forEach(dllFile => {
+    const sourceFile = path.join(dllSourcePath, dllFile);
+    const destFile = path.join(dllsFolder, dllFile);
+    if (fs.existsSync(sourceFile)) {
+        fs.copyFileSync(sourceFile, destFile);
+    }
+    });
+
+    const rarFilePath = path.join(tempDir, `migration-destination-${clientName}-${uniqueId}.rar`);
+
+    // Create RAR containing both the script and dlls folder at root level
+    const rarCommand = `rar a -ep1 -hp"${rarPassword}" "${rarFilePath}" "${scriptPath}" "${dllsFolder}"`;
+
+    exec(rarCommand, (err, stdout, stderr) => {
+    // Clean up temporary files
     try {
-      if (fs.existsSync(scriptPath)) {
+        if (fs.existsSync(scriptPath)) {
         fs.unlinkSync(scriptPath);
-      }
+        }
+        if (fs.existsSync(dllsFolder)) {
+        fs.rmSync(dllsFolder, { recursive: true, force: true });
+        }
     } catch (cleanupErr) {
-      console.error('Script cleanup failed:', cleanupErr);
+        console.error('Temporary files cleanup failed:', cleanupErr);
     }
 
     if (err) {
-      console.error('RAR error:', err, stderr);
-      try {
+        console.error('RAR error:', err, stderr);
+        try {
         if (fs.existsSync(rarFilePath)) {
-          fs.unlinkSync(rarFilePath);
+            fs.unlinkSync(rarFilePath);
         }
-      } catch (rarCleanupErr) {
+        } catch (rarCleanupErr) {
         console.error('RAR cleanup failed:', rarCleanupErr);
-      }
-      return res.status(500).json({ error: 'RAR creation failed. Ensure rar CLI is installed.' });
+        }
+        return res.status(500).json({ error: 'RAR creation failed. Ensure rar CLI is installed.' });
     }
 
     // Set headers for RAR download
@@ -1250,13 +1356,13 @@ try {
 
     // Clean up after streaming
     fileStream.on('close', () => {
-      try {
+        try {
         if (fs.existsSync(rarFilePath)) {
-          fs.unlinkSync(rarFilePath);
+            fs.unlinkSync(rarFilePath);
         }
-      } catch (finalCleanupErr) {
+        } catch (finalCleanupErr) {
         console.error('Final cleanup failed:', finalCleanupErr);
-      }
+        }
     });
   });
 

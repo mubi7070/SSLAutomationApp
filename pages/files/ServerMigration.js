@@ -856,7 +856,7 @@ export default function ServerMigration() {
                         value={mysqlPath}
                         onChange={(e) => setMysqlPath(e.target.value)}
                         className={styles.styledselecttempmargin}
-                        style={{ width: '98%', padding: '7px', margin: '10px 0' }}
+                        style={{ width: '93%', padding: '7px', margin: '10px 0' }}
                       />
                     </label>
                   </div>
