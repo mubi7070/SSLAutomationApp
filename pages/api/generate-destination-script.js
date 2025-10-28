@@ -55,7 +55,8 @@ export default async function handler(req, res) {
     mysqlRamAllocation,
     mysqlRamSize,
     unarchiveOption,
-    unarchivePath
+    unarchivePath,
+    setEnvironmentVariables
     } = req.body;
 
   // Validate input parameters
@@ -83,7 +84,8 @@ export default async function handler(req, res) {
     mysqlRamAllocation: ${mysqlRamAllocation},
     mysqlRamSize: ${mysqlRamSize},
     unarchiveOption: ${unarchiveOption},
-    unarchivePath: ${unarchivePath}
+    unarchivePath: ${unarchivePath},
+    setEnvironmentVariables: ${setEnvironmentVariables}
     `);
   
   
@@ -121,7 +123,8 @@ param(
     [bool]$MySQLRamAllocation = $${mysqlRamAllocation},
     [string]$MySQLRamSize = "${mysqlRamSize}",
     [string]$UnarchiveOption = "${unarchiveOption}",
-    [string]$UnarchivePath = "${escapePowerShellPath(unarchivePath)}"
+    [string]$UnarchivePath = "${escapePowerShellPath(unarchivePath)}",
+    [bool]$SetEnvironmentVariables = $${setEnvironmentVariables}
     
 )
 
@@ -192,6 +195,53 @@ function Remove-TemporaryFiles {
                 Log-Message "WARNING: Failed to delete $file - $($_.Exception.Message)"
             }
         }
+    }
+}
+
+function Set-WindowsEnvironmentVariables {
+    param(
+        [string]$TomcatPath,
+        [string]$JavaHome,
+        [string]$JRE_HOME
+    )
+    
+    Log-Message "Setting Windows System Environment Variables..."
+    
+    try {
+        # Set CATALINA_HOME
+        Log-Message "Setting CATALINA_HOME to: $TomcatPath"
+        [Environment]::SetEnvironmentVariable("CATALINA_HOME", $TomcatPath, "Machine")
+        
+        # Set JAVA_HOME  
+        Log-Message "Setting JAVA_HOME to: $JavaHome"
+        [Environment]::SetEnvironmentVariable("JAVA_HOME", $JavaHome, "Machine")
+        
+        # Set JRE_HOME
+        Log-Message "Setting JRE_HOME to: $JRE_HOME"
+        [Environment]::SetEnvironmentVariable("JRE_HOME", $JRE_HOME, "Machine")
+        
+        # Verify the variables were set
+        $catalinaHome = [Environment]::GetEnvironmentVariable("CATALINA_HOME", "Machine")
+        $javaHome = [Environment]::GetEnvironmentVariable("JAVA_HOME", "Machine")
+        $jreHome = [Environment]::GetEnvironmentVariable("JRE_HOME", "Machine")
+        
+        if ($catalinaHome -eq $TomcatPath -and $javaHome -eq $JavaHome -and $jreHome -eq $JRE_HOME) {
+            Log-Message "SUCCESS: All environment variables set successfully"
+            Log-Message "  - CATALINA_HOME: $catalinaHome"
+            Log-Message "  - JAVA_HOME: $javaHome"
+            Log-Message "  - JRE_HOME: $jreHome"
+            
+            # Also set them in the current session for immediate use
+            $env:CATALINA_HOME = $TomcatPath
+            $env:JAVA_HOME = $JavaHome
+            $env:JRE_HOME = $JRE_HOME
+            Log-Message "Environment variables also set in current session"
+        } else {
+            Log-Message "WARNING: Environment variables may not have been set correctly"
+        }
+        
+    } catch {
+        Log-Message "ERROR: Failed to set environment variables - $($_.Exception.Message)"
     }
 }
 
@@ -1239,6 +1289,12 @@ try {
                 } else {
                     Log-Message "SUCCESS: All fonts processed successfully"
                 }
+            }
+
+            if ($SetEnvironmentVariables) {
+                Set-WindowsEnvironmentVariables -TomcatPath $TomcatPath -JavaHome $JavaHome -JRE_HOME $JRE_HOME
+            } else {
+                Log-Message "Environment variables setup skipped (checkbox not enabled)"
             }
 
 

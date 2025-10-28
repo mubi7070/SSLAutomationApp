@@ -59,6 +59,7 @@ export default function ServerMigration() {
     '-Xverify:none'
   ]);
   const [newPerformanceOption, setNewPerformanceOption] = useState('');
+  const [setEnvironmentVariables, setSetEnvironmentVariables] = useState(false);
 
   const driveLetters = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
@@ -309,7 +310,8 @@ export default function ServerMigration() {
           mysqlRamAllocation,
           mysqlRamSize,
           unarchiveOption,
-          unarchivePath: unarchiveOption === 'specificPath' ? unarchivePath : ''
+          unarchivePath: unarchiveOption === 'specificPath' ? unarchivePath : '',
+          setEnvironmentVariables
         }),
       });
 
@@ -1076,6 +1078,18 @@ export default function ServerMigration() {
                         className={styles.optionCheckbox}
                       />
                       Copy Fonts
+                    </label>
+                  </div>
+
+                  <div className={styles.optionInput}>
+                    <label className={styles.optionLabel}>
+                      <input 
+                        type="checkbox" 
+                        checked={setEnvironmentVariables} 
+                        onChange={(e) => setSetEnvironmentVariables(e.target.checked)} 
+                        className={styles.optionCheckbox}
+                      />
+                      Environment Variables Setup
                     </label>
                   </div>
                 </>

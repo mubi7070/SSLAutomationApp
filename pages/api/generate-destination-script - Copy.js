@@ -15,10 +15,18 @@ function generatePassword(length = 12) {
 }
 
 // Function to properly escape paths for PowerShell
-function escapePowerShellPath(path) {
-    if (!path) return '';
-    // Replace backslashes with double backslashes and escape quotes
-    return path.replace(/\\/g, '\\\\').replace(/"/g, '`"');
+function escapePowerShellPath(p) {
+  if (!p) return '';
+  // Convert forward slashes to backslashes
+  let fixed = p.replace(/\//g, '\\');
+
+  // Remove duplicate backslashes (e.g. E:\\\ -> E:\)
+  fixed = fixed.replace(/\\\\+/g, '\\');
+
+  // Escape only quotes for PowerShell
+  fixed = fixed.replace(/"/g, '`"');
+
+  return fixed;
 }
 
 
@@ -184,6 +192,84 @@ function Remove-TemporaryFiles {
                 Log-Message "WARNING: Failed to delete $file - $($_.Exception.Message)"
             }
         }
+    }
+}
+
+function Copy-RequiredDLLs {
+    Log-Message "Checking for required DLL files for MySQL service installation..."
+    
+    $requiredDLLs = @(
+        "vcruntime140.dll",
+        "msvcp140.dll", 
+        "vcruntime140_1.dll"
+    )
+    
+    # Get the script directory dynamically - AUTO DETECT SCRIPT LOCATION
+    $scriptPath = $MyInvocation.MyCommand.Path
+    if (-not $scriptPath) {
+        $scriptPath = $PSCommandPath
+    }
+    $scriptDirectory = Split-Path -Path $scriptPath -Parent
+    $dllSourceFolder = Join-Path -Path $scriptDirectory -ChildPath "dlls"
+    $system32Path = "C:\\Windows\\System32"
+    
+    $dllsCopied = 0
+    $dllsSkipped = 0
+    $dllsFailed = 0
+    
+    # Check if DLL source folder exists
+    if (-not (Test-Path -LiteralPath $dllSourceFolder)) {
+        Log-Message "WARNING: DLL source folder not found: $dllSourceFolder"
+        Log-Message "Skipping DLL installation - MySQL service might fail if required DLLs are missing"
+        return
+    }
+    
+    foreach ($dll in $requiredDLLs) {
+        $sourcePath = Join-Path -Path $dllSourceFolder -ChildPath $dll
+        $destinationPath = Join-Path -Path $system32Path -ChildPath $dll
+        
+        # Check if DLL already exists in System32
+        if (Test-Path -LiteralPath $destinationPath) {
+            Log-Message "DLL already exists in System32: $dll"
+            $dllsSkipped++
+            continue
+        }
+        
+        # Check if source DLL exists in our dlls folder
+        if (-not (Test-Path -LiteralPath $sourcePath)) {
+            Log-Message "WARNING: Source DLL not found: $sourcePath"
+            $dllsFailed++
+            continue
+        }
+        
+        try {
+            Log-Message "Copying DLL to System32: $dll"
+            Copy-Item -Path $sourcePath -Destination $destinationPath -Force -ErrorAction Stop
+            
+            # Verify the copy was successful
+            if (Test-Path -LiteralPath $destinationPath) {
+                Log-Message "SUCCESS: Copied DLL to System32: $dll"
+                $dllsCopied++
+            } else {
+                Log-Message "WARNING: DLL copy verification failed: $dll"
+                $dllsFailed++
+            }
+        } catch {
+            Log-Message "ERROR: Failed to copy DLL $dll - $($_.Exception.Message)"
+            $dllsFailed++
+        }
+    }
+    
+    # Provide summary
+    Log-Message "DLL installation summary:"
+    Log-Message "  - Successfully copied: $dllsCopied DLL(s)"
+    Log-Message "  - Already existed (skipped): $dllsSkipped DLL(s)"
+    Log-Message "  - Failed to copy: $dllsFailed DLL(s)"
+    
+    if ($dllsFailed -gt 0) {
+        Log-Message "WARNING: Some DLL files failed to copy. MySQL service installation might fail."
+    } else {
+        Log-Message "SUCCESS: All required DLL files are available in System32"
     }
 }
 
@@ -544,24 +630,52 @@ try {
         throw $msg
     }
 
-    # Download RAR from S3 using AWS SDK for JavaScript
-    Log-Message "Downloading archive files from S3..."
+    # Download RAR from S3 using AWS SDK for JavaScript - PARALLEL DOWNLOAD
+    Log-Message "Downloading archive files from S3 with parallel downloads..."
     $downloadScript = @"
     const { S3Client, GetObjectCommand, ListObjectsV2Command } = require("@aws-sdk/client-s3");
     const fs = require("fs");
     const path = require("path");
 
-    async function downloadAllArchiveFiles() {
+    async function downloadFile(s3Client, bucketName, key, localPath) {
+      try {
+        console.log("Starting download: " + path.basename(key));
+        
+        const getParams = {
+          Bucket: bucketName,
+          Key: key
+        };
+
+        const fileData = await s3Client.send(new GetObjectCommand(getParams));
+        const fileStream = fs.createWriteStream(localPath);
+        
+        await new Promise((resolve, reject) => {
+          fileData.Body.pipe(fileStream);
+          fileData.Body.on("error", reject);
+          fileStream.on("error", reject);
+          fileStream.on("finish", resolve);
+        });
+        
+        const stats = fs.statSync(localPath);
+        const fileSizeMB = (stats.size / (1024 * 1024)).toFixed(2);
+        console.log("SUCCESS:" + path.basename(key) + ":" + fileSizeMB + " MB");
+      } catch (err) {
+        console.error("ERROR:" + path.basename(key) + ":" + err.message);
+        throw err;
+      }
+    }
+
+    async function downloadAllFiles() {
       const bucketName = "${process.env.S3_MIGRATION_BUCKET_NAME}";
       const folderName = "${s3Folder}";
       const archiveBaseName = "${clientName}-${formattedDate}";
       const migrationFolder = "$($MigrationFolder.Replace('\\', '\\\\'))";
 
       const s3Client = new S3Client({
-        region: "${process.env.AWS_REGION}",
+        region: "$env:AWS_REGION",
         credentials: {
-          accessKeyId: "${process.env.AWS_ACCESS_KEY_ID}",
-          secretAccessKey: "${process.env.AWS_SECRET_ACCESS_KEY}"
+          accessKeyId: "$env:AWS_ACCESS_KEY_ID",
+          secretAccessKey: "$env:AWS_SECRET_ACCESS_KEY"
         }
       });
 
@@ -577,10 +691,10 @@ try {
         if (!data.Contents || data.Contents.length === 0) {
           throw new Error("No files found in S3 folder: " + folderName);
         }
+
         // Filter for RAR files that match our pattern (both single and multi-volume)
         const archiveFiles = data.Contents.filter(item => {
             const fileName = path.basename(item.Key);
-            // Match files that start with the base name and end with .rar
             return fileName.startsWith(archiveBaseName) && fileName.endsWith('.rar');
         });
         
@@ -590,49 +704,39 @@ try {
         
         console.log("Found " + archiveFiles.length + " archive files in S3");
 
-        // Download each file
-        for (const item of archiveFiles) {
-        const fileName = path.basename(item.Key);
-        const localPath = path.join(migrationFolder, fileName);
+        // Download files in batches of 5
+        const batchSize = 5;
+        for (let i = 0; i < archiveFiles.length; i += batchSize) {
+          const batch = archiveFiles.slice(i, i + batchSize);
+          const batchNumber = Math.floor(i/batchSize) + 1;
+          const batchFileNames = batch.map(item => path.basename(item.Key)).join(', ');
 
-        console.log("Downloading: " + fileName);
-
-        const getParams = {
-            Bucket: bucketName,
-            Key: item.Key
-        };
-
-          const fileData = await s3Client.send(new GetObjectCommand(getParams));
-          const fileStream = fs.createWriteStream(localPath);
+          console.log("Downloading batch " + batchNumber + ": " + batchFileNames);
           
-          await new Promise((resolve, reject) => {
-            fileData.Body.pipe(fileStream);
-            fileData.Body.on("error", reject);
-            fileStream.on("error", reject);
-            fileStream.on("finish", resolve);
-        });
-          
-          // Get file size for logging
-            const stats = fs.statSync(localPath);
-            const fileSizeMB = (stats.size / (1024 * 1024)).toFixed(2);
-            console.log("Downloaded: " + fileName + " (" + fileSizeMB + " MB)");
+          const downloadPromises = batch.map(item => {
+            const fileName = path.basename(item.Key);
+            const localPath = path.join(migrationFolder, fileName);
+            return downloadFile(s3Client, bucketName, item.Key, localPath);
+          });
+
+          await Promise.all(downloadPromises);
+          console.log("Batch " + batchNumber + " completed successfully");
         }
 
-        console.log("All downloads completed successfully.");
-        process.exit(0);
+        console.log("ALL_DOWNLOADS_COMPLETED");
       } catch (err) {
-        console.error("Download failed: " + err.message);
+        console.error("ALL_DOWNLOADS_FAILED:" + err.message);
         process.exit(1);
       }
     }
 
-    downloadAllArchiveFiles();
+    downloadAllFiles();
 "@
 
     # Save the download script
     $downloadScriptPath = Join-Path -Path $MigrationFolder -ChildPath "download-from-s3.js"
     $downloadScript | Out-File -FilePath $downloadScriptPath -Encoding UTF8
-    Log-Message "Created download script: $downloadScriptPath"
+    Log-Message "Created parallel download script: $downloadScriptPath"
 
     # Install required npm package
     Log-Message "Installing AWS SDK for S3..."
@@ -641,7 +745,7 @@ try {
     npm install @aws-sdk/client-s3 2>&1 | Out-Null
 
     # Execute the download script
-    Log-Message "Starting download process..."
+    Log-Message "Starting parallel download process..."
 
     # Start the download process
     $nodeProcess = Start-Process -FilePath "node" -ArgumentList "\`"$downloadScriptPath\`"" -PassThru -NoNewWindow -Wait
@@ -758,9 +862,45 @@ try {
 
         # Check if MySQL bin directory exists
         $MySQLBinPath = Join-Path -Path $MySQLPath -ChildPath "bin"
-        if (-not (Test-Path $MySQLBinPath)) {
-            throw "MySQL bin directory not found: $MySQLBinPath"
-        }
+
+        $mysqlPathValidated = $false
+        while (-not $mysqlPathValidated -and $InstallMySQLService) {
+            if (-not (Test-Path $MySQLPath)) {
+                Log-Message "ERROR: MySQL path not found: $MySQLPath"
+                Write-Host "The MySQL path is incorrect. Please enter the correct MySQL path (without quotes) or type 'skip' to skip MySQL service installation:" -ForegroundColor Yellow
+                
+                $userInput = Read-Host
+
+                if ($userInput -eq 'skip') {
+                    $InstallMySQLService = $false
+                    Log-Message "User chose to skip MySQL service installation."
+                    break
+                } else {
+                    $MySQLPath = $userInput.Trim()
+                    # Remove any trailing backslash for consistency
+                    $MySQLPath = $MySQLPath.TrimEnd('\')
+                    $MySQLBinPath = Join-Path -Path $MySQLPath -ChildPath "bin"
+                    continue
+                }
+            }
+        
+            if (-not (Test-Path $MySQLBinPath)) {
+                Log-Message "ERROR: MySQL bin directory not found: $MySQLBinPath"
+                Write-Host "The MySQL bin directory is incorrect. Please enter the correct MySQL path (without quotes) or type 'skip' to skip MySQL service installation:" -ForegroundColor Yellow
+
+                $userInput = Read-Host
+
+                if ($userInput -eq 'skip') {
+                    $InstallMySQLService = $false
+                    Log-Message "User chose to skip MySQL service installation."
+                    break
+                } else {
+                    $MySQLPath = $userInput.Trim()
+                    $MySQLPath = $MySQLPath.TrimEnd('\')
+                    $MySQLBinPath = Join-Path -Path $MySQLPath -ChildPath "bin"
+                    continue
+                }
+            }
 
         Push-Location "$MySQLPath\\bin"
         
@@ -769,11 +909,36 @@ try {
 
         $mysqldExe = ".\\mysqld.exe"
         if (-not (Test-Path $mysqldExe)) {
-            Log-Message "CRITICAL ERROR: mysqld.exe not found at $(Get-Location)"
-            throw "mysqld.exe not found at $(Get-Location)"
+            Log-Message "ERROR: mysqld.exe not found at $(Get-Location)"
+            Write-Host "mysqld.exe not found in the MySQL bin directory. Please enter the correct MySQL path (without quotes) or type 'skip' to skip MySQL service installation:" -ForegroundColor Yellow
+            $userInput = Read-Host
+
+            if ($userInput -eq 'skip') {
+                $InstallMySQLService = $false
+                Log-Message "User chose to skip MySQL service installation."
+                Pop-Location
+                break
+            } else {
+                $MySQLPath = $userInput.Trim()
+                $MySQLPath = $MySQLPath.TrimEnd('\')
+                $MySQLBinPath = Join-Path -Path $MySQLPath -ChildPath "bin"
+                Pop-Location
+                continue
+            }
+
         } else {
+            $mysqlPathValidated = $true
+
+            # Copy required DLL files for MySQL service installation
+            Copy-RequiredDLLs
+
+            # Wait to ensure the DLL files are copied.
+            Write-Host "Waiting For the DLL files..."
+            Start-Sleep -Seconds 4
+            
             # Install MySQL service
             & $mysqldExe "-install" $MySQLServiceName
+            Pop-Location
         }
 
         if ($LASTEXITCODE -ne 0) {
@@ -786,11 +951,12 @@ try {
             Log-Message "Configured MySQL service to start automatically"
         }
         
-        Pop-Location
+            Pop-Location
+        }
     } catch {
             Log-Message "ERROR: Failed during MySQL service installation - $($_.Exception.Message)"
         }
-    }
+    }    
 
     if ($InstallTomcatService) {
     try {
@@ -800,21 +966,81 @@ try {
         $ramUpdated = $false
         $performanceOptionsUpdated = $false
 
-        # Validate paths
-        if (-Not (Test-Path $TomcatBinPath)) {
-            throw "Tomcat bin path not found: $TomcatBinPath"
+
+        # Validate Tomcat path first
+        $tomcatPathValidated = $false
+        while (-not $tomcatPathValidated -and $InstallTomcatService) {
+            if (-Not (Test-Path $TomcatBinPath)) {
+                Log-Message "ERROR: Tomcat bin path not found: $TomcatBinPath"
+                Write-Host "The Tomcat path is incorrect. Please enter the correct Tomcat path (without quotes) or type 'skip' to skip Tomcat service installation:" -ForegroundColor Yellow
+                $userInputTomcat = Read-Host
+                
+                if ($userInputTomcat -eq 'skip') {
+                    $InstallTomcatService = $false
+                    Log-Message "User chose to skip Tomcat service installation."
+                    break
+                } else {
+                    $TomcatPath = $userInputTomcat.Trim()
+                    $TomcatPath = $TomcatPath.TrimEnd('\')
+                    $TomcatBinPath = Join-Path -Path $TomcatPath -ChildPath "bin"
+                    $serviceBatPath = Join-Path -Path $TomcatBinPath -ChildPath "service.bat"
+                    continue
+                }
+            }
+            
+            # Check service.bat after Tomcat path is validated
+            if (-Not (Test-Path $serviceBatPath)) {
+                Log-Message "ERROR: service.bat not found in: $TomcatBinPath"
+                Write-Host "service.bat not found in the Tomcat bin directory. Please enter the correct Tomcat path (without quotes) or type 'skip' to skip Tomcat service installation:" -ForegroundColor Yellow
+                $userInputTomcat = Read-Host
+                
+                if ($userInputTomcat -eq 'skip') {
+                    $InstallTomcatService = $false
+                    Log-Message "User chose to skip Tomcat service installation."
+                    break
+                } else {
+                    $TomcatPath = $userInputTomcat.Trim()
+                    $TomcatPath = $TomcatPath.TrimEnd('\')
+                    $TomcatBinPath = Join-Path -Path $TomcatPath -ChildPath "bin"
+                    $serviceBatPath = Join-Path -Path $TomcatBinPath -ChildPath "service.bat"
+                    continue
+                }
+            }
+            
+            $tomcatPathValidated = $true
         }
-        if (-Not (Test-Path $serviceBatPath)) {
-            throw "service.bat not found in: $TomcatBinPath"
+
+        # Validate Java Home separately
+        $javaPathValidated = $false
+        while (-not $javaPathValidated -and $InstallTomcatService) {
+            if (-Not (Test-Path $JavaHome)) {
+                Log-Message "ERROR: Java Home not found: $JavaHome"
+                Write-Host "The JDK path is incorrect. Please enter the correct JDK path (without quotes) or type 'skip' to skip Tomcat service installation:" -ForegroundColor Yellow
+                $userInputJDK = Read-Host
+
+                if ($userInputJDK -eq 'skip') {
+                    $InstallTomcatService = $false
+                    Log-Message "User chose to skip Tomcat service installation."
+                    break
+                } else {
+                    $JavaHome = $userInputJDK.Trim()
+                    $JavaHome = $JavaHome.TrimEnd('\')
+                    $JRE_HOME = "$JavaHome\\jre"
+                    continue
+                }
+            }
+            $javaPathValidated = $true
         }
-        if (-Not (Test-Path $JavaHome)) {
-            throw "Java Home not found: $JavaHome"
+
+        # If user skipped installation, break out
+        if (-not $InstallTomcatService) {
+            Log-Message "Skipping Tomcat service installation as requested by user."
+            continue
         }
 
         # Backup original service.bat content
         $serviceBatBackup = Get-Content $serviceBatPath -Raw
 
-        
         if ($RamAllocation) {
             try {
                 # Update service.bat with memory settings
@@ -909,8 +1135,8 @@ try {
             }
             
             # Set service to auto-start
-            sc.exe config ${tomcatServiceName} start= auto | Out-Null
-            Log-Message "Configured Tomcat service to start automatically"
+            sc.exe config ${tomcatServiceName} start= delayed-auto | Out-Null
+            Log-Message "Configured Tomcat service to start automatically (delayed)"
 
             # Revert changes to service.bat if they were made
             if ($ramUpdated -or $performanceOptionsUpdated) {
@@ -920,9 +1146,7 @@ try {
 
 
 
-
-
-
+            
             if ($CopyFonts) {
                 Log-Message "Installing fonts from Tomcat installation..."
                 $fontExtensions = @('.fon', '.ttf', '.TTF', '.otf')
@@ -934,6 +1158,7 @@ try {
                 
                 $fontsInstalled = 0
                 $fontsFailed = 0
+                $fontsSkipped = 0
 
                 foreach ($fontDir in $fontDirectories) {
                     $fullFontPath = Join-Path -Path $TomcatPath -ChildPath $fontDir
@@ -954,22 +1179,41 @@ try {
                                 # Check if font already exists
                                 if (Test-Path $destinationPath) {
                                     Log-Message "Font already exists: $fontName"
+                                    $fontsSkipped++
                                     continue
                                 }
                                 
-                                # Use proper font installation method
-                                $shell = New-Object -ComObject Shell.Application
-                                $fontsFolder = $shell.Namespace(0x14)  # 0x14 is the Fonts folder
+                                # Copy font file to Windows Fonts directory
+                                Log-Message "Installing font: $fontName"
+                                Copy-Item -Path $fontFile.FullName -Destination $destinationPath -Force -ErrorAction Stop
                                 
-                                # Copy font to Fonts directory using Shell API
-                                $fontsFolder.CopyHere($fontFile.FullName, 0x14)  # 0x14 = Yes to All
+                                # Wait for file system to register the copy
+                                Start-Sleep -Milliseconds 500
                                 
                                 # Verify installation
-                                Start-Sleep -Seconds 2  # Wait for font to be installed
-                                
                                 if (Test-Path $destinationPath) {
                                     $fontsInstalled++
                                     Log-Message "Successfully installed font: $fontName"
+                                    
+                                    # Update registry to register the font
+                                    $registryPath = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Fonts"
+                                    $fontRegistryName = $fontName -replace '\.[^.]*$', ''  # Remove extension
+                                    
+                                    # For TrueType fonts
+                                    if ($fontName -match '\.ttf$|\.TTF$') {
+                                        $fontRegistryName += " (TrueType)"
+                                    }
+                                    # For OpenType fonts
+                                    elseif ($fontName -match '\.otf$') {
+                                        $fontRegistryName += " (OpenType)"
+                                    }
+                                    
+                                    # Add font to registry if it doesn't exist
+                                    $existingValue = Get-ItemProperty -Path $registryPath -Name $fontRegistryName -ErrorAction SilentlyContinue
+                                    if (-not $existingValue) {
+                                        Set-ItemProperty -Path $registryPath -Name $fontRegistryName -Value $fontName -ErrorAction SilentlyContinue
+                                        Log-Message "Added font to registry: $fontRegistryName"
+                                    }
                                 } else {
                                     $fontsFailed++
                                     Log-Message "WARNING: Font may not have installed correctly: $fontName"
@@ -984,17 +1228,19 @@ try {
                     }
                 }
                 
-                # Provide accurate summary
-                if ($fontsInstalled -gt 0) {
-                    Log-Message "Successfully installed $fontsInstalled font(s)"
-                }
+                # Provide comprehensive summary
+                Log-Message "Font installation summary:"
+                Log-Message "  - Successfully installed: $fontsInstalled font(s)"
+                Log-Message "  - Already existed (skipped): $fontsSkipped font(s)"
+                Log-Message "  - Failed to install: $fontsFailed font(s)"
+                
                 if ($fontsFailed -gt 0) {
-                    Log-Message "Failed to install $fontsFailed font(s)"
-                }
-                if ($fontsInstalled -eq 0 -and $fontsFailed -eq 0) {
-                    Log-Message "No font files were found or installed"
+                    Log-Message "WARNING: Some fonts failed to install. The application may still work, but some fonts might not be available."
+                } else {
+                    Log-Message "SUCCESS: All fonts processed successfully"
                 }
             }
+
 
         } catch {
         Log-Message "An error occurred during Tomcat service installation."
@@ -1041,42 +1287,62 @@ try {
 }
 `;
 
-// Generate strong password for RAR download
-  const rarPassword = generatePassword();
-  const tempDir = path.join(os.tmpdir(), 'migration-scripts');
-  fs.mkdirSync(tempDir, { recursive: true });
+    // Generate strong password for RAR download
+    const rarPassword = generatePassword();
+    const tempDir = path.join(os.tmpdir(), 'migration-scripts');
+    fs.mkdirSync(tempDir, { recursive: true });
 
-  const uniqueId = uuidv4();
-  const scriptName = `migration-destination-${clientName}.ps1`;
-  const scriptPath = path.join(tempDir, `${scriptName}`);
-  const rarFilePath = path.join(tempDir, `migration-destination-${clientName}-${uniqueId}.rar`);
+    const uniqueId = uuidv4();
+    const scriptName = `migration-destination-${clientName}.ps1`;
 
-  // Write PowerShell script to temp file
-  fs.writeFileSync(scriptPath, script);
+    // Create the script file directly in temp directory (not in package folder)
+    const scriptPath = path.join(tempDir, scriptName);
+    fs.writeFileSync(scriptPath, script);
 
-  // Create password-protected RAR using rar CLI
-  const rarCommand = `rar a -ep -hp"${rarPassword}" "${rarFilePath}" "${scriptPath}"`;
+    // Create dlls folder directly in temp directory
+    const dllsFolder = path.join(tempDir, 'dlls');
+    fs.mkdirSync(dllsFolder, { recursive: true });
 
-  exec(rarCommand, (err, stdout, stderr) => {
-    // Always clean up script file immediately
+    // Copy DLL files to the dlls folder
+    const dllSourcePath = path.join(process.cwd(), 'utils', 'dll');
+    const dllFiles = ['vcruntime140.dll', 'msvcp140.dll', 'vcruntime140_1.dll'];
+
+    dllFiles.forEach(dllFile => {
+    const sourceFile = path.join(dllSourcePath, dllFile);
+    const destFile = path.join(dllsFolder, dllFile);
+    if (fs.existsSync(sourceFile)) {
+        fs.copyFileSync(sourceFile, destFile);
+    }
+    });
+
+    const rarFilePath = path.join(tempDir, `migration-destination-${clientName}-${uniqueId}.rar`);
+
+    // Create RAR containing both the script and dlls folder at root level
+    const rarCommand = `rar a -ep1 -hp"${rarPassword}" "${rarFilePath}" "${scriptPath}" "${dllsFolder}"`;
+
+    exec(rarCommand, (err, stdout, stderr) => {
+    // Clean up temporary files
     try {
-      if (fs.existsSync(scriptPath)) {
+        if (fs.existsSync(scriptPath)) {
         fs.unlinkSync(scriptPath);
-      }
+        }
+        if (fs.existsSync(dllsFolder)) {
+        fs.rmSync(dllsFolder, { recursive: true, force: true });
+        }
     } catch (cleanupErr) {
-      console.error('Script cleanup failed:', cleanupErr);
+        console.error('Temporary files cleanup failed:', cleanupErr);
     }
 
     if (err) {
-      console.error('RAR error:', err, stderr);
-      try {
+        console.error('RAR error:', err, stderr);
+        try {
         if (fs.existsSync(rarFilePath)) {
-          fs.unlinkSync(rarFilePath);
+            fs.unlinkSync(rarFilePath);
         }
-      } catch (rarCleanupErr) {
+        } catch (rarCleanupErr) {
         console.error('RAR cleanup failed:', rarCleanupErr);
-      }
-      return res.status(500).json({ error: 'RAR creation failed. Ensure rar CLI is installed.' });
+        }
+        return res.status(500).json({ error: 'RAR creation failed. Ensure rar CLI is installed.' });
     }
 
     // Set headers for RAR download
@@ -1090,13 +1356,13 @@ try {
 
     // Clean up after streaming
     fileStream.on('close', () => {
-      try {
+        try {
         if (fs.existsSync(rarFilePath)) {
-          fs.unlinkSync(rarFilePath);
+            fs.unlinkSync(rarFilePath);
         }
-      } catch (finalCleanupErr) {
+        } catch (finalCleanupErr) {
         console.error('Final cleanup failed:', finalCleanupErr);
-      }
+        }
     });
   });
 
