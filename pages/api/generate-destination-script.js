@@ -56,13 +56,38 @@ export default async function handler(req, res) {
     mysqlRamSize,
     unarchiveOption,
     unarchivePath,
-    setEnvironmentVariables
+    setEnvironmentVariables,
+    addFirewallRule,
+    firewallPorts
     } = req.body;
 
   // Validate input parameters
   if (!drive || !clientName) {
     return res.status(400).json({ error: 'All fields are required' });
   }
+
+    // Clean and validate firewall ports
+    let cleanFirewallPorts = '';
+    if (addFirewallRule && firewallPorts) {
+        // Remove all non-digit characters except commas, then clean up multiple commas
+        cleanFirewallPorts = firewallPorts
+            .replace(/[^\d,]/g, '') // Remove everything except digits and commas
+            .replace(/,+/g, ',')    // Replace multiple commas with single comma
+            .replace(/^,|,$/g, '')  // Remove leading/trailing commas
+            .split(',')             // Split into array
+            .filter(port => {
+                const portNum = parseInt(port.trim());
+                return port.trim() !== '' && portNum >= 1 && portNum <= 65535;
+            })
+            .join(',');             // Join back to string
+        
+        console.log(`Original ports: "${firewallPorts}" -> Cleaned ports: "${cleanFirewallPorts}"`);
+        
+        // Set to empty string if no valid ports found
+        if (cleanFirewallPorts === '') {
+            console.log('WARNING: No valid ports found for firewall rule');
+        }
+    }
 
   console.log(`
     drive: ${drive},
@@ -85,9 +110,13 @@ export default async function handler(req, res) {
     mysqlRamSize: ${mysqlRamSize},
     unarchiveOption: ${unarchiveOption},
     unarchivePath: ${unarchivePath},
-    setEnvironmentVariables: ${setEnvironmentVariables}
+    setEnvironmentVariables: ${setEnvironmentVariables},
+    addFirewallRule: ${addFirewallRule},
+    firewallPorts: ${firewallPorts},
+    cleanFirewallPorts: ${cleanFirewallPorts}
     `);
   
+
   
   // Generate formatted date (MMDDYY)
   const today = new Date();
@@ -124,8 +153,9 @@ param(
     [string]$MySQLRamSize = "${mysqlRamSize}",
     [string]$UnarchiveOption = "${unarchiveOption}",
     [string]$UnarchivePath = "${escapePowerShellPath(unarchivePath)}",
-    [bool]$SetEnvironmentVariables = $${setEnvironmentVariables}
-    
+    [bool]$SetEnvironmentVariables = $${setEnvironmentVariables},
+    [bool]$AddFirewallRule = $${addFirewallRule},
+    [string]$FirewallPorts = "${cleanFirewallPorts}"
 )
 
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -244,6 +274,53 @@ function Set-WindowsEnvironmentVariables {
         Log-Message "ERROR: Failed to set environment variables - $($_.Exception.Message)"
     }
 }
+
+function Add-FirewallRules {
+    param(
+        [string]$Ports,
+        [string]$ClientName
+    )
+    
+    Log-Message "Setting up Windows Firewall Rules..."
+    
+    try {
+        if (-not $Ports) {
+            Log-Message "WARNING: No valid ports provided for firewall rule"
+            return
+        }
+        
+        $ruleName = "NS Secure Ports - $ClientName"
+        $portArray = $Ports -split ','
+        
+        Log-Message "Creating firewall rule: $ruleName for ports: $($portArray -join ', ')"
+        
+        # Check if rule already exists
+        $existingRule = Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
+        if ($existingRule) {
+            Log-Message "Removing existing firewall rule: $ruleName"
+            Remove-NetFirewallRule -DisplayName $ruleName -Confirm:$false
+        }
+        
+        # Create firewall rule with port array
+        $firewallRule = New-NetFirewallRule -DisplayName $ruleName -Description "Northstar Application Ports for $ClientName" -Direction Inbound -Protocol TCP -LocalPort $portArray -Action Allow -Enabled True -Profile Domain,Private,Public -ErrorAction Stop
+        
+        if ($firewallRule) {
+            Log-Message "SUCCESS: Firewall rule created - $ruleName for ports: $($portArray -join ', ')"
+            
+            # Verify the rule was created
+            $verifyRule = Get-NetFirewallRule -DisplayName $ruleName
+            if ($verifyRule) {
+                Log-Message "VERIFIED: Firewall rule exists and is enabled"
+            }
+        } else {
+            Log-Message "WARNING: Failed to create firewall rule for ports: $($portArray -join ', ')"
+        }
+        
+    } catch {
+        Log-Message "ERROR: Failed to create firewall rule - $($_.Exception.Message)"
+    }
+}
+
 
 function Copy-RequiredDLLs {
     Log-Message "Checking for required DLL files for MySQL service installation..."
@@ -1301,6 +1378,16 @@ try {
         } catch {
         Log-Message "An error occurred during Tomcat service installation."
         }   
+    }
+
+    # FIREWALL RULES ADDITION
+
+    if ($AddFirewallRule -and $FirewallPorts) {
+        Add-FirewallRules -Ports $FirewallPorts -ClientName $ClientName
+    } elseif ($AddFirewallRule -and -not $FirewallPorts) {
+        Log-Message "WARNING: Firewall rule creation enabled but no ports specified"
+    } else {
+        Log-Message "Firewall rule creation skipped (checkbox not enabled)"
     }
 
     # FINAL MIGRATION STATUS

@@ -60,6 +60,8 @@ export default function ServerMigration() {
   ]);
   const [newPerformanceOption, setNewPerformanceOption] = useState('');
   const [setEnvironmentVariables, setSetEnvironmentVariables] = useState(false);
+  const [addFirewallRule, setAddFirewallRule] = useState(false);
+  const [firewallPorts, setFirewallPorts] = useState('');
 
   const driveLetters = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
@@ -311,7 +313,9 @@ export default function ServerMigration() {
           mysqlRamSize,
           unarchiveOption,
           unarchivePath: unarchiveOption === 'specificPath' ? unarchivePath : '',
-          setEnvironmentVariables
+          setEnvironmentVariables,
+          addFirewallRule,
+          firewallPorts
         }),
       });
 
@@ -1095,6 +1099,35 @@ export default function ServerMigration() {
                 </>
               )}
             </div>
+
+            <div className={styles.optionGroup}>
+            <label className={styles.optionLabel}>
+              <input 
+                type="checkbox" 
+                checked={addFirewallRule} 
+                onChange={(e) => setAddFirewallRule(e.target.checked)} 
+                className={styles.optionCheckbox}
+              />
+              Add Firewall Rule
+            </label>
+          {addFirewallRule && (
+            <div className={styles.optionInput}>
+              <label>Ports to Open (comma separated):</label>
+              <input
+                type="text"
+                value={firewallPorts}
+                onChange={(e) => setFirewallPorts(e.target.value)}
+                placeholder="e.g., 80, 443, 8080"
+                className={styles.styledselecttempmargin}
+                style={{ width: '93%', padding: '7px', margin: '10px 0' }}
+              />
+              <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
+                Enter TCP ports separated by commas. Rules will be created for each port.
+              </p>
+            </div>
+          )}
+        </div>
+            
 
 
               
