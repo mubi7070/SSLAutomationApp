@@ -62,6 +62,8 @@ export default function ServerMigration() {
   const [setEnvironmentVariables, setSetEnvironmentVariables] = useState(false);
   const [addFirewallRule, setAddFirewallRule] = useState(false);
   const [firewallPorts, setFirewallPorts] = useState('');
+  const [updateInternalIP, setUpdateInternalIP] = useState(false);
+  const [internalIP, setInternalIP] = useState('');
 
   const driveLetters = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
@@ -315,7 +317,9 @@ export default function ServerMigration() {
           unarchivePath: unarchiveOption === 'specificPath' ? unarchivePath : '',
           setEnvironmentVariables,
           addFirewallRule,
-          firewallPorts
+          firewallPorts,
+          updateInternalIP,
+          internalIP
         }),
       });
 
@@ -1096,6 +1100,36 @@ export default function ServerMigration() {
                       Environment Variables Setup
                     </label>
                   </div>
+
+                  {/* Internal IP Update Section */}
+                  <div className={styles.optionInput}>
+                    <label className={styles.optionLabel}>
+                      <input 
+                        type="checkbox" 
+                        checked={updateInternalIP} 
+                        onChange={(e) => setUpdateInternalIP(e.target.checked)} 
+                        className={styles.optionCheckbox}
+                      />
+                      Internal IP Update
+                    </label>
+                    {updateInternalIP && (
+                      <div className={styles.optionInput}>
+                        <label>Internal IP:</label>
+                        <input
+                          type="text"
+                          value={internalIP}
+                          onChange={(e) => setInternalIP(e.target.value)}
+                          placeholder="e.g., 192.168.1.100"
+                          className={styles.styledselecttempmargin}
+                          style={{ width: '93%', padding: '7px', margin: '10px 0' }}
+                        />
+                        <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
+                          This internal IP will be updated in northstar.ini file
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
                 </>
               )}
             </div>

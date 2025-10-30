@@ -58,7 +58,9 @@ export default async function handler(req, res) {
     unarchivePath,
     setEnvironmentVariables,
     addFirewallRule,
-    firewallPorts
+    firewallPorts,
+    updateInternalIP,
+    internalIP
     } = req.body;
 
   // Validate input parameters
@@ -113,10 +115,11 @@ export default async function handler(req, res) {
     setEnvironmentVariables: ${setEnvironmentVariables},
     addFirewallRule: ${addFirewallRule},
     firewallPorts: ${firewallPorts},
-    cleanFirewallPorts: ${cleanFirewallPorts}
+    cleanFirewallPorts: ${cleanFirewallPorts},
+    updateInternalIP: ${updateInternalIP},
+    internalIP: ${internalIP}
     `);
-  
-
+    
   
   // Generate formatted date (MMDDYY)
   const today = new Date();
@@ -155,7 +158,9 @@ param(
     [string]$UnarchivePath = "${escapePowerShellPath(unarchivePath)}",
     [bool]$SetEnvironmentVariables = $${setEnvironmentVariables},
     [bool]$AddFirewallRule = $${addFirewallRule},
-    [string]$FirewallPorts = "${cleanFirewallPorts}"
+    [string]$FirewallPorts = "${cleanFirewallPorts}",
+    [bool]$UpdateInternalIP = $${updateInternalIP},
+    [string]$InternalIP = "${internalIP}"
 )
 
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -320,6 +325,79 @@ function Add-FirewallRules {
         Log-Message "ERROR: Failed to create firewall rule - $($_.Exception.Message)"
     }
 }
+
+function Update-NorthstarINI {
+    param(
+        [string]$TomcatPath,
+        [string]$InternalIP
+    )
+    
+    Log-Message "Updating northstar.ini file with new internal IP: $InternalIP"
+    
+    try {
+
+        # Define both northstar.ini file paths
+        $northstarINIPaths = @(
+            "webapps\\northstar\\WEB-INF\\classes\\northstar.ini",
+            "webapps\\northstar-training\\WEB-INF\\classes\\northstar.ini"
+        )
+
+        foreach ($relativePath in $northstarINIPaths) {
+            $northstarINIPath = Join-Path -Path $TomcatPath -ChildPath $relativePath
+            
+            if (-not (Test-Path -LiteralPath $northstarINIPath)) {
+                Log-Message "WARNING: northstar.ini file not found at: $northstarINIPath"
+                continue
+            }
+            
+            # Read the content of northstar.ini line by line (same as MySQL approach)
+            $lines = Get-Content $northstarINIPath
+            
+            # Process each line
+            $updatedLines = @()
+            $internalURLUpdated = $false
+            $productionIPUpdated = $false
+            
+            foreach ($line in $lines) {
+                $updatedLine = $line
+
+                # Update internal.url (Location 1) - using simple string matching like MySQL code
+                if ($line -like "*internal.url=http://*:8080/northstar*") {
+                    $updatedLine = "internal.url=http://${internalIP}:8080/northstar"
+                    Log-Message "Updated internal.url to: $updatedLine"
+                    $internalURLUpdated = $true
+                }
+                # Update production.system.ip (Location 2) - using simple string matching like MySQL code
+                elseif ($line -like "*production.system.ip=*") {
+                    $updatedLine = "production.system.ip=${internalIP}"
+                    Log-Message "Updated production.system.ip to: $updatedLine"
+                    $productionIPUpdated = $true
+                }
+
+                $updatedLines += $updatedLine
+            }
+
+            # Write the updated content back to northstar.ini
+            Set-Content -Path $northstarINIPath -Value $updatedLines
+            
+            
+            # Log warnings if patterns weren't found
+            if (-not $internalURLUpdated) {
+                Log-Message "WARNING: internal.url pattern not found in northstar.ini"
+            }
+            if (-not $productionIPUpdated) {
+                Log-Message "WARNING: production.system.ip pattern not found in northstar.ini"
+            }
+
+        }
+
+        Log-Message "SUCCESS: northstar.ini files updated successfully with new IP: $InternalIP"
+        
+    } catch {
+        Log-Message "ERROR: Failed to update northstar.ini - $($_.Exception.Message)"
+    }
+}
+
 
 
 function Copy-RequiredDLLs {
@@ -1368,11 +1446,22 @@ try {
                 }
             }
 
+            # Update Environment Variables
+
             if ($SetEnvironmentVariables) {
                 Set-WindowsEnvironmentVariables -TomcatPath $TomcatPath -JavaHome $JavaHome -JRE_HOME $JRE_HOME
             } else {
                 Log-Message "Environment variables setup skipped (checkbox not enabled)"
             }
+
+            # Update northstar.ini with internal IP if enabled
+            if ($UpdateInternalIP -and $InternalIP) {
+                Update-NorthstarINI -TomcatPath $TomcatPath -InternalIP $InternalIP
+            } elseif ($UpdateInternalIP -and -not $InternalIP) {
+                Log-Message "WARNING: Internal IP update enabled but no IP provided"
+            }
+
+
 
 
         } catch {
