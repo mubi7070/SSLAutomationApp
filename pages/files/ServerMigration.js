@@ -64,6 +64,7 @@ export default function ServerMigration() {
   const [firewallPorts, setFirewallPorts] = useState('');
   const [updateInternalIP, setUpdateInternalIP] = useState(false);
   const [internalIP, setInternalIP] = useState('');
+  const [updateTomcatPath, setUpdateTomcatPath] = useState(false);
 
   const driveLetters = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
@@ -319,7 +320,8 @@ export default function ServerMigration() {
           addFirewallRule,
           firewallPorts,
           updateInternalIP,
-          internalIP
+          internalIP,
+          updateTomcatPath
         }),
       });
 
@@ -1125,6 +1127,26 @@ export default function ServerMigration() {
                         />
                         <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
                           This internal IP will be updated in northstar.ini file
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Update Tomcat Path in Configuration Files */}
+                  <div className={styles.optionInput}>
+                    <label className={styles.optionLabel}>
+                      <input 
+                        type="checkbox" 
+                        checked={updateTomcatPath} 
+                        onChange={(e) => setUpdateTomcatPath(e.target.checked)} 
+                        className={styles.optionCheckbox}
+                      />
+                      Update Tomcat Path in 4 Configuration Files
+                    </label>
+                    {updateTomcatPath && (
+                      <div className={styles.optionInput}>
+                        <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
+                          This will update the Tomcat path in northstar.ini, log4j.PROPERTIES, velocity.properties and velocityletters.properties configuration files
                         </p>
                       </div>
                     )}

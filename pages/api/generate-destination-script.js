@@ -60,7 +60,8 @@ export default async function handler(req, res) {
     addFirewallRule,
     firewallPorts,
     updateInternalIP,
-    internalIP
+    internalIP,
+    updateTomcatPath
     } = req.body;
 
   // Validate input parameters
@@ -117,7 +118,8 @@ export default async function handler(req, res) {
     firewallPorts: ${firewallPorts},
     cleanFirewallPorts: ${cleanFirewallPorts},
     updateInternalIP: ${updateInternalIP},
-    internalIP: ${internalIP}
+    internalIP: ${internalIP},
+    updateTomcatPath: ${updateTomcatPath}
     `);
     
   
@@ -160,7 +162,8 @@ param(
     [bool]$AddFirewallRule = $${addFirewallRule},
     [string]$FirewallPorts = "${cleanFirewallPorts}",
     [bool]$UpdateInternalIP = $${updateInternalIP},
-    [string]$InternalIP = "${internalIP}"
+    [string]$InternalIP = "${internalIP}",
+    [bool]$UpdateTomcatPath = $${updateTomcatPath}
 )
 
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -395,6 +398,182 @@ function Update-NorthstarINI {
         
     } catch {
         Log-Message "ERROR: Failed to update northstar.ini - $($_.Exception.Message)"
+    }
+}
+
+
+function Update-TomcatPathInFiles {
+    param(
+        [string]$TomcatPath
+    )
+    
+    Log-Message "Starting Tomcat Path Update in configuration files..."
+    
+    try {
+        # First, get the old Tomcat path from northstar.ini
+        $northstarINIPath = Join-Path -Path $TomcatPath -ChildPath "webapps\\northstar\\WEB-INF\\classes\\northstar.ini"
+        
+        if (-not (Test-Path -LiteralPath $northstarINIPath)) {
+            Log-Message "ERROR: Cannot find northstar.ini file at: $northstarINIPath"
+            return $false
+        }
+        
+        # Read the northstar.ini file to extract the old path
+        $oldTomcatPath = $null
+        $content = Get-Content $northstarINIPath -Raw
+        
+        if ($content -match 'path=([^\\r\\n]+)/webapps/northstar') {
+            $oldTomcatPath = $matches[1]
+            Log-Message "Found old Tomcat path in northstar.ini: $oldTomcatPath"
+        }
+        
+        if (-not $oldTomcatPath) {
+            Log-Message "ERROR: Could not extract old Tomcat path from northstar.ini"
+            Log-Message "Looking for pattern: 'path=.../webapps/northstar'"
+            return $false
+        }
+        
+        # Define the 4 files that need to be updated
+        $filesToUpdate = @(
+            @{
+                Name = "northstar.ini"
+                Path = "webapps\\northstar\\WEB-INF\\classes\\northstar.ini"
+            },
+            @{
+                Name = "log4j.PROPERTIES" 
+                Path = "webapps\\northstar\\WEB-INF\\classes\\log4j.PROPERTIES"
+            },
+            @{
+                Name = "velocity.properties"
+                Path = "webapps\\northstar\\stencils\\velocity.properties"
+            },
+            @{
+                Name = "velocityletters.properties"
+                Path = "webapps\\northstar\\stencils\\velocityletters.properties"
+            }
+        )
+        
+        $successCount = 0
+        $failureCount = 0
+        
+        foreach ($file in $filesToUpdate) {
+            $filePath = Join-Path -Path $TomcatPath -ChildPath $file.Path
+            
+            if (-not (Test-Path -LiteralPath $filePath)) {
+                Log-Message "WARNING: File not found, skipping: $($file.Name) at $filePath"
+                $failureCount++
+                continue
+            }
+            
+            try {
+                # Backup the file
+                $backupPath = "$filePath.backup"
+                if (Test-Path $filePath) {
+                    Copy-Item -Path $filePath -Destination $backupPath -Force
+                    Log-Message "Created backup: $backupPath"
+                }
+
+                # Read the entire file content
+                $content = Get-Content $filePath -Raw
+                $originalContent = $content
+                
+                # Count occurrences before replacement
+                $occurrencesBefore = 0
+                
+                # Create escaped versions for regex
+                $oldTomcatPathEscaped = [regex]::Escape($oldTomcatPath)
+                
+                # Count forward slash occurrences
+                $oldForward = $oldTomcatPath -replace '\\\\', '/'
+                $oldForwardEscaped = [regex]::Escape($oldForward)
+                $occurrencesBefore += [regex]::Matches($content, $oldForwardEscaped).Count
+                
+                # Count backward slash occurrences  
+                $oldBackward = $oldTomcatPath -replace '/', '\\\\'
+                $oldBackwardEscaped = [regex]::Escape($oldBackward)
+                $occurrencesBefore += [regex]::Matches($content, $oldBackwardEscaped).Count
+                
+                if ($occurrencesBefore -eq 0) {
+                    Log-Message "INFO: No old Tomcat path found in $($file.Name)"
+                    # Remove backup since no changes were made
+                    if (Test-Path $backupPath) {
+                        Remove-Item -Path $backupPath -Force -ErrorAction SilentlyContinue
+                    }
+                    $successCount++
+                    continue
+                }
+                
+                # Perform the replacements
+                $newForward = $TomcatPath -replace '\\\\', '/'
+                $newBackward = $TomcatPath
+                
+                # Replace forward slashes
+                $content = $content -replace $oldForwardEscaped, $newForward
+                
+                # Replace backward slashes
+                $content = $content -replace $oldBackwardEscaped, $newBackward
+                
+                # Write the entire content back to file
+                $content | Set-Content -Path $filePath -NoNewline
+                
+                # Verify the file still has content and structure
+                $verifyContent = Get-Content $filePath -Raw
+                if ($verifyContent -eq $originalContent) {
+                    Log-Message "WARNING: No changes detected in $($file.Name) after update"
+                }
+                
+                # Count occurrences after replacement
+                $occurrencesAfter = 0
+                $occurrencesAfter += [regex]::Matches($verifyContent, [regex]::Escape($newForward)).Count
+                $occurrencesAfter += [regex]::Matches($verifyContent, [regex]::Escape($newBackward)).Count
+                
+                # Verify file structure is preserved by checking line count
+                $originalLines = ($originalContent -split "\`r\`n" -split "\`n").Count
+                $updatedLines = ($verifyContent -split "\`r\`n" -split "\`n").Count
+                
+                if ($originalLines -eq $updatedLines) {
+                    Log-Message "SUCCESS: Updated $($file.Name) - replaced $occurrencesBefore occurrences, file structure preserved ($originalLines lines)"
+                } else {
+                    Log-Message "WARNING: Updated $($file.Name) but line count changed from $originalLines to $updatedLines"
+                }
+
+                
+                # --- Delete backup if update succeeded ---
+                if (Test-Path $backupPath) {
+                    Remove-Item -Path $backupPath -Force -ErrorAction SilentlyContinue
+                }
+                
+                $successCount++
+                
+            } catch {
+                Log-Message "ERROR: Failed to update $($file.Name) - $($_.Exception.Message)"
+                # Restore from backup on error
+                if (Test-Path $backupPath) {
+                    Copy-Item -Path $backupPath -Destination $filePath -Force
+                    Remove-Item -Path $backupPath -Force
+                    Log-Message "Restored from backup: $filePath"
+                }
+                $failureCount++
+            }
+        }
+        
+        Log-Message "Tomcat Path Update Summary:"
+        Log-Message "  - Successfully updated: $successCount files"
+        Log-Message "  - Failed to update: $failureCount files"
+        Log-Message "  - Old Tomcat Path: $oldTomcatPath"
+        Log-Message "  - New Tomcat Path: $TomcatPath"
+        
+        if ($failureCount -eq 0) {
+            Log-Message "SUCCESS: Tomcat path updated in all files successfully"
+            return $true
+        } else {
+            Log-Message "WARNING: Some files could not be updated. Check logs for details."
+            return $false
+        }
+        
+    } catch {
+        Log-Message "ERROR: Tomcat path update process failed - $($_.Exception.Message)"
+        return $false
     }
 }
 
@@ -1459,6 +1638,14 @@ try {
                 Update-NorthstarINI -TomcatPath $TomcatPath -InternalIP $InternalIP
             } elseif ($UpdateInternalIP -and -not $InternalIP) {
                 Log-Message "WARNING: Internal IP update enabled but no IP provided"
+            }
+
+
+            # Update Tomcat Path in configuration files if enabled
+            if ($UpdateTomcatPath) {
+                Update-TomcatPathInFiles -TomcatPath $TomcatPath
+            } else {
+                Log-Message "Tomcat Path Update skipped (checkbox not enabled)"
             }
 
 
