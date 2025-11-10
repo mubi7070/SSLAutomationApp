@@ -42,6 +42,12 @@ export default function ServerMigration() {
   const [unarchiveOption, setUnarchiveOption] = useState('driveRoot');
   const [unarchivePath, setUnarchivePath] = useState('');
 
+  const [stopDisableServices, setStopDisableServices] = useState(false);
+  const [stopTomcat, setStopTomcat] = useState(false);
+  const [stopMySQL, setStopMySQL] = useState(false);
+  const [sourceTomcatServiceName, setSourceTomcatServiceName] = useState('Tomcat9');
+  const [sourceMySQLServiceName, setSourceMySQLServiceName] = useState('MySQL8');
+
   const [enablePerformanceOptions, setEnablePerformanceOptions] = useState(false);
   const [performanceOptions, setPerformanceOptions] = useState([
     '-Djava.awt.headless=false',
@@ -53,6 +59,12 @@ export default function ServerMigration() {
     '-Xverify:none'
   ]);
   const [newPerformanceOption, setNewPerformanceOption] = useState('');
+  const [setEnvironmentVariables, setSetEnvironmentVariables] = useState(false);
+  const [addFirewallRule, setAddFirewallRule] = useState(false);
+  const [firewallPorts, setFirewallPorts] = useState('');
+  const [updateInternalIP, setUpdateInternalIP] = useState(false);
+  const [internalIP, setInternalIP] = useState('');
+  const [updateTomcatPath, setUpdateTomcatPath] = useState(false);
 
   const driveLetters = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
@@ -65,6 +77,11 @@ export default function ServerMigration() {
       }, 5000);
     }
   }, [popupMessage]);
+
+  // Sanitize client name by removing spaces
+  const sanitizeClientName = (name) => {
+    return name.replace(/\s+/g, '');
+  };
 
   const addIncludePath = () => {
     if (newIncludePath.trim()) {
@@ -128,6 +145,55 @@ export default function ServerMigration() {
     }
   };
 
+
+  // Clear all form fields
+  const handleClearForm = () => {
+    setSourceDrive('D');
+    setDestinationDrive('D');
+    setClientName('');
+    setTomcatPath('');
+    setJdkPath('');
+    setMysqlPath('');
+    setSourceStatus('');
+    setDestinationStatus('');
+    setExcludePaths([]);
+    setNewExcludePath('');
+    setGeneratedPassword('');
+    setGeneratedPassword2('');
+    setPathMode('include');
+    setIncludePaths([]);
+    setNewIncludePath('');
+    setInstallMySQL(false);
+    setInstallTomcat(false);
+    setCopyFonts(false);
+    setRamAllocation(false);
+    setMysqlServiceName('MySQL8');
+    setTomcatServiceName('Tomcat9');
+    setTomcatDependency(false);
+    setTomcatInitialMemory('1024');
+    setTomcatMaxMemory('2048');
+    setMysqlRamAllocation(false);
+    setMysqlRamSize('4096');
+    setUnarchiveOption('driveRoot');
+    setUnarchivePath('');
+    setEnablePerformanceOptions(false);
+    setPerformanceOptions([
+      '-Djava.awt.headless=false',
+      '-Dfile.encoding=UTF8',
+      '-XX:MaxPermSize=1024m',
+      '-XX:ReservedCodeCacheSize=128m',
+      '-XX:+UseCodeCacheFlushing',
+      '-XX:-CreateMinidumpOnCrash',
+      '-Xverify:none'
+    ]);
+    setNewPerformanceOption('');
+    setStopDisableServices(false);
+    setStopTomcat(false);
+    setStopMySQL(false);
+    setSourceTomcatServiceName('Tomcat9');
+    setSourceMySQLServiceName('MySQL8');
+  };
+
   const handleGenerateSourceScript = async () => {
     if (!clientName) {
       setPopupMessage('Please enter client name');
@@ -141,15 +207,23 @@ export default function ServerMigration() {
     
     setLoadingSource(true);
     try {
+      // Sanitize client name by removing spaces
+      const sanitizedClientName = sanitizeClientName(clientName);
+      
       const response = await fetch('/api/generate-source-script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           drive: sourceDrive, 
-          clientName,
+          clientName: sanitizedClientName,
           excludePaths,
           includePaths: pathMode === 'include' ? includePaths : [],
-          mode: pathMode
+          mode: pathMode,
+          stopDisableServices,
+          stopTomcat,
+          stopMySQL,
+          sourceTomcatServiceName,
+          sourceMySQLServiceName
         }),
       });
 
@@ -167,7 +241,7 @@ export default function ServerMigration() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `migration-source-${clientName}.rar`;
+      a.download = `migration-source-${sanitizedClientName}.rar`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -215,12 +289,15 @@ export default function ServerMigration() {
 
     setLoadingDestination(true);
     try {
+      // Sanitize client name by removing spaces
+      const sanitizedClientName = sanitizeClientName(clientName);
+
       const response = await fetch('/api/generate-destination-script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           drive: destinationDrive, 
-          clientName,
+          clientName: sanitizedClientName,
           tomcatPath,
           jdkPath,
           mysqlPath,
@@ -238,7 +315,13 @@ export default function ServerMigration() {
           mysqlRamAllocation,
           mysqlRamSize,
           unarchiveOption,
-          unarchivePath: unarchiveOption === 'specificPath' ? unarchivePath : ''
+          unarchivePath: unarchiveOption === 'specificPath' ? unarchivePath : '',
+          setEnvironmentVariables,
+          addFirewallRule,
+          firewallPorts,
+          updateInternalIP,
+          internalIP,
+          updateTomcatPath
         }),
       });
 
@@ -256,7 +339,7 @@ export default function ServerMigration() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `migration-destination-${clientName}.rar`;
+      a.download = `migration-destination-${sanitizedClientName}.rar`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -353,6 +436,8 @@ export default function ServerMigration() {
               </ul>
             </div>
 
+            
+
             {/* Left Column - Source Server */}
               <div className={styles.mainbox2} style={{ marginBottom: '2rem' }}>
                 <h2 style={{ color: 'rgb(16, 31, 118)', marginBottom: '1rem' }}>Source Server</h2>
@@ -386,6 +471,9 @@ export default function ServerMigration() {
                       required
                     />
                   </label>
+                  <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '1px' }}>
+                    <strong>Note:</strong> Spaces will be automatically removed from the client name.
+                  </p>
                 </div>
                 
                 {/* Radio Buttons */}
@@ -472,7 +560,7 @@ export default function ServerMigration() {
                         </div>
                       </div>
                     </label>
-                    <p style={{ fontSize: '0.9rem', color: '#666' }}>
+                    <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '1px' }}>
                       <strong>Note:</strong> Only the above paths will be included in the archive.
                     </p>
                   </div>
@@ -523,14 +611,80 @@ export default function ServerMigration() {
                       </div>
                     </div>
                   </label>
-                  <p style={{ fontSize: '0.9rem', color: '#666' }}>
+                  <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '1px' }}>
                     <strong>Exclusions:</strong> {pathMode === 'include' 
                       ? 'The above paths will be excluded from the included paths' 
                       : 'The above paths will be excluded automatically'}
                   </p>
                 </div>
 
+                {/* NEW: Source Advanced Options */}
+                <h3 className={styles.additionalOptionsHeader}>Advanced Options</h3>
+
+                <div className={styles.optionGroup}>
+                  <label className={styles.optionLabel}>
+                    <input
+                      type="checkbox"
+                      checked={stopDisableServices}
+                      onChange={(e) => setStopDisableServices(e.target.checked)}
+                      className={styles.optionCheckbox}
+                    />
+                    Stop & Disable Services
+                  </label>
+                  {stopDisableServices && (
+                    <>
+                      <div className={styles.optionInput}>
+                        <label className={styles.optionLabel}>
+                          <input
+                            type="checkbox"
+                            checked={stopTomcat}
+                            onChange={(e) => setStopTomcat(e.target.checked)}
+                            className={styles.optionCheckbox}
+                          />
+                          Tomcat Service
+                        </label>
+                        {stopTomcat && (
+                          <div className={styles.optionInput}>
+                            <label>Tomcat Service Name:</label>
+                            <input
+                              type="text"
+                              value={sourceTomcatServiceName}
+                              onChange={(e) => setSourceTomcatServiceName(e.target.value)}
+                              className={styles.styledselecttempmargin}
+                              style={{ width: '93%', padding: '7px', margin: '10px 0' }}
+                              placeholder="Tomcat9"
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <div className={styles.optionInput}>
+                        <label className={styles.optionLabel}>
+                          <input
+                            type="checkbox"
+                            checked={stopMySQL}
+                            onChange={(e) => setStopMySQL(e.target.checked)}
+                            className={styles.optionCheckbox}
+                          />
+                          MySQL Service
+                        </label>
+                        {stopMySQL && (
+                          <div className={styles.optionInput}>
+                            <label>MySQL Service Name:</label>
+                            <input
+                              type="text"
+                              value={sourceMySQLServiceName}
+                              onChange={(e) => setSourceMySQLServiceName(e.target.value)}
+                              className={styles.styledselecttempmargin}
+                              style={{ width: '93%', padding: '7px', margin: '10px 0' }}
+                              placeholder="MySQL8"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </>
                 
+                  )}
+                </div>
                 
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
                   <button
@@ -626,6 +780,10 @@ export default function ServerMigration() {
                       required
                     />
                   </label>
+                  <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '1px' }}>
+                    <strong>Note:</strong> Spaces will be automatically removed from the client name.
+                  </p>
+                  
                 </div>
 
                 <div className={styles.licenseDescription}>
@@ -710,7 +868,7 @@ export default function ServerMigration() {
                         value={mysqlPath}
                         onChange={(e) => setMysqlPath(e.target.value)}
                         className={styles.styledselecttempmargin}
-                        style={{ width: '98%', padding: '7px', margin: '10px 0' }}
+                        style={{ width: '93%', padding: '7px', margin: '10px 0' }}
                       />
                     </label>
                   </div>
@@ -932,9 +1090,100 @@ export default function ServerMigration() {
                       Copy Fonts
                     </label>
                   </div>
+
+                  <div className={styles.optionInput}>
+                    <label className={styles.optionLabel}>
+                      <input 
+                        type="checkbox" 
+                        checked={setEnvironmentVariables} 
+                        onChange={(e) => setSetEnvironmentVariables(e.target.checked)} 
+                        className={styles.optionCheckbox}
+                      />
+                      Environment Variables Setup
+                    </label>
+                  </div>
+
+                  {/* Internal IP Update Section */}
+                  <div className={styles.optionInput}>
+                    <label className={styles.optionLabel}>
+                      <input 
+                        type="checkbox" 
+                        checked={updateInternalIP} 
+                        onChange={(e) => setUpdateInternalIP(e.target.checked)} 
+                        className={styles.optionCheckbox}
+                      />
+                      Internal IP Update
+                    </label>
+                    {updateInternalIP && (
+                      <div className={styles.optionInput}>
+                        <label>Internal IP:</label>
+                        <input
+                          type="text"
+                          value={internalIP}
+                          onChange={(e) => setInternalIP(e.target.value)}
+                          placeholder="e.g., 192.168.1.100"
+                          className={styles.styledselecttempmargin}
+                          style={{ width: '93%', padding: '7px', margin: '10px 0' }}
+                        />
+                        <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
+                          This internal IP will be updated in northstar.ini file
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Update Tomcat Path in Configuration Files */}
+                  <div className={styles.optionInput}>
+                    <label className={styles.optionLabel}>
+                      <input 
+                        type="checkbox" 
+                        checked={updateTomcatPath} 
+                        onChange={(e) => setUpdateTomcatPath(e.target.checked)} 
+                        className={styles.optionCheckbox}
+                      />
+                      Update Tomcat Path in 4 Configuration Files
+                    </label>
+                    {updateTomcatPath && (
+                      <div className={styles.optionInput}>
+                        <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
+                          This will update the Tomcat path in northstar.ini, log4j.PROPERTIES, velocity.properties and velocityletters.properties configuration files
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
                 </>
               )}
             </div>
+
+            <div className={styles.optionGroup}>
+            <label className={styles.optionLabel}>
+              <input 
+                type="checkbox" 
+                checked={addFirewallRule} 
+                onChange={(e) => setAddFirewallRule(e.target.checked)} 
+                className={styles.optionCheckbox}
+              />
+              Add Firewall Rule
+            </label>
+          {addFirewallRule && (
+            <div className={styles.optionInput}>
+              <label>Ports to Open (comma separated):</label>
+              <input
+                type="text"
+                value={firewallPorts}
+                onChange={(e) => setFirewallPorts(e.target.value)}
+                placeholder="e.g., 80, 443, 8080"
+                className={styles.styledselecttempmargin}
+                style={{ width: '93%', padding: '7px', margin: '10px 0' }}
+              />
+              <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
+                Enter TCP ports separated by commas. Rules will be created for each port.
+              </p>
+            </div>
+          )}
+        </div>
+            
 
 
               
@@ -987,10 +1236,20 @@ export default function ServerMigration() {
                   </p>
                 </div>
               )}
+
+              
             </div>
             
           </div>
-        
+            {/* Clear Button */}
+            <div style={{ marginBottom: '3rem', textAlign: 'center' }}>
+              <button
+                onClick={handleClearForm}
+                className={styles.clearbtn}
+              >
+                Clear Form
+              </button>
+            </div>
 
           
         

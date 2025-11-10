@@ -38,6 +38,7 @@ export default async function handler(req, res) {
   const { 
     drive, 
     clientName, 
+    destinationDate,
     tomcatPath, 
     jdkPath, 
     mysqlPath, 
@@ -95,6 +96,7 @@ export default async function handler(req, res) {
   console.log(`
     drive: ${drive},
     clientName: ${clientName} , 
+    destinationDate: ${destinationDate},
     tomcatPath: ${tomcatPath}, 
     jdkPath: ${jdkPath}, 
     mysqlPath: ${mysqlPath}, 
@@ -124,8 +126,8 @@ export default async function handler(req, res) {
     
   
   // Generate formatted date (MMDDYY)
-  const today = new Date();
-  const formattedDate = `${String(today.getMonth() + 1).padStart(2, '0')}${String(today.getDate()).padStart(2, '0')}${String(today.getFullYear()).slice(-2)}`;
+  const targetDate = destinationDate ? new Date(destinationDate) : new Date();
+  const formattedDate = `${String(targetDate.getMonth() + 1).padStart(2, '0')}${String(targetDate.getDate()).padStart(2, '0')}${String(targetDate.getFullYear()).slice(-2)}`;
   const s3Folder = `${clientName} - ${formattedDate}`;
   
   

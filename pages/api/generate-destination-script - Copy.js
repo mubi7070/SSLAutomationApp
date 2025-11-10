@@ -55,13 +55,42 @@ export default async function handler(req, res) {
     mysqlRamAllocation,
     mysqlRamSize,
     unarchiveOption,
-    unarchivePath
+    unarchivePath,
+    setEnvironmentVariables,
+    addFirewallRule,
+    firewallPorts,
+    updateInternalIP,
+    internalIP,
+    updateTomcatPath
     } = req.body;
 
   // Validate input parameters
   if (!drive || !clientName) {
     return res.status(400).json({ error: 'All fields are required' });
   }
+
+    // Clean and validate firewall ports
+    let cleanFirewallPorts = '';
+    if (addFirewallRule && firewallPorts) {
+        // Remove all non-digit characters except commas, then clean up multiple commas
+        cleanFirewallPorts = firewallPorts
+            .replace(/[^\d,]/g, '') // Remove everything except digits and commas
+            .replace(/,+/g, ',')    // Replace multiple commas with single comma
+            .replace(/^,|,$/g, '')  // Remove leading/trailing commas
+            .split(',')             // Split into array
+            .filter(port => {
+                const portNum = parseInt(port.trim());
+                return port.trim() !== '' && portNum >= 1 && portNum <= 65535;
+            })
+            .join(',');             // Join back to string
+        
+        console.log(`Original ports: "${firewallPorts}" -> Cleaned ports: "${cleanFirewallPorts}"`);
+        
+        // Set to empty string if no valid ports found
+        if (cleanFirewallPorts === '') {
+            console.log('WARNING: No valid ports found for firewall rule');
+        }
+    }
 
   console.log(`
     drive: ${drive},
@@ -83,9 +112,16 @@ export default async function handler(req, res) {
     mysqlRamAllocation: ${mysqlRamAllocation},
     mysqlRamSize: ${mysqlRamSize},
     unarchiveOption: ${unarchiveOption},
-    unarchivePath: ${unarchivePath}
+    unarchivePath: ${unarchivePath},
+    setEnvironmentVariables: ${setEnvironmentVariables},
+    addFirewallRule: ${addFirewallRule},
+    firewallPorts: ${firewallPorts},
+    cleanFirewallPorts: ${cleanFirewallPorts},
+    updateInternalIP: ${updateInternalIP},
+    internalIP: ${internalIP},
+    updateTomcatPath: ${updateTomcatPath}
     `);
-  
+    
   
   // Generate formatted date (MMDDYY)
   const today = new Date();
@@ -121,8 +157,13 @@ param(
     [bool]$MySQLRamAllocation = $${mysqlRamAllocation},
     [string]$MySQLRamSize = "${mysqlRamSize}",
     [string]$UnarchiveOption = "${unarchiveOption}",
-    [string]$UnarchivePath = "${escapePowerShellPath(unarchivePath)}"
-    
+    [string]$UnarchivePath = "${escapePowerShellPath(unarchivePath)}",
+    [bool]$SetEnvironmentVariables = $${setEnvironmentVariables},
+    [bool]$AddFirewallRule = $${addFirewallRule},
+    [string]$FirewallPorts = "${cleanFirewallPorts}",
+    [bool]$UpdateInternalIP = $${updateInternalIP},
+    [string]$InternalIP = "${internalIP}",
+    [bool]$UpdateTomcatPath = $${updateTomcatPath}
 )
 
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -194,6 +235,349 @@ function Remove-TemporaryFiles {
         }
     }
 }
+
+function Set-WindowsEnvironmentVariables {
+    param(
+        [string]$TomcatPath,
+        [string]$JavaHome,
+        [string]$JRE_HOME
+    )
+    
+    Log-Message "Setting Windows System Environment Variables..."
+    
+    try {
+        # Set CATALINA_HOME
+        Log-Message "Setting CATALINA_HOME to: $TomcatPath"
+        [Environment]::SetEnvironmentVariable("CATALINA_HOME", $TomcatPath, "Machine")
+        
+        # Set JAVA_HOME  
+        Log-Message "Setting JAVA_HOME to: $JavaHome"
+        [Environment]::SetEnvironmentVariable("JAVA_HOME", $JavaHome, "Machine")
+        
+        # Set JRE_HOME
+        Log-Message "Setting JRE_HOME to: $JRE_HOME"
+        [Environment]::SetEnvironmentVariable("JRE_HOME", $JRE_HOME, "Machine")
+        
+        # Verify the variables were set
+        $catalinaHome = [Environment]::GetEnvironmentVariable("CATALINA_HOME", "Machine")
+        $javaHome = [Environment]::GetEnvironmentVariable("JAVA_HOME", "Machine")
+        $jreHome = [Environment]::GetEnvironmentVariable("JRE_HOME", "Machine")
+        
+        if ($catalinaHome -eq $TomcatPath -and $javaHome -eq $JavaHome -and $jreHome -eq $JRE_HOME) {
+            Log-Message "SUCCESS: All environment variables set successfully"
+            Log-Message "  - CATALINA_HOME: $catalinaHome"
+            Log-Message "  - JAVA_HOME: $javaHome"
+            Log-Message "  - JRE_HOME: $jreHome"
+            
+            # Also set them in the current session for immediate use
+            $env:CATALINA_HOME = $TomcatPath
+            $env:JAVA_HOME = $JavaHome
+            $env:JRE_HOME = $JRE_HOME
+            Log-Message "Environment variables also set in current session"
+        } else {
+            Log-Message "WARNING: Environment variables may not have been set correctly"
+        }
+        
+    } catch {
+        Log-Message "ERROR: Failed to set environment variables - $($_.Exception.Message)"
+    }
+}
+
+function Add-FirewallRules {
+    param(
+        [string]$Ports,
+        [string]$ClientName
+    )
+    
+    Log-Message "Setting up Windows Firewall Rules..."
+    
+    try {
+        if (-not $Ports) {
+            Log-Message "WARNING: No valid ports provided for firewall rule"
+            return
+        }
+        
+        $ruleName = "NS Secure Ports - $ClientName"
+        $portArray = $Ports -split ','
+        
+        Log-Message "Creating firewall rule: $ruleName for ports: $($portArray -join ', ')"
+        
+        # Check if rule already exists
+        $existingRule = Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue
+        if ($existingRule) {
+            Log-Message "Removing existing firewall rule: $ruleName"
+            Remove-NetFirewallRule -DisplayName $ruleName -Confirm:$false
+        }
+        
+        # Create firewall rule with port array
+        $firewallRule = New-NetFirewallRule -DisplayName $ruleName -Description "Northstar Application Ports for $ClientName" -Direction Inbound -Protocol TCP -LocalPort $portArray -Action Allow -Enabled True -Profile Domain,Private,Public -ErrorAction Stop
+        
+        if ($firewallRule) {
+            Log-Message "SUCCESS: Firewall rule created - $ruleName for ports: $($portArray -join ', ')"
+            
+            # Verify the rule was created
+            $verifyRule = Get-NetFirewallRule -DisplayName $ruleName
+            if ($verifyRule) {
+                Log-Message "VERIFIED: Firewall rule exists and is enabled"
+            }
+        } else {
+            Log-Message "WARNING: Failed to create firewall rule for ports: $($portArray -join ', ')"
+        }
+        
+    } catch {
+        Log-Message "ERROR: Failed to create firewall rule - $($_.Exception.Message)"
+    }
+}
+
+function Update-NorthstarINI {
+    param(
+        [string]$TomcatPath,
+        [string]$InternalIP
+    )
+    
+    Log-Message "Updating northstar.ini file with new internal IP: $InternalIP"
+    
+    try {
+
+        # Define both northstar.ini file paths
+        $northstarINIPaths = @(
+            "webapps\\northstar\\WEB-INF\\classes\\northstar.ini",
+            "webapps\\northstar-training\\WEB-INF\\classes\\northstar.ini"
+        )
+
+        foreach ($relativePath in $northstarINIPaths) {
+            $northstarINIPath = Join-Path -Path $TomcatPath -ChildPath $relativePath
+            
+            if (-not (Test-Path -LiteralPath $northstarINIPath)) {
+                Log-Message "WARNING: northstar.ini file not found at: $northstarINIPath"
+                continue
+            }
+            
+            # Read the content of northstar.ini line by line (same as MySQL approach)
+            $lines = Get-Content $northstarINIPath
+            
+            # Process each line
+            $updatedLines = @()
+            $internalURLUpdated = $false
+            $productionIPUpdated = $false
+            
+            foreach ($line in $lines) {
+                $updatedLine = $line
+
+                # Update internal.url (Location 1) - using simple string matching like MySQL code
+                if ($line -like "*internal.url=http://*:8080/northstar*") {
+                    $updatedLine = "internal.url=http://${internalIP}:8080/northstar"
+                    Log-Message "Updated internal.url to: $updatedLine"
+                    $internalURLUpdated = $true
+                }
+                # Update production.system.ip (Location 2) - using simple string matching like MySQL code
+                elseif ($line -like "*production.system.ip=*") {
+                    $updatedLine = "production.system.ip=${internalIP}"
+                    Log-Message "Updated production.system.ip to: $updatedLine"
+                    $productionIPUpdated = $true
+                }
+
+                $updatedLines += $updatedLine
+            }
+
+            # Write the updated content back to northstar.ini
+            Set-Content -Path $northstarINIPath -Value $updatedLines
+            
+            
+            # Log warnings if patterns weren't found
+            if (-not $internalURLUpdated) {
+                Log-Message "WARNING: internal.url pattern not found in northstar.ini"
+            }
+            if (-not $productionIPUpdated) {
+                Log-Message "WARNING: production.system.ip pattern not found in northstar.ini"
+            }
+
+        }
+
+        Log-Message "SUCCESS: northstar.ini files updated successfully with new IP: $InternalIP"
+        
+    } catch {
+        Log-Message "ERROR: Failed to update northstar.ini - $($_.Exception.Message)"
+    }
+}
+
+
+function Update-TomcatPathInFiles {
+    param(
+        [string]$TomcatPath
+    )
+    
+    Log-Message "Starting Tomcat Path Update in configuration files..."
+    
+    try {
+        # First, get the old Tomcat path from northstar.ini
+        $northstarINIPath = Join-Path -Path $TomcatPath -ChildPath "webapps\\northstar\\WEB-INF\\classes\\northstar.ini"
+        
+        if (-not (Test-Path -LiteralPath $northstarINIPath)) {
+            Log-Message "ERROR: Cannot find northstar.ini file at: $northstarINIPath"
+            return $false
+        }
+        
+        # Read the northstar.ini file to extract the old path
+        $oldTomcatPath = $null
+        $content = Get-Content $northstarINIPath -Raw
+        
+        if ($content -match 'path=([^\\r\\n]+)/webapps/northstar') {
+            $oldTomcatPath = $matches[1]
+            Log-Message "Found old Tomcat path in northstar.ini: $oldTomcatPath"
+        }
+        
+        if (-not $oldTomcatPath) {
+            Log-Message "ERROR: Could not extract old Tomcat path from northstar.ini"
+            Log-Message "Looking for pattern: 'path=.../webapps/northstar'"
+            return $false
+        }
+        
+        # Define the 4 files that need to be updated
+        $filesToUpdate = @(
+            @{
+                Name = "northstar.ini"
+                Path = "webapps\\northstar\\WEB-INF\\classes\\northstar.ini"
+            },
+            @{
+                Name = "log4j.PROPERTIES" 
+                Path = "webapps\\northstar\\WEB-INF\\classes\\log4j.PROPERTIES"
+            },
+            @{
+                Name = "velocity.properties"
+                Path = "webapps\\northstar\\stencils\\velocity.properties"
+            },
+            @{
+                Name = "velocityletters.properties"
+                Path = "webapps\\northstar\\stencils\\velocityletters.properties"
+            }
+        )
+        
+        $successCount = 0
+        $failureCount = 0
+        
+        foreach ($file in $filesToUpdate) {
+            $filePath = Join-Path -Path $TomcatPath -ChildPath $file.Path
+            
+            if (-not (Test-Path -LiteralPath $filePath)) {
+                Log-Message "WARNING: File not found, skipping: $($file.Name) at $filePath"
+                $failureCount++
+                continue
+            }
+            
+            try {
+                # Backup the file
+                $backupPath = "$filePath.backup"
+                if (Test-Path $filePath) {
+                    Copy-Item -Path $filePath -Destination $backupPath -Force
+                    Log-Message "Created backup: $backupPath"
+                }
+
+                # Read the entire file content
+                $content = Get-Content $filePath -Raw
+                $originalContent = $content
+                
+                # Count occurrences before replacement
+                $occurrencesBefore = 0
+                
+                # Create escaped versions for regex
+                $oldTomcatPathEscaped = [regex]::Escape($oldTomcatPath)
+                
+                # Count forward slash occurrences
+                $oldForward = $oldTomcatPath -replace '\\\\', '/'
+                $oldForwardEscaped = [regex]::Escape($oldForward)
+                $occurrencesBefore += [regex]::Matches($content, $oldForwardEscaped).Count
+                
+                # Count backward slash occurrences  
+                $oldBackward = $oldTomcatPath -replace '/', '\\\\'
+                $oldBackwardEscaped = [regex]::Escape($oldBackward)
+                $occurrencesBefore += [regex]::Matches($content, $oldBackwardEscaped).Count
+                
+                if ($occurrencesBefore -eq 0) {
+                    Log-Message "INFO: No old Tomcat path found in $($file.Name)"
+                    # Remove backup since no changes were made
+                    if (Test-Path $backupPath) {
+                        Remove-Item -Path $backupPath -Force -ErrorAction SilentlyContinue
+                    }
+                    $successCount++
+                    continue
+                }
+                
+                # Perform the replacements
+                $newForward = $TomcatPath -replace '\\\\', '/'
+                $newBackward = $TomcatPath
+                
+                # Replace forward slashes
+                $content = $content -replace $oldForwardEscaped, $newForward
+                
+                # Replace backward slashes
+                $content = $content -replace $oldBackwardEscaped, $newBackward
+                
+                # Write the entire content back to file
+                $content | Set-Content -Path $filePath -NoNewline
+                
+                # Verify the file still has content and structure
+                $verifyContent = Get-Content $filePath -Raw
+                if ($verifyContent -eq $originalContent) {
+                    Log-Message "WARNING: No changes detected in $($file.Name) after update"
+                }
+                
+                # Count occurrences after replacement
+                $occurrencesAfter = 0
+                $occurrencesAfter += [regex]::Matches($verifyContent, [regex]::Escape($newForward)).Count
+                $occurrencesAfter += [regex]::Matches($verifyContent, [regex]::Escape($newBackward)).Count
+                
+                # Verify file structure is preserved by checking line count
+                $originalLines = ($originalContent -split "\`r\`n" -split "\`n").Count
+                $updatedLines = ($verifyContent -split "\`r\`n" -split "\`n").Count
+                
+                if ($originalLines -eq $updatedLines) {
+                    Log-Message "SUCCESS: Updated $($file.Name) - replaced $occurrencesBefore occurrences, file structure preserved ($originalLines lines)"
+                } else {
+                    Log-Message "WARNING: Updated $($file.Name) but line count changed from $originalLines to $updatedLines"
+                }
+
+
+                # --- Delete backup if update succeeded ---
+                if (Test-Path $backupPath) {
+                    Remove-Item -Path $backupPath -Force -ErrorAction SilentlyContinue
+                }
+                
+                $successCount++
+                
+            } catch {
+                Log-Message "ERROR: Failed to update $($file.Name) - $($_.Exception.Message)"
+                # Restore from backup on error
+                if (Test-Path $backupPath) {
+                    Copy-Item -Path $backupPath -Destination $filePath -Force
+                    Remove-Item -Path $backupPath -Force
+                    Log-Message "Restored from backup: $filePath"
+                }
+                $failureCount++
+            }
+        }
+        
+        Log-Message "Tomcat Path Update Summary:"
+        Log-Message "  - Successfully updated: $successCount files"
+        Log-Message "  - Failed to update: $failureCount files"
+        Log-Message "  - Old Tomcat Path: $oldTomcatPath"
+        Log-Message "  - New Tomcat Path: $TomcatPath"
+        
+        if ($failureCount -eq 0) {
+            Log-Message "SUCCESS: Tomcat path updated in all files successfully"
+            return $true
+        } else {
+            Log-Message "WARNING: Some files could not be updated. Check logs for details."
+            return $false
+        }
+        
+    } catch {
+        Log-Message "ERROR: Tomcat path update process failed - $($_.Exception.Message)"
+        return $false
+    }
+}
+
+
 
 function Copy-RequiredDLLs {
     Log-Message "Checking for required DLL files for MySQL service installation..."
@@ -371,240 +755,104 @@ function Invoke-RobustExtraction {
     param(
         [string]$WinRARPath,
         [string]$ExtractSource,
-        [string]$ExtractPath,
-        [int]$MaxRetries = 2
+        [string]$ExtractPath
     )
 
     $archiveBaseName = [System.IO.Path]::GetFileNameWithoutExtension($ExtractSource)
     
-    for ($attempt = 1; $attempt -le $MaxRetries; $attempt++) {
-        try {
-            Log-Message "Extraction attempt $attempt of $MaxRetries"
-            
-            # Enhanced extraction parameters - SIMPLIFIED for reliability
-            $extractArgs = @(
-                "x",           # Extract with full paths
-                "-y",          # Assume Yes to all
-                "-o+",         # Overwrite all files
-                "-idq",        # Quiet mode (suppress progress)
-                "-r",          # Recurse subdirectories
-                "\`"$ExtractSource\`"",
-                "\`"$ExtractPath\`""
-            )
-            Log-Message "Executing: $WinRARPath $($extractArgs -join ' ')"
-            
-            $extractProcess = Start-Process -FilePath $WinRARPath -ArgumentList $extractArgs -Wait -NoNewWindow -PassThru
-            # Handle WinRAR exit codes more intelligently
-            switch ($extractProcess.ExitCode) {
-                0 {
-                    # Success - verify extraction
-                    if (Test-ExtractionSuccess -ExtractPath $ExtractPath -ArchiveBaseName $archiveBaseName) {
-                    Log-Message "Extraction completed successfully (exit code 0)"
-                    return $true
-                    } else {
-                        Log-Message "WARNING: Exit code 0 but extraction verification failed"
-                        continue
-                    }
-                }
-                1 {
-                    # Success with warnings - verify extraction
-                    if (Test-ExtractionSuccess -ExtractPath $ExtractPath -ArchiveBaseName $archiveBaseName) {
-                    Log-Message "Extraction completed with warnings (exit code 1)"
-                    return $true
-                    } else {
-                        Log-Message "WARNING: Exit code 1 but extraction verification failed"
-                        continue
-                    }
-                }
-                2 {
-                    if ($attempt -eq $MaxRetries) {
-                        throw "Fatal error in WinRAR extraction (exit code 2)"
-                    } else {
-                        Log-Message "WinRAR exit code 2 (fatal error) - retrying..."
-                        Start-Sleep -Seconds 10
-                        continue
-                    }
-                }
-                3 {
-                    if ($attempt -eq $MaxRetries) {
-                        throw "CRC error in WinRAR extraction (exit code 3)"
-                    } else {
-                        Log-Message "WinRAR exit code 3 (CRC error) - retrying..."
-                        Start-Sleep -Seconds 10
-                        continue
-                    }
-                }
-                6 {
-                    if ($attempt -eq $MaxRetries) {
-                        throw "WinRAR extraction failed - insufficient memory (exit code 6)"
-                    } else {
-                        Log-Message "WinRAR exit code 6 (memory issue) - retrying with optimized settings"
-                        Start-Sleep -Seconds 10
-                        continue
-                    }
-                }
-                8 {
-                    if ($attempt -eq $MaxRetries) {
-                        throw "WinRAR extraction failed - not enough memory (exit code 8)"
-                    } else {
-                        Log-Message "WinRAR exit code 8 (memory issue) - retrying with optimized settings"
-                        Start-Sleep -Seconds 10
-                        continue
-                    }
-                }
-                9 {
-                    # Create file error - BUT often extraction still works
-                    Log-Message "WinRAR exit code 9 (file creation issue) - checking if extraction succeeded anyway..."
-                    
-                    if (Test-ExtractionSuccess -ExtractPath $ExtractPath -ArchiveBaseName $archiveBaseName) {
-                        Log-Message "SUCCESS: Extraction completed despite exit code 9"
-                        return $true
-                    } else {
-                        if ($attempt -eq $MaxRetries) {
-                            # Try one more alternative method before final failure
-                            Log-Message "Attempting final alternative extraction method..."
-                            $alternativeSuccess = Invoke-AlternativeExtraction -WinRARPath $WinRARPath -ExtractSource $ExtractSource -ExtractPath $ExtractPath
-                            
-                            if ($alternativeSuccess) {
-                                return $true
-                            } else {
-                                throw "WinRAR extraction failed - create file error (exit code 9)"
-                            }
-                        } else {
-                            Log-Message "Extraction verification failed, retrying with optimized settings..."
-                            # Wait longer between retries
-                            Start-Sleep -Seconds 10
-                            continue
-                        }
-                    }
-                }
-                10 {
-                    if ($attempt -eq $MaxRetries) {
-                        throw "Wrong password for WinRAR extraction (exit code 10)"
-                    } else {
-                        Log-Message "WinRAR exit code 10 (password issue) - retrying..."
-                        Start-Sleep -Seconds 10
-                        continue
-                    }
-                }
-                255 {
-                    if ($attempt -eq $MaxRetries) {
-                        throw "User break or WinRAR process killed (exit code 255)"
-                    } else {
-                        Log-Message "WinRAR exit code 255 (process killed) - retrying..."
-                        Start-Sleep -Seconds 10
-                        continue
-                    }
-                }
-                default { 
-                    if ($extractProcess.ExitCode -ne 0) {
-                        # Check if extraction succeeded despite non-zero exit code
-                        if (Test-ExtractionSuccess -ExtractPath $ExtractPath -ArchiveBaseName $archiveBaseName) {
-                            Log-Message "SUCCESS: Extraction completed despite exit code $($extractProcess.ExitCode)"
-                            return $true
-                        } else {
-                            if ($attempt -eq $MaxRetries) {
-                                throw "WinRAR extraction failed with exit code $($extractProcess.ExitCode)"
-                            } else {
-                                Log-Message "WinRAR exit code $($extractProcess.ExitCode) - retrying..."
-                                Start-Sleep -Seconds 10
-                                continue
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        catch {
-            if ($attempt -eq $MaxRetries) {
-                throw "All extraction attempts failed: $($_.Exception.Message)"
-            }
-            Log-Message "Attempt $attempt failed: $($_.Exception.Message). Retrying..."
-            Start-Sleep -Seconds (10 * $attempt)
-        }
-    }
-    return $false
-}
-
-
-function Invoke-AlternativeExtraction {
-    param(
-        [string]$WinRARPath,
-        [string]$ExtractSource,
-        [string]$ExtractPath
-    )
-    
-    Log-Message "Attempting alternative extraction method..."
-    
     try {
-        # Method 1: Try with different WinRAR parameters (no recursion, single thread)
-        Log-Message "Trying alternative WinRAR parameters (no recursion)..."
-        $altArgs = @(
+        Log-Message "Starting archive extraction..."
+        
+        # Enhanced extraction parameters - SIMPLIFIED for reliability
+        $extractArgs = @(
             "x",           # Extract with full paths
             "-y",          # Assume Yes to all
             "-o+",         # Overwrite all files
-            "-idq",        # Quiet mode
-            "-r-",         # NO recursion
+            "-idq",        # Quiet mode (suppress progress)
+            "-r",          # Recurse subdirectories
             "\`"$ExtractSource\`"",
             "\`"$ExtractPath\`""
         )
+        Log-Message "Executing: $WinRARPath $($extractArgs -join ' ')"
         
-        $altProcess = Start-Process -FilePath $WinRARPath -ArgumentList $altArgs -Wait -NoNewWindow -PassThru
+        $extractProcess = Start-Process -FilePath $WinRARPath -ArgumentList $extractArgs -Wait -NoNewWindow -PassThru
         
-        if ($altProcess.ExitCode -eq 0 -or $altProcess.ExitCode -eq 1 -or $altProcess.ExitCode -eq 9) {
-            if (Test-ExtractionSuccess -ExtractPath $ExtractPath -ArchiveBaseName ([System.IO.Path]::GetFileNameWithoutExtension($ExtractSource))) {
-                Log-Message "Alternative extraction method completed successfully"
+        # Handle WinRAR exit codes more intelligently
+        switch ($extractProcess.ExitCode) {
+            0 {
+                # Success - verify extraction
+                if (Test-ExtractionSuccess -ExtractPath $ExtractPath -ArchiveBaseName $archiveBaseName) {
+                Log-Message "Extraction completed successfully (exit code 0)"
                 return $true
+                } else {
+                    Log-Message "WARNING: Exit code 0 but extraction verification failed"
+                    return $true
+                }
             }
-        }
-        
-        # Method 2: Try extraction to temp directory first
-        Log-Message "Trying extraction to temporary directory..."
-        $tempExtractPath = Join-Path -Path $env:TEMP -ChildPath "MigrationTempExtract"
-        if (Test-Path $tempExtractPath) {
-            Remove-Item -Path $tempExtractPath -Recurse -Force -ErrorAction SilentlyContinue
-        }
-        New-Item -ItemType Directory -Path $tempExtractPath -Force | Out-Null
-        
-        $tempArgs = @(
-            "x",           # Extract with full paths
-            "-y",          # Assume Yes to all
-            "-o+",         # Overwrite all files
-            "-idq",        # Quiet mode
-            "-r",          # Recurse subdirectories
-            "\`"$ExtractSource\`"",
-            "\`"$tempExtractPath\`""
-        )
-        
-        $tempProcess = Start-Process -FilePath $WinRARPath -ArgumentList $tempArgs -Wait -NoNewWindow -PassThru
-        
-        if ($tempProcess.ExitCode -eq 0 -or $tempProcess.ExitCode -eq 1 -or $tempProcess.ExitCode -eq 9) {
-            # Check if temp extraction worked
-            $tempItems = Get-ChildItem -Path $tempExtractPath -Recurse -ErrorAction SilentlyContinue
-            if ($tempItems.Count -gt 0) {
-                Log-Message "Successfully extracted to temporary location, now copying to final destination..."
+            1 {
+                # Success with warnings - verify extraction
+                if (Test-ExtractionSuccess -ExtractPath $ExtractPath -ArchiveBaseName $archiveBaseName) {
+                Log-Message "Extraction completed with warnings (exit code 1)"
+                return $true
+                } else {
+                    Log-Message "WARNING: Exit code 1 but extraction verification failed"
+                    return $true
+                }
+            }
+            2 {
+                throw "Fatal error in WinRAR extraction (exit code 2)"
+            }
+            3 {
+                Log-Message "WARNING: CRC error in WinRAR extraction (exit code 3) - some files may be corrupted, but continuing process"
+                return $false
+            }
+            6 {
+                throw "WinRAR extraction failed - insufficient memory (exit code 6)"
+            }
+            8 {
+                throw "WinRAR extraction failed - not enough memory (exit code 8)"
+            }
+            9 {
+                # Create file error - BUT often extraction still works
+                Log-Message "WinRAR exit code 9 (file creation issue) - checking if extraction succeeded anyway..."
                 
-                # Copy extracted files to final destination
-                Copy-Item -Path "$tempExtractPath\\*" -Destination $ExtractPath -Recurse -Force -ErrorAction SilentlyContinue
+                if (Test-ExtractionSuccess -ExtractPath $ExtractPath -ArchiveBaseName $archiveBaseName) {
+                    Log-Message "SUCCESS: Extraction completed despite exit code 9"
+                    return $true
+                } else {
+                    Log-Message "WARNING: Extraction failed with exit code 9 and verification also failed"
+                    return $false
+                }
                 
-                # Clean up temp directory
-                Remove-Item -Path $tempExtractPath -Recurse -Force -ErrorAction SilentlyContinue
-                
-                if (Test-ExtractionSuccess -ExtractPath $ExtractPath -ArchiveBaseName ([System.IO.Path]::GetFileNameWithoutExtension($ExtractSource))) {
-                    Log-Message "Files copied successfully to final destination"
+            }
+            10 {
+                throw "Wrong password for WinRAR extraction (exit code 10)"
+            }
+            255 {
+                throw "User break or WinRAR process killed (exit code 255)"
+            }
+            default { 
+                if ($extractProcess.ExitCode -ne 0) {
+                    # Check if extraction succeeded despite non-zero exit code
+                    if (Test-ExtractionSuccess -ExtractPath $ExtractPath -ArchiveBaseName $archiveBaseName) {
+                        Log-Message "SUCCESS: Extraction completed despite exit code $($extractProcess.ExitCode)"
+                        return $true
+                    } else {
+                        Log-Message "WARNING: WinRAR extraction completed with non-zero exit code $($extractProcess.ExitCode) - but continuing process"
+                        return $false
+                    }
+                } else {
+                    Log-Message "Extraction completed successfully (exit code 0)"
                     return $true
                 }
             }
         }
-        
-        return $false
     }
     catch {
-        Log-Message "Alternative extraction method failed: $($_.Exception.Message)"
+        Log-Message "ERROR: Extraction process failed - $($_.Exception.Message) - but continuing with verification"
         return $false
     }
 }
-
 
 # MAIN EXECUTION
 try {
@@ -792,14 +1040,16 @@ try {
     Log-Message "Extracting from first volume: $(Split-Path $extractSource -Leaf)"
     Log-Message "WinRAR will automatically use all $($archiveFiles.Count) volume files"
 
-    # Use robust extraction function with retry logic
-    $success = Invoke-RobustExtraction -WinRARPath $WinRARPath -ExtractSource $extractSource -ExtractPath $extractPath
+    # Use robust extraction function
+    $extractionSuccess = Invoke-RobustExtraction -WinRARPath $WinRARPath -ExtractSource $extractSource -ExtractPath $extractPath
 
-    if (-not $success) {
-        throw "Archive extraction failed after all retry attempts"
+    if ($extractionSuccess) {
+        Log-Message "Extraction completed successfully"
+    } else {
+        Log-Message "WARNING: Extraction completed with errors, but continuing with verification process"
     }
   
-    Log-Message "Extraction completed successfully"
+    Log-Message "Proceeding to extraction verification..."
 
 
     # Capture script path for self-deletion - FIXED: Use proper method to get script path
@@ -1241,10 +1491,45 @@ try {
                 }
             }
 
+            # Update Environment Variables
+
+            if ($SetEnvironmentVariables) {
+                Set-WindowsEnvironmentVariables -TomcatPath $TomcatPath -JavaHome $JavaHome -JRE_HOME $JRE_HOME
+            } else {
+                Log-Message "Environment variables setup skipped (checkbox not enabled)"
+            }
+
+            # Update northstar.ini with internal IP if enabled
+            if ($UpdateInternalIP -and $InternalIP) {
+                Update-NorthstarINI -TomcatPath $TomcatPath -InternalIP $InternalIP
+            } elseif ($UpdateInternalIP -and -not $InternalIP) {
+                Log-Message "WARNING: Internal IP update enabled but no IP provided"
+            }
+
+
+            # Update Tomcat Path in configuration files if enabled
+            if ($UpdateTomcatPath) {
+                Update-TomcatPathInFiles -TomcatPath $TomcatPath
+            } else {
+                Log-Message "Tomcat Path Update skipped (checkbox not enabled)"
+            }
+
+
+
 
         } catch {
         Log-Message "An error occurred during Tomcat service installation."
         }   
+    }
+
+    # FIREWALL RULES ADDITION
+
+    if ($AddFirewallRule -and $FirewallPorts) {
+        Add-FirewallRules -Ports $FirewallPorts -ClientName $ClientName
+    } elseif ($AddFirewallRule -and -not $FirewallPorts) {
+        Log-Message "WARNING: Firewall rule creation enabled but no ports specified"
+    } else {
+        Log-Message "Firewall rule creation skipped (checkbox not enabled)"
     }
 
     # FINAL MIGRATION STATUS

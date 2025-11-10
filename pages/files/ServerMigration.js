@@ -65,6 +65,7 @@ export default function ServerMigration() {
   const [updateInternalIP, setUpdateInternalIP] = useState(false);
   const [internalIP, setInternalIP] = useState('');
   const [updateTomcatPath, setUpdateTomcatPath] = useState(false);
+  const [destinationDate, setDestinationDate] = useState(new Date());
 
   const driveLetters = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
@@ -298,6 +299,7 @@ export default function ServerMigration() {
         body: JSON.stringify({ 
           drive: destinationDrive, 
           clientName: sanitizedClientName,
+          destinationDate: destinationDate, 
           tomcatPath,
           jdkPath,
           mysqlPath,
@@ -770,21 +772,67 @@ export default function ServerMigration() {
                 <div className={styles.licenseDescription}>
                   <label>
                     Client Name:
-                    <input
-                      type="text"
-                      placeholder="Must match source client name"
-                      value={clientName}
-                      onChange={(e) => setClientName(e.target.value)}
-                      className={styles.styledselecttempmargin}
-                      style={{ width: '98%', padding: '7px', margin: '10px 0' }}
-                      required
-                    />
+                    <div style={{ position: 'relative', width: '100%' }}>
+                      <input
+                        type="text"
+                        placeholder="Must match source client name"
+                        value={clientName}
+                        onChange={(e) => setClientName(e.target.value)}
+                        className={styles.styledselecttempmargin}
+                        style={{ width: '98%', padding: '7px', margin: '10px 0' }}
+                        required
+                      />
+
+                      {/* Date + Calendar Icon container */}
+                      <div
+                        className={styles.datePickerButton}
+                        onClick={() => document.getElementById('destinationDatePicker').showPicker()}
+                      >
+                        {/* Selected Date (shown beside the icon) */}
+                        <span style={{ fontSize: '0.90rem', color: '#333' }}>
+                          {destinationDate ? destinationDate.toLocaleDateString() : ''}
+                        </span>
+
+                        {/* Calendar Icon */}
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                          <line x1="16" y1="2" x2="16" y2="6"></line>
+                          <line x1="8" y1="2" x2="8" y2="6"></line>
+                          <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                      </div>
+
+                      {/* Hidden Date Input */}
+                      <input
+                        id="destinationDatePicker"
+                        type="date"
+                        value={destinationDate.toISOString().split('T')[0]}
+                        onChange={(e) => setDestinationDate(new Date(e.target.value))}
+                        min={new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]} // 30 days ago
+                        max={new Date().toISOString().split('T')[0]} // today
+                        style={{
+                          position: 'absolute',
+                          right: 0, // moves picker to right side
+                          opacity: 0,
+                          pointerEvents: 'none',
+                          width: '0',
+                          height: '0',
+                        }}
+                      />
+                    </div>
                   </label>
+
                   <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '1px' }}>
                     <strong>Note:</strong> Spaces will be automatically removed from the client name.
                   </p>
-                  
-                </div>
+                  </div>
 
                 <div className={styles.licenseDescription}>
                   <label>
