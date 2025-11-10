@@ -146,37 +146,64 @@ export default function ServerMigration() {
     }
   };
 
-
   // Clear all form fields
   const handleClearForm = () => {
+    // Drives & paths
     setSourceDrive('D');
     setDestinationDrive('D');
     setClientName('');
     setTomcatPath('');
     setJdkPath('');
     setMysqlPath('');
+    setUnarchivePath('');
+
+    // Status
     setSourceStatus('');
     setDestinationStatus('');
+
+    // Loading & popup
+    setLoadingSource(false);
+    setLoadingDestination(false);
+    setShowPopup(false);
+    setPopupMessage('');
+
+    //Include / exclude paths
     setExcludePaths([]);
     setNewExcludePath('');
-    setGeneratedPassword('');
-    setGeneratedPassword2('');
-    setPathMode('include');
     setIncludePaths([]);
     setNewIncludePath('');
+    setPathMode('include');
+
+    // Passwords & copy
+    setGeneratedPassword('');
+    setGeneratedPassword2('');
+    setCopied(false);
+    setCopied2(false);
+
+    // Install options
     setInstallMySQL(false);
     setInstallTomcat(false);
     setCopyFonts(false);
     setRamAllocation(false);
+    setMysqlRamAllocation(false);
+    setMysqlRamSize('4096');
+
+    // Services & dependencies
     setMysqlServiceName('MySQL8');
     setTomcatServiceName('Tomcat9');
     setTomcatDependency(false);
     setTomcatInitialMemory('1024');
     setTomcatMaxMemory('2048');
-    setMysqlRamAllocation(false);
-    setMysqlRamSize('4096');
+    setStopDisableServices(false);
+    setStopTomcat(false);
+    setStopMySQL(false);
+    setSourceTomcatServiceName('Tomcat9');
+    setSourceMySQLServiceName('MySQL8');
+
+    // Unarchive options
     setUnarchiveOption('driveRoot');
-    setUnarchivePath('');
+
+    // Performance options
     setEnablePerformanceOptions(false);
     setPerformanceOptions([
       '-Djava.awt.headless=false',
@@ -188,11 +215,17 @@ export default function ServerMigration() {
       '-Xverify:none'
     ]);
     setNewPerformanceOption('');
-    setStopDisableServices(false);
-    setStopTomcat(false);
-    setStopMySQL(false);
-    setSourceTomcatServiceName('Tomcat9');
-    setSourceMySQLServiceName('MySQL8');
+
+    // Environment / Firewall / IP
+    setSetEnvironmentVariables(false);
+    setAddFirewallRule(false);
+    setFirewallPorts('');
+    setUpdateInternalIP(false);
+    setInternalIP('');
+    setUpdateTomcatPath(false);
+
+    // Reset date picker    
+    setDestinationDate(new Date());
   };
 
   const handleGenerateSourceScript = async () => {
