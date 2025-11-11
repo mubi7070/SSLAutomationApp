@@ -70,6 +70,13 @@ export default function ServerMigration() {
   const [destinationDate, setDestinationDate] = useState(new Date());
   const [installNorthstarDesktop, setInstallNorthstarDesktop] = useState(false);
 
+  //Control Center Part
+  const [stopControlCenter, setStopControlCenter] = useState(false);
+  const [sourceControlCenterServiceName, setSourceControlCenterServiceName] = useState('ServerMonitor');
+  const [sourceControlCenterPath, setSourceControlCenterPath] = useState('C:\\Program Files (x86)\\Sibisoft');
+  
+  const [controlCenterSetup, setControlCenterSetup] = useState(false);
+  
   const driveLetters = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
   useEffect(() => {
@@ -260,9 +267,12 @@ export default function ServerMigration() {
           stopTomcat,
           stopMySQL,
           stopNorthstarDesktop,
+          stopControlCenter,
           sourceTomcatServiceName,
           sourceMySQLServiceName,
-          sourceNorthstarDesktopServiceName
+          sourceNorthstarDesktopServiceName,
+          sourceControlCenterServiceName,
+          sourceControlCenterPath,
         }),
       });
 
@@ -362,7 +372,8 @@ export default function ServerMigration() {
           firewallPorts,
           updateInternalIP,
           internalIP,
-          updateTomcatPath
+          updateTomcatPath,
+          controlCenterSetup
         }),
       });
 
@@ -746,6 +757,45 @@ export default function ServerMigration() {
                               placeholder="NorthstarDesktopServices"
                             />
                           </div>
+                        )}
+                      </div>
+
+                      {/* Control Center Service */}
+                      <div className={styles.optionInput}>
+                        <label className={styles.optionLabel}>
+                          <input
+                            type="checkbox"
+                            checked={stopControlCenter}
+                            onChange={(e) => setStopControlCenter(e.target.checked)}
+                            className={styles.optionCheckbox}
+                          />
+                          Control Center Service
+                        </label>
+                        {stopControlCenter && (
+                          <>
+                            <div className={styles.optionInput}>
+                              <label>Control Center Service Name:</label>
+                              <input
+                                type="text"
+                                value={sourceControlCenterServiceName}
+                                onChange={(e) => setSourceControlCenterServiceName(e.target.value)}
+                                className={styles.styledselecttempmargin}
+                                style={{ width: '93%', padding: '7px', margin: '10px 0' }}
+                                placeholder="ServerMonitor"
+                              />
+                            </div>
+                            <div className={styles.optionInput}>
+                              <label>Control Center Path:</label>
+                              <input
+                                type="text"
+                                value={sourceControlCenterPath}
+                                onChange={(e) => setSourceControlCenterPath(e.target.value)}
+                                className={styles.styledselecttempmargin}
+                                style={{ width: '93%', padding: '7px', margin: '10px 0' }}
+                                placeholder="C:\Program Files (x86)\Sibisoft"
+                              />
+                            </div>
+                          </>
                         )}
                       </div>
 
@@ -1291,6 +1341,7 @@ export default function ServerMigration() {
               )}
             </div>
 
+            {/* Firewall Rule Section */}
             <div className={styles.optionGroup}>
             <label className={styles.optionLabel}>
               <input 
@@ -1318,12 +1369,29 @@ export default function ServerMigration() {
             </div>
           )}
         </div>
+
+        {/* Control Center Setup Section */}
+        <div className={styles.optionGroup}>
+          <label className={styles.optionLabel}>
+            <input 
+              type="checkbox" 
+              checked={controlCenterSetup} 
+              onChange={(e) => setControlCenterSetup(e.target.checked)} 
+              className={styles.optionCheckbox}
+            />
+            Control Center Setup
+          </label>
+          {controlCenterSetup && (
+            <div className={styles.optionInput}>
+              <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
+                The Control Center archive will be downloaded, unarchived to "C:\Program Files (x86)" and the service will be configured automatically.
+              </p>
+            </div>
+          )}
+        </div>
             
 
-
-              
-
-                
+  
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
                   <button
                     onClick={handleGenerateDestinationScript}

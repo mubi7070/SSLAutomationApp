@@ -119,9 +119,12 @@ export default async function handler(req, res) {
         stopTomcat = false,
         stopMySQL = false,
         stopNorthstarDesktop = false,
+        stopControlCenter = false,
         sourceTomcatServiceName = 'Tomcat9',
         sourceMySQLServiceName = 'MySQL8',
-        sourceNorthstarDesktopServiceName = 'NorthstarDesktopServices'
+        sourceNorthstarDesktopServiceName = 'NorthstarDesktopServices',
+        sourceControlCenterServiceName = 'ServerMonitor',
+        sourceControlCenterPath = 'C:\\Program Files (x86)\\Sibisoft'
     } = req.body;
 
 
@@ -141,9 +144,12 @@ export default async function handler(req, res) {
     stopTomcat: ${stopTomcat},
     stopMySQL: ${stopMySQL},
     stopNorthstarDesktop: ${stopNorthstarDesktop},
+    stopControlCenter: ${stopControlCenter},
     sourceTomcatServiceName: ${sourceTomcatServiceName},
     sourceMySQLServiceName: ${sourceMySQLServiceName},
-    sourceNorthstarDesktopServiceName: ${sourceNorthstarDesktopServiceName}
+    sourceNorthstarDesktopServiceName: ${sourceNorthstarDesktopServiceName},
+    sourceControlCenterServiceName: ${sourceControlCenterServiceName},
+    sourceControlCenterPath: ${sourceControlCenterPath}
     `);
     
     // Generate formatted date (MMDDYY)
@@ -237,9 +243,12 @@ param(
     [bool]$StopTomcat = $${stopTomcat},
     [bool]$StopMySQL = $${stopMySQL},
     [bool]$StopNorthstarDesktop = $${stopNorthstarDesktop},
+    [bool]$StopControlCenter = $${stopControlCenter},
     [string]$TomcatServiceName = "${sourceTomcatServiceName}",
     [string]$MySQLServiceName = "${sourceMySQLServiceName}",
-    [string]$NorthstarDesktopServiceName = "${sourceNorthstarDesktopServiceName}"
+    [string]$NorthstarDesktopServiceName = "${sourceNorthstarDesktopServiceName}",
+    [string]$ControlCenterServiceName = "${sourceControlCenterServiceName}",
+    [string]$ControlCenterPath = "${escapePowerShellPath(sourceControlCenterPath)}"
 )
 
 # AWS Configuration
@@ -254,6 +263,7 @@ $MigrationFolder = "${drive}:\\${clientName}-ServerMigration-${formattedDate}"
 $ArchiveName = "${clientName}-${formattedDate}.rar"
 $ArchivePath = "$MigrationFolder\\$ArchiveName"
 $LogPath = "$MigrationFolder\\${clientName}-${formattedDate}.log"
+$controlCenterArchiveName = "${clientName}-ControlCenter-${formattedDate}.rar"
 $BucketName = "${process.env.S3_MIGRATION_BUCKET_NAME}"
 $FolderName = "${s3Folder}"
 
@@ -345,6 +355,73 @@ function Stop-AndDisableService {
         throw "Failed to stop/disable $ServiceType service"
     }
 }
+
+
+function Archive-ControlCenter {
+    param(
+        [string]$ControlCenterPath,
+        [string]$MigrationFolder,
+        [string]$ClientName,
+        [string]$DateString
+    )
+    
+    Log-Message "Starting Control Center folder archiving..."
+    
+    try {
+        # Check if Control Center path exists
+        if (-not (Test-Path -LiteralPath $ControlCenterPath)) {
+            Log-Message "WARNING: Control Center path not found: $ControlCenterPath"
+            return $false
+        }
+        
+        
+        $controlCenterArchivePath = Join-Path -Path $MigrationFolder -ChildPath $controlCenterArchiveName
+        
+        # Delete existing Control Center archive if present
+        if (Test-Path $controlCenterArchivePath) {
+            Remove-Item -Path $controlCenterArchivePath -Force
+            Log-Message "Deleted existing Control Center archive: $controlCenterArchivePath"
+        }
+        
+        Log-Message "Archiving Control Center folder: $ControlCenterPath"
+        
+        $cores = [Environment]::ProcessorCount
+        $threads = $cores
+        $mtSwitch = "-mt$threads"
+        
+        # Build RAR command for Control Center
+        $controlCenterRarCommand = @(
+            "a",           # Add to archive
+            "-r",          # Recurse subdirectories
+            "-ep1",        # Exclude base folder from names
+            "-y",          # Assume Yes to all queries
+            "-idq",        # Quiet mode (suppress progress)
+            "-m1",         # Normal compression
+            "-md32m",      # 32 MB dictionary
+            $mtSwitch,     # Use all threads
+            "\`"$controlCenterArchivePath\`"",
+            "\`"$ControlCenterPath\`""
+        )
+        
+        # Execute WinRAR for Control Center
+        $controlCenterSuccess = Invoke-WinRAR -WinRARPath $WinRARPath -RarCommand $controlCenterRarCommand -ArchivePath $controlCenterArchivePath
+        
+        # Check if Control Center archive was created
+        if (Test-Path $controlCenterArchivePath) {
+            $sizeGB = [math]::Round((Get-Item $controlCenterArchivePath).Length / 1GB, 2)
+            Log-Message "SUCCESS: Control Center archive created: $controlCenterArchiveName ($sizeGB GB)"
+            return $controlCenterArchiveName
+        } else {
+            Log-Message "WARNING: Control Center archive was not created"
+            return $false
+        }
+        
+    } catch {
+        Log-Message "ERROR: Failed to archive Control Center folder - $($_.Exception.Message)"
+        return $false
+    }
+}
+
 
 function Get-ArchiveFiles {
     param([string]$MigrationFolder, [string]$ArchiveName)
@@ -529,6 +606,13 @@ try {
             Stop-AndDisableService -ServiceName $NorthstarDesktopServiceName -ServiceType "Northstar Desktop"
         } else {
             Log-Message "Northstar Desktop service stop/disable skipped (not selected)"
+        }
+
+        if ($StopControlCenter) {
+            Log-Message "Processing Control Center service: $ControlCenterServiceName"
+            Stop-AndDisableService -ServiceName $ControlCenterServiceName -ServiceType "Control Center"
+        } else {
+            Log-Message "Control Center service stop/disable skipped (not selected)"
         }
         
         Log-Message "===== SERVICE STOP/DISABLE COMPLETED ====="
@@ -757,6 +841,49 @@ try {
     }
         
     Log-Message "All uploads completed successfully"
+
+
+
+    # Archive and upload Control Center folder if enabled (Control Center Part)
+
+    if ($StopControlCenter) {
+        Log-Message "===== ARCHIVING CONTROL CENTER FOLDER ====="
+        $controlCenterArchiveName = Archive-ControlCenter -ControlCenterPath $ControlCenterPath -MigrationFolder $MigrationFolder -ClientName $ClientName -DateString $DateString
+        
+        if ($controlCenterArchiveName) {
+            Log-Message "Uploading Control Center archive to S3..."
+            
+            # Prepare file names for Control Center upload
+            $controlCenterFileNames = @($controlCenterArchiveName)
+            
+            # Build arguments for Node.js script for Control Center
+            $controlCenterNodeArgs = @(
+                "\`"$uploadScriptPath\`"",
+                "\`"$MigrationFolder\`"",
+                "\`"$FolderName\`""
+            )
+            
+            # Add Control Center file name as argument
+            foreach ($fileName in $controlCenterFileNames) {
+                $controlCenterNodeArgs += "\`"$fileName\`""
+            }
+            
+            # Execute the upload script for Control Center
+            $controlCenterNodeProcess = Start-Process -FilePath "node" -ArgumentList $controlCenterNodeArgs -Wait -NoNewWindow -PassThru
+            
+            if ($controlCenterNodeProcess.ExitCode -ne 0) {
+                Log-Message "WARNING: Control Center S3 upload failed with exit code $($controlCenterNodeProcess.ExitCode)"
+            } else {
+                Log-Message "SUCCESS: Control Center archive uploaded to S3"
+            }
+        }
+    } else {
+        Log-Message "Control Center archiving skipped (not enabled)"
+    }
+
+
+
+
     Log-Message "===== MIGRATION COMPLETED SUCCESSFULLY ====="
 
     } catch {

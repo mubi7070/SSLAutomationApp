@@ -63,7 +63,8 @@ export default async function handler(req, res) {
     firewallPorts,
     updateInternalIP,
     internalIP,
-    updateTomcatPath
+    updateTomcatPath,
+    controlCenterSetup
     } = req.body;
 
   // Validate input parameters
@@ -123,7 +124,8 @@ export default async function handler(req, res) {
     cleanFirewallPorts: ${cleanFirewallPorts},
     updateInternalIP: ${updateInternalIP},
     internalIP: ${internalIP},
-    updateTomcatPath: ${updateTomcatPath}
+    updateTomcatPath: ${updateTomcatPath},
+    controlCenterSetup: ${controlCenterSetup}
     `);
     
   
@@ -168,7 +170,8 @@ param(
     [string]$FirewallPorts = "${cleanFirewallPorts}",
     [bool]$UpdateInternalIP = $${updateInternalIP},
     [string]$InternalIP = "${internalIP}",
-    [bool]$UpdateTomcatPath = $${updateTomcatPath}
+    [bool]$UpdateTomcatPath = $${updateTomcatPath},
+    [bool]$ControlCenterSetup = $${controlCenterSetup}
 )
 
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -220,6 +223,7 @@ function Remove-TemporaryFiles {
     )
     $filesToDelete = @(
         (Join-Path -Path $FolderPath -ChildPath "download-from-s3.js"),
+        (Join-Path -Path $FolderPath -ChildPath "download-controlcenter.js"),
         (Join-Path -Path $FolderPath -ChildPath "node_modules"),
         (Join-Path -Path $FolderPath -ChildPath "package.json"),
         (Join-Path -Path $FolderPath -ChildPath "package-lock.json")
@@ -238,6 +242,251 @@ function Remove-TemporaryFiles {
                 Log-Message "WARNING: Failed to delete $file - $($_.Exception.Message)"
             }
         }
+    }
+}
+
+function Setup-ControlCenter {
+    Log-Message "Setting up Control Center..."
+    
+    try {
+        $ControlCenterArchiveName = "${clientName}-ControlCenter-${formattedDate}.rar"
+        $ControlCenterLocalPath = Join-Path -Path $MigrationFolder -ChildPath $ControlCenterArchiveName
+        $ExtractPath = "C:\\Program Files (x86)"
+        
+        # Download Control Center archive from S3 using the same method as main archive
+        Log-Message "Downloading Control Center archive from S3: $ControlCenterArchiveName"
+        
+        # Create download script for Control Center
+        $controlCenterDownloadScript = @"
+    const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
+    const fs = require("fs");
+    const path = require("path");
+
+    async function downloadControlCenter() {
+      const bucketName = "${process.env.S3_MIGRATION_BUCKET_NAME}";
+      const folderName = "${s3Folder}";
+      const fileName = "${clientName}-ControlCenter-${formattedDate}.rar";
+      const localPath = "$($ControlCenterLocalPath.Replace('\\', '\\\\'))";
+
+      const s3Client = new S3Client({
+        region: "$env:AWS_REGION",
+        credentials: {
+          accessKeyId: "$env:AWS_ACCESS_KEY_ID",
+          secretAccessKey: "$env:AWS_SECRET_ACCESS_KEY"
+        }
+      });
+
+      try {
+        console.log("Starting Control Center download: " + fileName);
+        
+        const getParams = {
+          Bucket: bucketName,
+          Key: folderName + '/' + fileName
+        };
+
+        const fileData = await s3Client.send(new GetObjectCommand(getParams));
+        const fileStream = fs.createWriteStream(localPath);
+        
+        await new Promise((resolve, reject) => {
+          fileData.Body.pipe(fileStream);
+          fileData.Body.on("error", reject);
+          fileStream.on("error", reject);
+          fileStream.on("finish", resolve);
+        });
+        
+        const stats = fs.statSync(localPath);
+        const fileSizeMB = (stats.size / (1024 * 1024)).toFixed(2);
+        console.log("SUCCESS: Control Center archive downloaded: " + fileSizeMB + " MB");
+      } catch (err) {
+        console.error("ERROR: Failed to download Control Center archive: " + err.message);
+        throw err;
+      }
+    }
+
+    downloadControlCenter();
+"@
+
+        # Save the Control Center download script
+        $controlCenterDownloadScriptPath = Join-Path -Path $MigrationFolder -ChildPath "download-controlcenter.js"
+        $controlCenterDownloadScript | Out-File -FilePath $controlCenterDownloadScriptPath -Encoding UTF8
+        Log-Message "Created Control Center download script"
+
+        # Execute the download script
+        Log-Message "Downloading Control Center archive..."
+        $nodeProcess = Start-Process -FilePath "node" -ArgumentList "\`"$controlCenterDownloadScriptPath\`"" -PassThru -NoNewWindow -Wait
+
+        if ($nodeProcess.ExitCode -ne 0) {
+            Log-Message "WARNING: Control Center download process failed with exit code $($nodeProcess.ExitCode)"
+            Log-Message "Control Center setup will be skipped"
+            return
+        }
+
+        # Wait for file system to settle
+        Start-Sleep -Seconds 2
+
+        # Verify Control Center archive was downloaded
+        if (-not (Test-Path $ControlCenterLocalPath)) {
+            Log-Message "WARNING: Control Center archive download failed - file not found at $ControlCenterLocalPath"
+            Log-Message "Control Center setup will be skipped"
+            return
+        }
+
+        $fileSize = (Get-Item $ControlCenterLocalPath).Length / 1MB
+        Log-Message "Control Center archive downloaded successfully ($([math]::Round($fileSize, 2)) MB)"
+
+        # Extract Control Center archive
+        Log-Message "Extracting Control Center archive to $ExtractPath..."
+        $extractArgs = @(
+            "x",           # Extract with full paths
+            "-y",          # Assume Yes to all
+            "-o+",         # Overwrite all files
+            "-idq",        # Quiet mode
+            "\`"$ControlCenterLocalPath\`"",
+            "\`"$ExtractPath\`""
+        )
+        
+        $extractProcess = Start-Process -FilePath $WinRARPath -ArgumentList $extractArgs -Wait -NoNewWindow -PassThru
+        
+        if ($extractProcess.ExitCode -ne 0) {
+            Log-Message "WARNING: Control Center extraction completed with exit code $($extractProcess.ExitCode)"
+        } else {
+            Log-Message "Control Center extraction completed successfully"
+        }
+
+        # Verify extraction by checking if Sibisoft folder exists
+        $sibisoftPath = Join-Path -Path $ExtractPath -ChildPath "Sibisoft"
+        if (Test-Path $sibisoftPath) {
+            Log-Message "SUCCESS: Control Center extracted to $sibisoftPath"
+            
+            # Check if ControlCenter.exe exists in the expected location
+            $controlCenterExePath = Join-Path -Path $sibisoftPath -ChildPath "ControlCenter\\ControlCenter.exe"
+            if (Test-Path $controlCenterExePath) {
+                Log-Message "SUCCESS: ControlCenter.exe found at $controlCenterExePath"
+            } else {
+                Log-Message "WARNING: ControlCenter.exe not found at expected location: $controlCenterExePath"
+                # Try to find it anywhere in the Sibisoft folder
+                $foundExe = Get-ChildItem -Path $sibisoftPath -Filter "ControlCenter.exe" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+                if ($foundExe) {
+                    Log-Message "Found ControlCenter.exe at: $($foundExe.FullName)"
+                    $controlCenterExePath = $foundExe.FullName
+                }
+            }
+        } else {
+            Log-Message "WARNING: Sibisoft folder not found after extraction at: $sibisoftPath"
+            # Try to find Sibisoft folder anywhere in the extraction path
+            $foundSibisoft = Get-ChildItem -Path $ExtractPath -Filter "Sibisoft" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($foundSibisoft) {
+                $sibisoftPath = $foundSibisoft.FullName
+                Log-Message "Found Sibisoft folder at: $sibisoftPath"
+            } else {
+                Log-Message "ERROR: Could not find Sibisoft folder after extraction"
+                return
+            }
+        }
+
+        # Configure Control Center Service
+        Log-Message "Configuring Control Center Service..."
+        
+        $serviceName = "ServerMonitor"
+        
+        # Determine the correct binPath
+        if ($controlCenterExePath -and (Test-Path $controlCenterExePath)) {
+            $binPath = "\`"$controlCenterExePath\`" --service"
+        } else {
+            # Fallback to default path
+            $binPath = "C:\\Program Files (x86)\\Sibisoft\\ControlCenter\\ControlCenter.exe --service"
+            Log-Message "Using default binPath: $binPath"
+        }
+        
+        # Check if service already exists
+        $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+        if ($service) {
+            Log-Message "Service $serviceName already exists. Stopping and reconfiguring..."
+            try {
+                Stop-Service -Name $serviceName -Force -ErrorAction SilentlyContinue
+                Start-Sleep -Seconds 3
+                sc.exe delete $serviceName | Out-Null
+                Start-Sleep -Seconds 2
+                Log-Message "Existing service removed"
+            } catch {
+                Log-Message "WARNING: Could not remove existing service - $($_.Exception.Message)"
+            }
+        }
+        
+        # Create the service
+        Log-Message "Creating Control Center service: $serviceName"
+        Log-Message "Service binPath: $binPath"
+
+        $createResult = sc.exe create $serviceName DisplayName= "Control Center" binPath= "C:\\Program Files (x86)\\Sibisoft\\ControlCenter\\ControlCenter.exe --service"
+
+        
+        if ($LASTEXITCODE -ne 0) {
+            Log-Message "ERROR: Failed to create Control Center service. Exit code: $LASTEXITCODE"
+            Log-Message "SC Output: $createResult"
+            return
+        }
+        
+        Log-Message "Control Center service created successfully"
+        
+        # Configure service to auto-start
+        sc.exe config $serviceName start= auto | Out-Null
+        Log-Message "Configured Control Center service to start automatically"
+        
+        # Start the service
+        Log-Message "Starting Control Center service..."
+        try {
+            Start-Service -Name $serviceName -ErrorAction Stop
+            Log-Message "Control Center service started successfully"
+        } catch {
+            Log-Message "WARNING: Could not start Control Center service - $($_.Exception.Message)"
+            Log-Message "Trying alternative start method..."
+            sc.exe start $serviceName | Out-Null
+            Start-Sleep -Seconds 3
+        }
+        
+        # Verify service is installed and running
+        Start-Sleep -Seconds 3
+        $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+        
+        if ($service) {
+            if ($service.Status -eq 'Running') {
+                Log-Message "SUCCESS: Control Center service is installed and running"
+            } else {
+                Log-Message "WARNING: Control Center service is installed but not running. Current status: $($service.Status)"
+                # Try to start it again
+                try {
+                    Start-Service -Name $serviceName -ErrorAction SilentlyContinue
+                    Start-Sleep -Seconds 2
+                    $service = Get-Service -Name $serviceName
+                    if ($service.Status -eq 'Running') {
+                        Log-Message "SUCCESS: Control Center service started successfully on second attempt"
+                    } else {
+                        Log-Message "WARNING: Control Center service still not running after second attempt. Status: $($service.Status)"
+                    }
+                } catch {
+                    Log-Message "WARNING: Could not start Control Center service on second attempt"
+                }
+            }
+        } else {
+            Log-Message "ERROR: Control Center service was not found after installation"
+        }
+        
+        # Clean up Control Center archive and download script
+        try {
+            if (Test-Path $ControlCenterLocalPath) {
+                Remove-Item -Path $ControlCenterLocalPath -Force -ErrorAction SilentlyContinue
+                Log-Message "Cleaned up Control Center archive"
+            }
+            if (Test-Path $controlCenterDownloadScriptPath) {
+                Remove-Item -Path $controlCenterDownloadScriptPath -Force -ErrorAction SilentlyContinue
+                Log-Message "Cleaned up Control Center download script"
+            }
+        } catch {
+            Log-Message "WARNING: Failed to clean up Control Center temporary files - $($_.Exception.Message)"
+        }
+        
+    } catch {
+        Log-Message "ERROR: Control Center setup failed - $($_.Exception.Message)"
     }
 }
 
@@ -1674,6 +1923,15 @@ try {
         Log-Message "WARNING: Firewall rule creation enabled but no ports specified"
     } else {
         Log-Message "Firewall rule creation skipped (checkbox not enabled)"
+    }
+
+
+    # CONTROL CENTER SETUP - ADD THIS SECTION
+    if ($ControlCenterSetup) {
+        Log-Message "Starting Control Center setup process..."
+        Setup-ControlCenter
+    } else {
+        Log-Message "Control Center setup skipped (checkbox not enabled)"
     }
 
     # FINAL MIGRATION STATUS
