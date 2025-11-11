@@ -118,8 +118,10 @@ export default async function handler(req, res) {
         stopDisableServices = false,
         stopTomcat = false,
         stopMySQL = false,
+        stopNorthstarDesktop = false,
         sourceTomcatServiceName = 'Tomcat9',
-        sourceMySQLServiceName = 'MySQL8'
+        sourceMySQLServiceName = 'MySQL8',
+        sourceNorthstarDesktopServiceName = 'NorthstarDesktopServices'
     } = req.body;
 
 
@@ -138,8 +140,10 @@ export default async function handler(req, res) {
     stopDisableServices: ${stopDisableServices},
     stopTomcat: ${stopTomcat},
     stopMySQL: ${stopMySQL},
+    stopNorthstarDesktop: ${stopNorthstarDesktop},
     sourceTomcatServiceName: ${sourceTomcatServiceName},
-    sourceMySQLServiceName: ${sourceMySQLServiceName}
+    sourceMySQLServiceName: ${sourceMySQLServiceName},
+    sourceNorthstarDesktopServiceName: ${sourceNorthstarDesktopServiceName}
     `);
     
     // Generate formatted date (MMDDYY)
@@ -232,8 +236,10 @@ param(
     [bool]$StopDisableServices = $${stopDisableServices},
     [bool]$StopTomcat = $${stopTomcat},
     [bool]$StopMySQL = $${stopMySQL},
+    [bool]$StopNorthstarDesktop = $${stopNorthstarDesktop},
     [string]$TomcatServiceName = "${sourceTomcatServiceName}",
-    [string]$MySQLServiceName = "${sourceMySQLServiceName}"
+    [string]$MySQLServiceName = "${sourceMySQLServiceName}",
+    [string]$NorthstarDesktopServiceName = "${sourceNorthstarDesktopServiceName}"
 )
 
 # AWS Configuration
@@ -516,6 +522,13 @@ try {
             Stop-AndDisableService -ServiceName $MySQLServiceName -ServiceType "MySQL"
         } else {
             Log-Message "MySQL service stop/disable skipped (not selected)"
+        }
+
+        if ($StopNorthstarDesktop) {
+            Log-Message "Processing Northstar Desktop service: $NorthstarDesktopServiceName"
+            Stop-AndDisableService -ServiceName $NorthstarDesktopServiceName -ServiceType "Northstar Desktop"
+        } else {
+            Log-Message "Northstar Desktop service stop/disable skipped (not selected)"
         }
         
         Log-Message "===== SERVICE STOP/DISABLE COMPLETED ====="

@@ -47,6 +47,8 @@ export default function ServerMigration() {
   const [stopMySQL, setStopMySQL] = useState(false);
   const [sourceTomcatServiceName, setSourceTomcatServiceName] = useState('Tomcat9');
   const [sourceMySQLServiceName, setSourceMySQLServiceName] = useState('MySQL8');
+  const [stopNorthstarDesktop, setStopNorthstarDesktop] = useState(false);
+  const [sourceNorthstarDesktopServiceName, setSourceNorthstarDesktopServiceName] = useState('NorthstarDesktopServices');
 
   const [enablePerformanceOptions, setEnablePerformanceOptions] = useState(false);
   const [performanceOptions, setPerformanceOptions] = useState([
@@ -66,6 +68,7 @@ export default function ServerMigration() {
   const [internalIP, setInternalIP] = useState('');
   const [updateTomcatPath, setUpdateTomcatPath] = useState(false);
   const [destinationDate, setDestinationDate] = useState(new Date());
+  const [installNorthstarDesktop, setInstallNorthstarDesktop] = useState(false);
 
   const driveLetters = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
@@ -256,8 +259,10 @@ export default function ServerMigration() {
           stopDisableServices,
           stopTomcat,
           stopMySQL,
+          stopNorthstarDesktop,
           sourceTomcatServiceName,
-          sourceMySQLServiceName
+          sourceMySQLServiceName,
+          sourceNorthstarDesktopServiceName
         }),
       });
 
@@ -338,6 +343,7 @@ export default function ServerMigration() {
           mysqlPath,
           installMySQL,
           installTomcat,
+          installNorthstarDesktop,
           copyFonts,
           ramAllocation,
           mysqlServiceName,
@@ -692,6 +698,7 @@ export default function ServerMigration() {
                           </div>
                         )}
                       </div>
+
                       <div className={styles.optionInput}>
                         <label className={styles.optionLabel}>
                           <input
@@ -716,6 +723,33 @@ export default function ServerMigration() {
                           </div>
                         )}
                       </div>
+
+                      <div className={styles.optionInput}>
+                        <label className={styles.optionLabel}>
+                          <input
+                            type="checkbox"
+                            checked={stopNorthstarDesktop}
+                            onChange={(e) => setStopNorthstarDesktop(e.target.checked)}
+                            className={styles.optionCheckbox}
+                          />
+                          Northstar Desktop Service
+                        </label>
+                        {stopNorthstarDesktop && (
+                          <div className={styles.optionInput}>
+                            <label>Northstar Desktop Service Name:</label>
+                            <input
+                              type="text"
+                              value={sourceNorthstarDesktopServiceName}
+                              onChange={(e) => setSourceNorthstarDesktopServiceName(e.target.value)}
+                              className={styles.styledselecttempmargin}
+                              style={{ width: '93%', padding: '7px', margin: '10px 0' }}
+                              placeholder="NorthstarDesktopServices"
+                            />
+                          </div>
+                        )}
+                      </div>
+
+
                     </>
                 
                   )}
@@ -936,7 +970,7 @@ export default function ServerMigration() {
                     onChange={(e) => setInstallMySQL(e.target.checked)} 
                     className={styles.optionCheckbox}
                   />
-                  Install MySQL Service
+                  MySQL Service
                 </label>
                 {installMySQL && (
                   <>
@@ -1006,7 +1040,7 @@ export default function ServerMigration() {
                   onChange={(e) => setInstallTomcat(e.target.checked)} 
                   className={styles.optionCheckbox}
                 />
-                Install Tomcat Service
+                Tomcat Service
               </label>
               {installTomcat && (
                 <>
@@ -1228,6 +1262,26 @@ export default function ServerMigration() {
                       <div className={styles.optionInput}>
                         <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
                           This will update the Tomcat path in northstar.ini, log4j.PROPERTIES, velocity.properties and velocityletters.properties configuration files
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Northstar Desktop Service Installation */}
+                  <div className={styles.optionInput}>
+                    <label className={styles.optionLabel}>
+                      <input 
+                        type="checkbox" 
+                        checked={installNorthstarDesktop} 
+                        onChange={(e) => setInstallNorthstarDesktop(e.target.checked)} 
+                        className={styles.optionCheckbox}
+                      />
+                      Install Northstar Desktop Service
+                    </label>
+                    {installNorthstarDesktop && (
+                      <div className={styles.optionInput}>
+                        <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
+                          The script will automatically find and install the latest Northstar Desktop Service from the NS_Devices folder.
                         </p>
                       </div>
                     )}

@@ -44,6 +44,7 @@ export default async function handler(req, res) {
     mysqlPath, 
     installMySQL,
     installTomcat,
+    installNorthstarDesktop,
     copyFonts,
     ramAllocation,
     mysqlServiceName,
@@ -102,6 +103,7 @@ export default async function handler(req, res) {
     mysqlPath: ${mysqlPath}, 
     installMySQL: ${installMySQL},
     installTomcat: ${installTomcat},
+    installNorthstarDesktop: ${installNorthstarDesktop},
     copyFonts: ${copyFonts},
     ramAllocation: ${ramAllocation},
     mysqlServiceName: ${mysqlServiceName},
@@ -147,6 +149,7 @@ param(
     [string]$MySQLPath = "${escapePowerShellPath(mysqlPath)}",
     [bool]$InstallMySQLService = $${installMySQL},
     [bool]$InstallTomcatService = $${installTomcat},
+    [bool]$InstallNorthstarDesktop = $${installNorthstarDesktop},
     [bool]$CopyFonts = $${copyFonts},
     [bool]$RamAllocation = $${ramAllocation},
     [string]$MySQLServiceName = "${mysqlServiceName}",
@@ -579,7 +582,140 @@ function Update-TomcatPathInFiles {
     }
 }
 
-
+function Install-NorthstarDesktopService {
+    param(
+        [string]$TomcatPath
+    )
+    
+    Log-Message "Starting Northstar Desktop Service installation..."
+    
+    try {
+        # Define the NS_Devices path
+        $nsDevicesPath = Join-Path -Path $TomcatPath -ChildPath "webapps\\northstar\\Common\\NS_Devices"
+        
+        if (-not (Test-Path -LiteralPath $nsDevicesPath)) {
+            Log-Message "ERROR: NS_Devices folder not found at: $nsDevicesPath"
+            return $false
+        }
+        
+        # Find all NorthstarServices zip files
+        $northstarServiceFiles = Get-ChildItem -Path $nsDevicesPath -Filter "NorthstarServices-*.zip" | Sort-Object Name -Descending
+        
+        if ($northstarServiceFiles.Count -eq 0) {
+            Log-Message "ERROR: No NorthstarServices zip files found in: $nsDevicesPath"
+            return $false
+        }
+        
+        # Select the latest version (first in descending order)
+        $latestServiceFile = $northstarServiceFiles[0]
+        Log-Message "Found Northstar Services files: $($northstarServiceFiles.Name -join ', ')"
+        Log-Message "Selected latest version: $($latestServiceFile.Name)"
+        
+        # Create temporary extraction directory
+        $tempExtractPath = Join-Path -Path $env:TEMP -ChildPath "NorthstarDesktopService"
+        if (Test-Path -LiteralPath $tempExtractPath) {
+            Remove-Item -Path $tempExtractPath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        New-Item -ItemType Directory -Path $tempExtractPath -Force | Out-Null
+        
+        # Extract the zip file
+        Log-Message "Extracting Northstar Desktop Service..."
+        try {
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            [System.IO.Compression.ZipFile]::ExtractToDirectory($latestServiceFile.FullName, $tempExtractPath)
+        } catch {
+            Log-Message "WARNING: System.IO.Compression extraction failed, trying fallback method: $($_.Exception.Message)"
+            # Fallback: Use Expand-Archive
+            try {
+                Expand-Archive -Path $latestServiceFile.FullName -DestinationPath $tempExtractPath -Force
+            } catch {
+                Log-Message "ERROR: Both extraction methods failed: $($_.Exception.Message)"
+                return $false
+            }
+        }
+        
+        # Find the extracted folder (should have the same name as the zip without extension)
+        $folderName = [System.IO.Path]::GetFileNameWithoutExtension($latestServiceFile.Name)
+        $extractedFolder = Join-Path -Path $tempExtractPath -ChildPath $folderName
+        
+        if (-not (Test-Path -LiteralPath $extractedFolder)) {
+            # Try to find any folder in the temp path
+            $subFolders = Get-ChildItem -Path $tempExtractPath -Directory
+            if ($subFolders.Count -gt 0) {
+                $extractedFolder = $subFolders[0].FullName
+                Log-Message "Using extracted folder: $(Split-Path $extractedFolder -Leaf)"
+            } else {
+                Log-Message "ERROR: No extracted folder found in: $tempExtractPath"
+                return $false
+            }
+        }
+        
+        # Find NSToolSetup.msi
+        $msiPath = Join-Path -Path $extractedFolder -ChildPath "NSToolSetup.msi"
+        if (-not (Test-Path -LiteralPath $msiPath)) {
+            # Search recursively for the MSI file
+            $msiFiles = Get-ChildItem -Path $extractedFolder -Filter "NSToolSetup.msi" -Recurse
+            if ($msiFiles.Count -eq 0) {
+                Log-Message "ERROR: NSToolSetup.msi not found in extracted files"
+                return $false
+            }
+            $msiPath = $msiFiles[0].FullName
+        }
+        
+        Log-Message "Found NSToolSetup.msi at: $msiPath"
+        
+        # Install the MSI silently
+        Log-Message "Installing Northstar Desktop Service (this may take a moment)..."
+        $installProcess = Start-Process -FilePath "msiexec.exe" -ArgumentList "/i", "\`"$msiPath\`"", "/qn", "/norestart" -Wait -PassThru
+        
+        if ($installProcess.ExitCode -eq 0) {
+            Log-Message "SUCCESS: Northstar Desktop Service installed successfully"
+            
+            # Wait a moment for the service to be registered
+            Start-Sleep -Seconds 5
+            
+            # Check if the service was created and start it
+            $serviceName = "NorthstarDesktopServices"
+            $service = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
+            
+            if ($service) {
+                Log-Message "Found Northstar Desktop Service: $serviceName"
+                
+                # Start the service if it's not running
+                if ($service.Status -ne 'Running') {
+                    Log-Message "Starting Northstar Desktop Service..."
+                    Start-Service -Name $serviceName -ErrorAction SilentlyContinue
+                    Start-Sleep -Seconds 3
+                    
+                    $service = Get-Service -Name $serviceName
+                    if ($service.Status -eq 'Running') {
+                        Log-Message "SUCCESS: Northstar Desktop Service started successfully"
+                    } else {
+                        Log-Message "WARNING: Northstar Desktop Service installed but could not be started automatically"
+                    }
+                } else {
+                    Log-Message "Northstar Desktop Service is already running"
+                }
+            } else {
+                Log-Message "WARNING: Northstar Desktop Service installed but service not found. It may start automatically on reboot."
+            }
+            
+            # Clean up temporary files
+            Remove-Item -Path $tempExtractPath -Recurse -Force -ErrorAction SilentlyContinue
+            
+            return $true
+        } else {
+            Log-Message "ERROR: MSI installation failed with exit code: $($installProcess.ExitCode)"
+            # Clean up temporary files even on failure
+            Remove-Item -Path $tempExtractPath -Recurse -Force -ErrorAction SilentlyContinue
+            return $false
+        }
+        
+    } catch {
+        Log-Message "ERROR: Failed to install Northstar Desktop Service - $($_.Exception.Message)"
+        return $false
+    }
+}
 
 function Copy-RequiredDLLs {
     Log-Message "Checking for required DLL files for MySQL service installation..."
@@ -1517,6 +1653,12 @@ try {
             }
 
 
+            # Install Northstar Desktop Service if enabled
+            if ($InstallNorthstarDesktop) {
+                Install-NorthstarDesktopService -TomcatPath $TomcatPath
+            } else {
+                Log-Message "Northstar Desktop Service installation skipped (checkbox not enabled)"
+            }
 
 
         } catch {
