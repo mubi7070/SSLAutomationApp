@@ -384,6 +384,103 @@ function Setup-ControlCenter {
             }
         }
 
+        # NEW CODE: Verify and update paths in info.json before starting service
+        Log-Message "Verifying and updating paths in info.json..."
+        $infoJsonPath = "C:\\Program Files (x86)\\Sibisoft\\info.json"
+
+        if (Test-Path $infoJsonPath) {
+            try {
+                # Read and parse the JSON file
+                $infoJsonContent = Get-Content $infoJsonPath -Raw | ConvertFrom-Json
+                Log-Message "Current info.json configuration:"
+                Log-Message "  - Name: $($infoJsonContent.name)"
+                Log-Message "  - DB Backup Path: $($infoJsonContent.dbBackUp)"
+                Log-Message "  - Northstar Path: $($infoJsonContent.northstar)"
+                
+                # Check if paths need to be updated to match the selected drive
+                $currentDbBackupPath = $infoJsonContent.dbBackUp
+                $currentNorthstarPath = $infoJsonContent.northstar
+                
+                # Extract drive letters from current paths
+                $currentDbDrive = $currentDbBackupPath -replace ':.*$', ''
+                $currentNorthstarDrive = $currentNorthstarPath -replace ':.*$', ''
+                
+                # Update paths if drive letters don't match the selected drive
+                $pathsUpdated = $false
+                
+                if ($currentDbDrive -ne $DriveLetter) {
+                    $newDbBackupPath = $currentDbBackupPath -replace "^$currentDbDrive", $DriveLetter
+                    Log-Message "Updating DB Backup path from '$currentDbBackupPath' to '$newDbBackupPath'"
+                    $infoJsonContent.dbBackUp = $newDbBackupPath
+                    $pathsUpdated = $true
+                }
+                
+                if ($currentNorthstarDrive -ne $DriveLetter) {
+                    $newNorthstarPath = $currentNorthstarPath -replace "^$currentNorthstarDrive", $DriveLetter
+                    Log-Message "Updating Northstar path from '$currentNorthstarPath' to '$newNorthstarPath'"
+                    $infoJsonContent.northstar = $newNorthstarPath
+                    $pathsUpdated = $true
+                }
+                
+                if ($pathsUpdated) {
+                    # Save the updated JSON back to file
+                    $infoJsonContent | ConvertTo-Json | Set-Content $infoJsonPath
+                    Log-Message "SUCCESS: info.json updated with new paths"
+                } else {
+                    Log-Message "No path updates needed - drive letters already match selected drive"
+                }
+                
+                # Verify and create paths if they don't exist
+                $finalDbBackupPath = $infoJsonContent.dbBackUp -replace '/', '\\'
+                $finalNorthstarPath = $infoJsonContent.northstar -replace '/', '\\'
+                
+                Log-Message "Verifying required paths exist..."
+                
+                # Check and create DB Backup path
+                if (-not (Test-Path $finalDbBackupPath)) {
+                    Log-Message "DB Backup path does not exist: $finalDbBackupPath"
+                    try {
+                        New-Item -ItemType Directory -Path $finalDbBackupPath -Force | Out-Null
+                        if (Test-Path $finalDbBackupPath) {
+                            Log-Message "SUCCESS: Created DB Backup path: $finalDbBackupPath"
+                        } else {
+                            Log-Message "WARNING: Failed to create DB Backup path: $finalDbBackupPath"
+                        }
+                    } catch {
+                        Log-Message "WARNING: Could not create DB Backup path - $($_.Exception.Message)"
+                    }
+                } else {
+                    Log-Message "DB Backup path already exists: $finalDbBackupPath"
+                }
+                
+                # Check and create Northstar path
+                if (-not (Test-Path $finalNorthstarPath)) {
+                    Log-Message "Northstar path does not exist: $finalNorthstarPath"
+                    try {
+                        New-Item -ItemType Directory -Path $finalNorthstarPath -Force | Out-Null
+                        if (Test-Path $finalNorthstarPath) {
+                            Log-Message "SUCCESS: Created Northstar path: $finalNorthstarPath"
+                        } else {
+                            Log-Message "WARNING: Failed to create Northstar path: $finalNorthstarPath"
+                        }
+                    } catch {
+                        Log-Message "WARNING: Could not create Northstar path - $($_.Exception.Message)"
+                    }
+                } else {
+                    Log-Message "Northstar path already exists: $finalNorthstarPath"
+                }
+                
+            } catch {
+                Log-Message "WARNING: Could not process info.json file - $($_.Exception.Message)"
+                Log-Message "Continuing with service setup despite info.json issues..."
+            }
+        } else {
+            Log-Message "WARNING: info.json file not found at: $infoJsonPath"
+            Log-Message "Path verification skipped - service will use default paths"
+        }
+
+
+
         # Configure Control Center Service
         Log-Message "Configuring Control Center Service..."
         
@@ -419,7 +516,7 @@ function Setup-ControlCenter {
 
         $createResult = sc.exe create $serviceName DisplayName= "Control Center" binPath= "C:\\Program Files (x86)\\Sibisoft\\ControlCenter\\ControlCenter.exe --service"
 
-        
+
         if ($LASTEXITCODE -ne 0) {
             Log-Message "ERROR: Failed to create Control Center service. Exit code: $LASTEXITCODE"
             Log-Message "SC Output: $createResult"
@@ -1926,7 +2023,7 @@ try {
     }
 
 
-    # CONTROL CENTER SETUP - ADD THIS SECTION
+    # CONTROL CENTER SETUP
     if ($ControlCenterSetup) {
         Log-Message "Starting Control Center setup process..."
         Setup-ControlCenter
