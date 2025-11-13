@@ -236,6 +236,18 @@ export default function ServerMigration() {
 
     // Reset date picker    
     setDestinationDate(new Date());
+
+    // Northstar Desktop
+    setInstallNorthstarDesktop(false);
+    setStopNorthstarDesktop(false);
+    setSourceNorthstarDesktopServiceName('NorthstarDesktopServices');
+
+    // Control Center
+    setStopControlCenter(false);
+    setSourceControlCenterServiceName('ServerMonitor');
+    setSourceControlCenterPath('C:\\Program Files (x86)\\Sibisoft');
+    setControlCenterSetup(false);
+
   };
 
   const handleGenerateSourceScript = async () => {
