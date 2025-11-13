@@ -932,7 +932,7 @@ export default function ServerMigration() {
                         type="date"
                         value={destinationDate.toISOString().split('T')[0]}
                         onChange={(e) => setDestinationDate(new Date(e.target.value))}
-                        min={new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]} // 30 days ago
+                        min={new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]} // 15 days ago
                         max={new Date().toISOString().split('T')[0]} // today
                         style={{
                           position: 'absolute',
