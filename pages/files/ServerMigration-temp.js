@@ -47,6 +47,8 @@ export default function ServerMigration() {
   const [stopMySQL, setStopMySQL] = useState(false);
   const [sourceTomcatServiceName, setSourceTomcatServiceName] = useState('Tomcat9');
   const [sourceMySQLServiceName, setSourceMySQLServiceName] = useState('MySQL8');
+  const [stopNorthstarDesktop, setStopNorthstarDesktop] = useState(false);
+  const [sourceNorthstarDesktopServiceName, setSourceNorthstarDesktopServiceName] = useState('NorthstarDesktopServices');
 
   const [enablePerformanceOptions, setEnablePerformanceOptions] = useState(false);
   const [performanceOptions, setPerformanceOptions] = useState([
@@ -65,7 +67,16 @@ export default function ServerMigration() {
   const [updateInternalIP, setUpdateInternalIP] = useState(false);
   const [internalIP, setInternalIP] = useState('');
   const [updateTomcatPath, setUpdateTomcatPath] = useState(false);
+  const [destinationDate, setDestinationDate] = useState(new Date());
+  const [installNorthstarDesktop, setInstallNorthstarDesktop] = useState(false);
 
+  //Control Center Part
+  const [stopControlCenter, setStopControlCenter] = useState(false);
+  const [sourceControlCenterServiceName, setSourceControlCenterServiceName] = useState('ServerMonitor');
+  const [sourceControlCenterPath, setSourceControlCenterPath] = useState('C:\\Program Files (x86)\\Sibisoft');
+  
+  const [controlCenterSetup, setControlCenterSetup] = useState(false);
+  
   const driveLetters = ['C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
   useEffect(() => {
@@ -145,37 +156,64 @@ export default function ServerMigration() {
     }
   };
 
-
   // Clear all form fields
   const handleClearForm = () => {
+    // Drives & paths
     setSourceDrive('D');
     setDestinationDrive('D');
     setClientName('');
     setTomcatPath('');
     setJdkPath('');
     setMysqlPath('');
+    setUnarchivePath('');
+
+    // Status
     setSourceStatus('');
     setDestinationStatus('');
+
+    // Loading & popup
+    setLoadingSource(false);
+    setLoadingDestination(false);
+    setShowPopup(false);
+    setPopupMessage('');
+
+    //Include / exclude paths
     setExcludePaths([]);
     setNewExcludePath('');
-    setGeneratedPassword('');
-    setGeneratedPassword2('');
-    setPathMode('include');
     setIncludePaths([]);
     setNewIncludePath('');
+    setPathMode('include');
+
+    // Passwords & copy
+    setGeneratedPassword('');
+    setGeneratedPassword2('');
+    setCopied(false);
+    setCopied2(false);
+
+    // Install options
     setInstallMySQL(false);
     setInstallTomcat(false);
     setCopyFonts(false);
     setRamAllocation(false);
+    setMysqlRamAllocation(false);
+    setMysqlRamSize('4096');
+
+    // Services & dependencies
     setMysqlServiceName('MySQL8');
     setTomcatServiceName('Tomcat9');
     setTomcatDependency(false);
     setTomcatInitialMemory('1024');
     setTomcatMaxMemory('2048');
-    setMysqlRamAllocation(false);
-    setMysqlRamSize('4096');
+    setStopDisableServices(false);
+    setStopTomcat(false);
+    setStopMySQL(false);
+    setSourceTomcatServiceName('Tomcat9');
+    setSourceMySQLServiceName('MySQL8');
+
+    // Unarchive options
     setUnarchiveOption('driveRoot');
-    setUnarchivePath('');
+
+    // Performance options
     setEnablePerformanceOptions(false);
     setPerformanceOptions([
       '-Djava.awt.headless=false',
@@ -187,11 +225,29 @@ export default function ServerMigration() {
       '-Xverify:none'
     ]);
     setNewPerformanceOption('');
-    setStopDisableServices(false);
-    setStopTomcat(false);
-    setStopMySQL(false);
-    setSourceTomcatServiceName('Tomcat9');
-    setSourceMySQLServiceName('MySQL8');
+
+    // Environment / Firewall / IP
+    setSetEnvironmentVariables(false);
+    setAddFirewallRule(false);
+    setFirewallPorts('');
+    setUpdateInternalIP(false);
+    setInternalIP('');
+    setUpdateTomcatPath(false);
+
+    // Reset date picker    
+    setDestinationDate(new Date());
+
+    // Northstar Desktop
+    setInstallNorthstarDesktop(false);
+    setStopNorthstarDesktop(false);
+    setSourceNorthstarDesktopServiceName('NorthstarDesktopServices');
+
+    // Control Center
+    setStopControlCenter(false);
+    setSourceControlCenterServiceName('ServerMonitor');
+    setSourceControlCenterPath('C:\\Program Files (x86)\\Sibisoft');
+    setControlCenterSetup(false);
+
   };
 
   const handleGenerateSourceScript = async () => {
@@ -222,8 +278,13 @@ export default function ServerMigration() {
           stopDisableServices,
           stopTomcat,
           stopMySQL,
+          stopNorthstarDesktop,
+          stopControlCenter,
           sourceTomcatServiceName,
-          sourceMySQLServiceName
+          sourceMySQLServiceName,
+          sourceNorthstarDesktopServiceName,
+          sourceControlCenterServiceName,
+          sourceControlCenterPath,
         }),
       });
 
@@ -298,11 +359,13 @@ export default function ServerMigration() {
         body: JSON.stringify({ 
           drive: destinationDrive, 
           clientName: sanitizedClientName,
+          destinationDate: destinationDate, 
           tomcatPath,
           jdkPath,
           mysqlPath,
           installMySQL,
           installTomcat,
+          installNorthstarDesktop,
           copyFonts,
           ramAllocation,
           mysqlServiceName,
@@ -321,7 +384,8 @@ export default function ServerMigration() {
           firewallPorts,
           updateInternalIP,
           internalIP,
-          updateTomcatPath
+          updateTomcatPath,
+          controlCenterSetup
         }),
       });
 
@@ -657,6 +721,7 @@ export default function ServerMigration() {
                           </div>
                         )}
                       </div>
+
                       <div className={styles.optionInput}>
                         <label className={styles.optionLabel}>
                           <input
@@ -681,6 +746,72 @@ export default function ServerMigration() {
                           </div>
                         )}
                       </div>
+
+                      <div className={styles.optionInput}>
+                        <label className={styles.optionLabel}>
+                          <input
+                            type="checkbox"
+                            checked={stopNorthstarDesktop}
+                            onChange={(e) => setStopNorthstarDesktop(e.target.checked)}
+                            className={styles.optionCheckbox}
+                          />
+                          Northstar Desktop Service
+                        </label>
+                        {stopNorthstarDesktop && (
+                          <div className={styles.optionInput}>
+                            <label>Northstar Desktop Service Name:</label>
+                            <input
+                              type="text"
+                              value={sourceNorthstarDesktopServiceName}
+                              onChange={(e) => setSourceNorthstarDesktopServiceName(e.target.value)}
+                              className={styles.styledselecttempmargin}
+                              style={{ width: '93%', padding: '7px', margin: '10px 0' }}
+                              placeholder="NorthstarDesktopServices"
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Control Center Service */}
+                      <div className={styles.optionInput}>
+                        <label className={styles.optionLabel}>
+                          <input
+                            type="checkbox"
+                            checked={stopControlCenter}
+                            onChange={(e) => setStopControlCenter(e.target.checked)}
+                            className={styles.optionCheckbox}
+                          />
+                          Control Center Service
+                        </label>
+                        {stopControlCenter && (
+                          <>
+                            <div className={styles.optionInput}>
+                              <label>Control Center Service Name:</label>
+                              <input
+                                type="text"
+                                value={sourceControlCenterServiceName}
+                                onChange={(e) => setSourceControlCenterServiceName(e.target.value)}
+                                className={styles.styledselecttempmargin}
+                                style={{ width: '93%', padding: '7px', margin: '10px 0' }}
+                                placeholder="ServerMonitor"
+                              />
+                            </div>
+                            <div className={styles.optionInput}>
+                              <label>Control Center Path:</label>
+                              <input
+                                type="text"
+                                value={sourceControlCenterPath}
+                                onChange={(e) => setSourceControlCenterPath(e.target.value)}
+                                className={styles.styledselecttempmargin}
+                                style={{ width: '93%', padding: '7px', margin: '10px 0' }}
+                                placeholder="C:\Program Files (x86)\Sibisoft"
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+
                     </>
                 
                   )}
@@ -770,21 +901,67 @@ export default function ServerMigration() {
                 <div className={styles.licenseDescription}>
                   <label>
                     Client Name:
-                    <input
-                      type="text"
-                      placeholder="Must match source client name"
-                      value={clientName}
-                      onChange={(e) => setClientName(e.target.value)}
-                      className={styles.styledselecttempmargin}
-                      style={{ width: '98%', padding: '7px', margin: '10px 0' }}
-                      required
-                    />
+                    <div style={{ position: 'relative', width: '100%' }}>
+                      <input
+                        type="text"
+                        placeholder="Must match source client name"
+                        value={clientName}
+                        onChange={(e) => setClientName(e.target.value)}
+                        className={styles.styledselecttempmargin}
+                        style={{ width: '98%', padding: '7px', margin: '10px 0' }}
+                        required
+                      />
+
+                      {/* Date + Calendar Icon container */}
+                      <div
+                        className={styles.datePickerButton}
+                        onClick={() => document.getElementById('destinationDatePicker').showPicker()}
+                      >
+                        {/* Selected Date (shown beside the icon) */}
+                        <span style={{ fontSize: '0.90rem', color: '#333' }}>
+                          {destinationDate ? destinationDate.toLocaleDateString() : ''}
+                        </span>
+
+                        {/* Calendar Icon */}
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                        >
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                          <line x1="16" y1="2" x2="16" y2="6"></line>
+                          <line x1="8" y1="2" x2="8" y2="6"></line>
+                          <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                      </div>
+
+                      {/* Hidden Date Input */}
+                      <input
+                        id="destinationDatePicker"
+                        type="date"
+                        value={destinationDate.toISOString().split('T')[0]}
+                        onChange={(e) => setDestinationDate(new Date(e.target.value))}
+                        min={new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]} // 15 days ago
+                        max={new Date().toISOString().split('T')[0]} // today
+                        style={{
+                          position: 'absolute',
+                          right: 0, // moves picker to right side
+                          opacity: 0,
+                          pointerEvents: 'none',
+                          width: '0',
+                          height: '0',
+                        }}
+                      />
+                    </div>
                   </label>
+
                   <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '1px' }}>
                     <strong>Note:</strong> Spaces will be automatically removed from the client name.
                   </p>
-                  
-                </div>
+                  </div>
 
                 <div className={styles.licenseDescription}>
                   <label>
@@ -855,7 +1032,7 @@ export default function ServerMigration() {
                     onChange={(e) => setInstallMySQL(e.target.checked)} 
                     className={styles.optionCheckbox}
                   />
-                  Install MySQL Service
+                  MySQL Service
                 </label>
                 {installMySQL && (
                   <>
@@ -925,7 +1102,7 @@ export default function ServerMigration() {
                   onChange={(e) => setInstallTomcat(e.target.checked)} 
                   className={styles.optionCheckbox}
                 />
-                Install Tomcat Service
+                Tomcat Service
               </label>
               {installTomcat && (
                 <>
@@ -1152,10 +1329,31 @@ export default function ServerMigration() {
                     )}
                   </div>
 
+                  {/* Northstar Desktop Service Installation */}
+                  <div className={styles.optionInput}>
+                    <label className={styles.optionLabel}>
+                      <input 
+                        type="checkbox" 
+                        checked={installNorthstarDesktop} 
+                        onChange={(e) => setInstallNorthstarDesktop(e.target.checked)} 
+                        className={styles.optionCheckbox}
+                      />
+                      Install Northstar Desktop Service
+                    </label>
+                    {installNorthstarDesktop && (
+                      <div className={styles.optionInput}>
+                        <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
+                          The script will automatically find and install the latest Northstar Desktop Service from the NS_Devices folder.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
                 </>
               )}
             </div>
 
+            {/* Firewall Rule Section */}
             <div className={styles.optionGroup}>
             <label className={styles.optionLabel}>
               <input 
@@ -1183,12 +1381,29 @@ export default function ServerMigration() {
             </div>
           )}
         </div>
+
+        {/* Control Center Setup Section */}
+        <div className={styles.optionGroup}>
+          <label className={styles.optionLabel}>
+            <input 
+              type="checkbox" 
+              checked={controlCenterSetup} 
+              onChange={(e) => setControlCenterSetup(e.target.checked)} 
+              className={styles.optionCheckbox}
+            />
+            Control Center Setup
+          </label>
+          {controlCenterSetup && (
+            <div className={styles.optionInput}>
+              <p style={{ fontSize: '0.9rem', color: '#666', marginTop: '5px' }}>
+                The Control Center archive will be downloaded, unarchived to "C:\Program Files (x86)" and the service will be configured automatically.
+              </p>
+            </div>
+          )}
+        </div>
             
 
-
-              
-
-                
+  
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
                   <button
                     onClick={handleGenerateDestinationScript}
