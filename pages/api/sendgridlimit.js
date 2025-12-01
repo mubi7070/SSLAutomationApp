@@ -1,10 +1,16 @@
 import axios from 'axios';
-const USERS = JSON.parse(process.env.APP_USERS || '[]');
-
+import { getConfig } from '../lib/config';
+import pool from '../lib/db';
 export default async function handler(req, res) {
-  const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
 
+  try{
 
+    // Get config from database
+    const config = await getConfig();
+    const SENDGRID_API_KEY = config.SENDGRID_API_KEY;
+    const BASE_URL = config.BASE_URL;
+
+  
   // Handle Suppressions Endpoint First
   if (req.url.includes('/api/sendgridlimit/suppressions')) {
     try {
@@ -56,9 +62,6 @@ export default async function handler(req, res) {
   }
 
 
-
-
-  try {
     if (req.method === 'GET') {
         if (req.query.username) {
           // First get subuser details
@@ -99,9 +102,7 @@ export default async function handler(req, res) {
               overdrawn: creditsResponse.data.overage
             }
           });
-        }
-        
-        else {
+        } else {
         // New paginated implementation for all subusers
         let allSubusers = [];
         let limit = 500; // Max allowed by SendGrid API
@@ -138,14 +139,19 @@ export default async function handler(req, res) {
   
       } else if (req.method === 'POST') {
 
-      const user = USERS.find(u => 
-          u.username === req.body.usernameInput && 
-          u.password === req.body.userPassword
-      );
+        const connection = await pool.getConnection();
 
-      if (!user) {
+        try {
+        const [users] = await connection.execute(
+          'SELECT username, password, name FROM app_users WHERE username = ? AND password = ? AND is_active = TRUE',
+          [req.body.usernameInput, req.body.userPassword]
+        );
+
+      if (users.length === 0) {
           return res.status(401).json({ error: 'Invalid credentials' });
       }
+
+      const user = users[0];
 
       if (!req.body.username || !req.body.newLimit) {
         return res.status(400).json({ error: 'Missing required fields' });
@@ -164,7 +170,7 @@ export default async function handler(req, res) {
       );
 
       try {
-          await axios.post(`${process.env.BASE_URL}/api/sendgridsheet`, {
+           await axios.post(`${BASE_URL}/api/sendgridsheet`, {
               subAccount: req.body.username,
               credits: req.body.newLimit,
               date: new Date().toLocaleDateString("en-US"),
@@ -173,7 +179,7 @@ export default async function handler(req, res) {
               fdTicket: req.body.fdTicket
           });
       } catch (sheetError) {
-          console.error('Google Sheet logging failed:', sheetError);
+        console.error('Google Sheet logging failed:', sheetError);
       }
 
       // Fetch updated credit information
@@ -197,6 +203,10 @@ export default async function handler(req, res) {
           overdrawn: creditsResponse.data.overage
         }
       });
+
+      } finally {
+        connection.release();
+      }
 
     } else {
       res.setHeader('Allow', ['GET', 'POST']);

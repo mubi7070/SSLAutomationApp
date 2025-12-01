@@ -9,25 +9,35 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
 
-  const response = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
 
-    const result = await response.json();
+      const result = await response.json();
 
-    if (result.success) {
-      localStorage.setItem('authenticated', 'true');
-      localStorage.setItem('username', result.user.username);
-      localStorage.setItem('name', result.user.name);
-      router.push('/home');
-    } else {
-      setError(result.message || 'Login failed');
+      if (result.success) {
+        localStorage.setItem('authenticated', 'true');
+        localStorage.setItem('username', result.user.username);
+        localStorage.setItem('name', result.user.name);
+        router.push('/home');
+      } else {
+        setError(result.message || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('Network error. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -57,6 +67,7 @@ export default function Login() {
                   className={styles.styledinput}
                   required
                   style={{ width: '100%' }}
+                  disabled={isLoading}
                 />
               </div>
 
@@ -70,17 +81,19 @@ export default function Login() {
                   className={styles.styledinput}
                   required
                   style={{ width: '100%' }}
+                  disabled={isLoading}
                 />
               </div>
 
-              {error && <div style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
+              {error && <div style={{ color: 'red', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
 
               <button
                 type="submit"
                 className={styles.btndescription}
                 style={{ width: '100%', fontSize: '1.1rem' }}
+                disabled={isLoading}
               >
-                Login
+                {isLoading ? 'Logging in...' : 'Login'}
               </button>
             </form>
           </div>
@@ -97,10 +110,9 @@ export default function Login() {
             Powered by{' '} Northstar Technologies
             <img src="/northstar.jpg" alt="Northstar" className={styles.logonew} />
           </a>
-
         </div>
         <div className={styles.footerRow}>
-        <a
+          <a
             href="https://www.globalnorthstar.com/"
             target="_blank"
             rel="noopener noreferrer"

@@ -2,14 +2,28 @@
 const AWS = require('aws-sdk');
 const fs = require('fs');
 const path = require('path');
+const { getConfig } = require('../lib/config');
 
 // Configure AWS with your credentials and region.
 // It’s best practice to set these via environment variables.
-AWS.config.update({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,           // Your AWS Access Key
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,       // Your AWS Secret Key
-  region: process.env.AWS_REGION,                           // e.g. 'us-east-1'
-});
+
+// AWS.config.update({
+//   accessKeyId: process.env.AWS_ACCESS_KEY_ID,           // Your AWS Access Key
+//   secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,       // Your AWS Secret Key
+//   region: process.env.AWS_REGION,                           // e.g. 'us-east-1'
+// });
+
+// Configure AWS with database credentials
+let awsConfig;
+async function initializeAWS() {
+  const config = await getConfig();
+  awsConfig = {
+    accessKeyId: config.AWS_ACCESS_KEY_ID,
+    secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
+    region: config.AWS_REGION,
+  };
+  AWS.config.update(awsConfig);
+}
 
 // Create an S3 client instance
 const s3 = new AWS.S3();
@@ -22,6 +36,11 @@ const s3 = new AWS.S3();
  */
 const uploadFileToS3 = async (filePath, bucketName = 'sslautomationtoolbackup') => {
   try {
+    // Initialize AWS config if not already done
+    if (!awsConfig) {
+      await initializeAWS();
+    }
+    
     // Read the file content
     const fileContent = fs.readFileSync(filePath);
     // Extract the file name from the path – you may want to adjust the key if needed.

@@ -1,6 +1,7 @@
 import { google } from "googleapis";
 import { promises as fs } from "fs";
 import path from "path";
+import { getConfig } from '../lib/config';
 
 export default async function handler(req, res) {
     if (req.method !== "POST") {
@@ -8,6 +9,9 @@ export default async function handler(req, res) {
     }
 
     try {
+        // Get config from database
+        const config = await getConfig();
+
         const credentialsPath = path.join(process.cwd(), "google-service-account.json");
         const credentials = JSON.parse(await fs.readFile(credentialsPath, "utf-8"));
 
@@ -20,7 +24,7 @@ export default async function handler(req, res) {
         const { subAccount, credits, date, personName, username, fdTicket } = req.body;
 
         await sheets.spreadsheets.values.append({
-            spreadsheetId: process.env.GOOGLE_LICENSE_SHEET_ID,
+            spreadsheetId: config.GOOGLE_LICENSE_SHEET_ID,
             range: "Sendgrid!A:F",
             valueInputOption: "RAW",
             requestBody: {

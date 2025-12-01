@@ -1,6 +1,7 @@
 import { google } from "googleapis";
 import { promises as fs } from "fs";
 import path from "path";
+import { getConfig } from '../lib/config';
 
 const APPS_SCRIPT_ID = "AKfycbxurmnd_d2X3Jpq0Zw6gCsh83L3-fJd8tJzxbkxjEkg3EfGx61KjvlNcM7jRUaHAn2Tjg";
 
@@ -18,6 +19,9 @@ const getMonthsHeader = (months) => {
 
 export const updateLicenseSheet = async (data, months) => {
   try {
+    // Get config from database
+    const config = await getConfig();
+
     const auth = new google.auth.GoogleAuth({
       keyFile: path.join(process.cwd(), "google-service-account.json"),
       scopes: [
@@ -30,7 +34,7 @@ export const updateLicenseSheet = async (data, months) => {
     const sheets = google.sheets({ version: "v4", auth });
     const script = google.script({ version: 'v1', auth });
 
-    const spreadsheetId = process.env.GOOGLE_LICENSE_SHEET_ID;
+    const spreadsheetId = config.GOOGLE_LICENSE_SHEET_ID;
 
     // Get current data length
     const { data: sheetData } = await sheets.spreadsheets.values.get({

@@ -2,22 +2,25 @@ import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getConfig } from '../lib/config';
 
 
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
-});
+const deleteExistingFile = (filePath) => {
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+    console.log(`Deleted existing file: ${path.basename(filePath)}`);
+  }
+};
 
 async function uploadToS3(filePath) {
+  // Get config from database
+  const config = await getConfig();
+
   const fileContent = fs.readFileSync(filePath);
   const fileName = path.basename(filePath);
 
   const params = {
-    Bucket: process.env.S3_BUCKET_NAME,
+    Bucket: config.S3_BUCKET_NAME,
     Key: `backup/${fileName}`,
     Body: fileContent,
   };
@@ -31,12 +34,18 @@ async function uploadToS3(filePath) {
   }
 }
 
-const deleteExistingFile = (filePath) => {
-  if (fs.existsSync(filePath)) {
-    fs.unlinkSync(filePath);
-    console.log(`Deleted existing file: ${path.basename(filePath)}`);
-  }
-};
+// Initialize S3Client with database config
+let s3Client;
+async function initializeS3() {
+  const config = await getConfig();
+  s3Client = new S3Client({
+    region: config.AWS_REGION,
+    credentials: {
+      accessKeyId: config.AWS_ACCESS_KEY_ID,
+      secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
+    },
+  });
+}
 
 const createP12 = ({ certFileName, keyFileName, bundleFileName, p12FileName, password }) =>
   new Promise((resolve, reject) => {
@@ -92,6 +101,10 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'All fields are required' });
         }
         try {
+
+            // Initialize S3 client
+            await initializeS3();
+
             const results = await createP12({ certFileName, keyFileName, bundleFileName, p12FileName, password });
             console.log(`The Results: ${results.message}`);
             

@@ -1,5 +1,5 @@
 import client from '@sendgrid/client';
-client.setApiKey(process.env.SENDGRID_API_KEY);
+import { getConfig } from '../lib/config';
 
 export default async function handler(req, res) {
   const { username } = req.query;
@@ -9,6 +9,10 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Get config from database
+    const config = await getConfig();
+    client.setApiKey(config.SENDGRID_API_KEY);
+    
     // Properly encode the query parameter
     const query = `from_email="${username}"`;
     const encodedQuery = encodeURIComponent(query);

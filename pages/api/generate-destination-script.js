@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { exec } from 'child_process';
+import { getConfig } from '../lib/config';
 
 // Generate strong 12-character password (alphanumeric + special characters)
 function generatePassword(length = 12) {
@@ -71,6 +72,13 @@ export default async function handler(req, res) {
   if (!drive || !clientName) {
     return res.status(400).json({ error: 'All fields are required' });
   }
+
+    // Get config from database
+    const config = await getConfig();
+    const AWS_ACCESS_KEY_ID = config.AWS_ACCESS_KEY_ID;
+    const AWS_SECRET_ACCESS_KEY = config.AWS_SECRET_ACCESS_KEY;
+    const AWS_REGION = config.AWS_REGION;
+    const S3_MIGRATION_BUCKET_NAME = config.S3_MIGRATION_BUCKET_NAME;
 
     // Clean and validate firewall ports
     let cleanFirewallPorts = '';
@@ -185,13 +193,13 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 }
 
 # AWS Configuration
-$env:AWS_ACCESS_KEY_ID = "${process.env.AWS_ACCESS_KEY_ID}"
-$env:AWS_SECRET_ACCESS_KEY = "${process.env.AWS_SECRET_ACCESS_KEY}"
-$env:AWS_REGION = "${process.env.AWS_REGION}"
+$env:AWS_ACCESS_KEY_ID = "${AWS_ACCESS_KEY_ID}"
+$env:AWS_SECRET_ACCESS_KEY = "${AWS_SECRET_ACCESS_KEY}"
+$env:AWS_REGION = "${AWS_REGION}"
 
 # Parameters
 $DateString = "${formattedDate}"
-$BucketName = "${process.env.S3_MIGRATION_BUCKET_NAME}"
+$BucketName = "${S3_MIGRATION_BUCKET_NAME}"
 $FolderName = "${clientName} - $DateString"
 $ArchiveName = "${clientName}-$DateString.rar"
 $MigrationFolder = "${drive}:\\${clientName}-ServerMigration-$DateString"
@@ -263,7 +271,7 @@ function Setup-ControlCenter {
     const path = require("path");
 
     async function downloadControlCenter() {
-      const bucketName = "${process.env.S3_MIGRATION_BUCKET_NAME}";
+      const bucketName = "${S3_MIGRATION_BUCKET_NAME}";
       const folderName = "${s3Folder}";
       const fileName = "${clientName}-ControlCenter-${formattedDate}.rar";
       const localPath = "$($ControlCenterLocalPath.Replace('\\', '\\\\'))";
@@ -1398,7 +1406,7 @@ try {
     }
 
     async function downloadAllFiles() {
-      const bucketName = "${process.env.S3_MIGRATION_BUCKET_NAME}";
+      const bucketName = "${S3_MIGRATION_BUCKET_NAME}";
       const folderName = "${s3Folder}";
       const archiveBaseName = "${clientName}-${formattedDate}";
       const migrationFolder = "$($MigrationFolder.Replace('\\', '\\\\'))";

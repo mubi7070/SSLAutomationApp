@@ -1,8 +1,12 @@
 import axios from 'axios';
+import { getConfig } from '../lib/config';
 
 export default async function handler(req, res) {
   const { username } = req.query;
-  const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+
+  // Get config from database
+  const config = await getConfig();
+  const SENDGRID_API_KEY = config.SENDGRID_API_KEY;
 
   try {
     // Determine region

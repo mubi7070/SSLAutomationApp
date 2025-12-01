@@ -2,15 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-
-
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
-});
+import { getConfig } from '../lib/config';
 
 const deleteExistingFile = (filePath) => {
   if (fs.existsSync(filePath)) {
@@ -20,11 +12,14 @@ const deleteExistingFile = (filePath) => {
 };
 
 async function uploadToS3(filePath) {
+  // Get config from database
+  const config = await getConfig();
+
   const fileContent = fs.readFileSync(filePath);
   const fileName = path.basename(filePath);
 
   const params = {
-    Bucket: process.env.S3_BUCKET_NAME,
+    Bucket: config.S3_BUCKET_NAME,
     Key: `backup/${fileName}`,
     Body: fileContent,
   };
@@ -36,6 +31,19 @@ async function uploadToS3(filePath) {
     console.error("Error uploading to S3:", err);
     throw err;
   }
+}
+
+// Initialize S3Client with database config
+let s3Client;
+async function initializeS3() {
+  const config = await getConfig();
+  s3Client = new S3Client({
+    region: config.AWS_REGION,
+    credentials: {
+      accessKeyId: config.AWS_ACCESS_KEY_ID,
+      secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
+    },
+  });
 }
 
 const executeCommand = (command, args, inputs = []) =>
@@ -151,6 +159,10 @@ export default async function handler(req, res) {
     }
 
     try {
+
+      // Initialize S3 client
+      await initializeS3();
+
       const results = await convertKeystoreToPem({ keystoreName, keystorePassword });
 
       //console.log(`Here See: ${path.basename(result.filePath)}`);

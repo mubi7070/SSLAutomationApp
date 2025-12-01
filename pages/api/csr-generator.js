@@ -3,7 +3,7 @@ import path from 'path';
 import { spawn } from 'child_process';
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import DownloadFiles from "../components/DownloadFiles";
-
+import { getConfig } from '../lib/config';
 
 const ensureFilesDirectory = () => {
   const dirPath = path.join(process.cwd(), 'Files');
@@ -13,20 +13,26 @@ const ensureFilesDirectory = () => {
   return dirPath;
 };
 
-const s3Client = new S3Client({
-  region: process.env.AWS_REGION,
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
-});
+let s3Client;
+async function initializeS3() {
+  const config = await getConfig();
+  s3Client = new S3Client({
+    region: config.AWS_REGION,
+    credentials: {
+      accessKeyId: config.AWS_ACCESS_KEY_ID,
+      secretAccessKey: config.AWS_SECRET_ACCESS_KEY,
+    },
+  });
+}
 
 async function uploadToS3(filePath) {
+  const config = await getConfig();
+
   const fileContent = fs.readFileSync(filePath);
   const fileName = path.basename(filePath);
 
   const params = {
-    Bucket: process.env.S3_BUCKET_NAME,
+    Bucket: config.S3_BUCKET_NAME,
     Key: `backup/${fileName}`,
     Body: fileContent,
   };

@@ -1,5 +1,6 @@
 import mysql from 'mysql2/promise';
 import { updateLicenseSheet } from './licenseSheetService';
+import { getConfig } from '../lib/config';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -7,10 +8,12 @@ export default async function handler(req, res) {
   }
 
   const { months } = req.body;
-  let connection;
+  let licenseConnection;
+  let appConnection;
 
   try {
-    connection = await mysql.createConnection({
+    // First, connect to the main app database to get license server details
+    appConnection = await mysql.createConnection({
       host: process.env.DB_HOST,
       user: process.env.DB_USER,
       password: process.env.DB_PASSWORD,
@@ -18,12 +21,36 @@ export default async function handler(req, res) {
       port: process.env.DB_PORT || 3306,
     });
 
+    // Get license server connection details from database
+    const [licenseConfig] = await appConnection.execute(
+      'SELECT host, user, password, database_name, port FROM license_manager WHERE connection_name = ? LIMIT 1',
+      ['license_server']
+    );
+
+    if (licenseConfig.length === 0) {
+      return res.status(500).json({ 
+        success: false, 
+        error: 'License server configuration not found in database' 
+      });
+    }
+
+    const licenseServer = licenseConfig[0];
+
+    // Now connect to the license server using the details from database
+    licenseConnection = await mysql.createConnection({
+      host: licenseServer.host,
+      user: licenseServer.user,
+      password: licenseServer.password,
+      database: licenseServer.database_name,
+      port: licenseServer.port || 3306,
+    });
+
     // Generate dynamic date ranges
     const dateConditions = Array.from({ length: months }, (_, i) => 
       `DATE_FORMAT(DATE_ADD(CURDATE(), INTERVAL ${i + 1} MONTH), '%Y-%m-01')`
     ).join(',');
 
-    const [rows] = await connection.execute(`
+    const [rows] = await licenseConnection.execute(`
       SELECT 
         client_name, 
         source_key, 
@@ -57,7 +84,10 @@ export default async function handler(req, res) {
       success: false, 
       error: error.message || 'License update failed'
     });
+    
   } finally {
-    if (connection) await connection.end();
+    // Close both connections
+    if (licenseConnection) await licenseConnection.end();
+    if (appConnection) await appConnection.end();
   }
 }

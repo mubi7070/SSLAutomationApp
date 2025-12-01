@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getConfig } from '../lib/config';
 
 const ENDPOINT_MAP = {
   bounces: 'bounces',
@@ -9,7 +10,10 @@ const ENDPOINT_MAP = {
 
 export default async function handler(req, res) {
   const { type, username, emails } = req.body;
-  const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
+
+  // Get config from database
+  const config = await getConfig();
+  const SENDGRID_API_KEY = config.SENDGRID_API_KEY;
 
   if (!type || !username || !emails || !Array.isArray(emails)) {
     return res.status(400).json({ error: 'Missing required parameters' });

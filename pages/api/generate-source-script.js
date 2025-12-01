@@ -7,6 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { exec } from 'child_process';
+import { getConfig } from '../lib/config';
 
 // Generate strong 12-character password (alphanumeric + special characters)
 function generatePassword(length = 12) {
@@ -134,6 +135,13 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Drive and client name are required' });
     }
 
+    // Get config from database
+    const config = await getConfig();
+    const AWS_ACCESS_KEY_ID = config.AWS_ACCESS_KEY_ID;
+    const AWS_SECRET_ACCESS_KEY = config.AWS_SECRET_ACCESS_KEY;
+    const AWS_REGION = config.AWS_REGION;
+    const S3_MIGRATION_BUCKET_NAME = config.S3_MIGRATION_BUCKET_NAME;
+
     console.log(`
     drive: ${drive},
     clientName: ${clientName},
@@ -165,15 +173,15 @@ export default async function handler(req, res) {
     // Create S3 folder from the backend
     try {
         const s3Client = new S3Client({
-          region: process.env.AWS_REGION,
+          region: AWS_REGION,
           credentials: {
-            accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-            secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+            accessKeyId: AWS_ACCESS_KEY_ID,
+            secretAccessKey: AWS_SECRET_ACCESS_KEY
           }
         });
         
         const folderCommand = new PutObjectCommand({
-            Bucket: process.env.S3_MIGRATION_BUCKET_NAME,
+            Bucket: S3_MIGRATION_BUCKET_NAME,
             Key: `${s3Folder}/`,  // Trailing slash makes it a folder
         });
         
@@ -252,9 +260,9 @@ param(
 )
 
 # AWS Configuration
-$env:AWS_ACCESS_KEY_ID = "${process.env.AWS_ACCESS_KEY_ID}"
-$env:AWS_SECRET_ACCESS_KEY = "${process.env.AWS_SECRET_ACCESS_KEY}"
-$env:AWS_REGION = "${process.env.AWS_REGION}"
+$env:AWS_ACCESS_KEY_ID = "${AWS_ACCESS_KEY_ID}"
+$env:AWS_SECRET_ACCESS_KEY = "${AWS_SECRET_ACCESS_KEY}"
+$env:AWS_REGION = "${AWS_REGION}"
 
 # Parameters
 $WinRARPath = "C:\\Program Files\\WinRAR\\WinRAR.exe"
@@ -264,7 +272,7 @@ $ArchiveName = "${clientName}-${formattedDate}.rar"
 $ArchivePath = "$MigrationFolder\\$ArchiveName"
 $LogPath = "$MigrationFolder\\${clientName}-${formattedDate}.log"
 $controlCenterArchiveName = "${clientName}-ControlCenter-${formattedDate}.rar"
-$BucketName = "${process.env.S3_MIGRATION_BUCKET_NAME}"
+$BucketName = "${S3_MIGRATION_BUCKET_NAME}"
 $FolderName = "${s3Folder}"
 
 # FUNCTIONS
@@ -744,7 +752,7 @@ try {
         const parallelUploads3 = new Upload({
           client: s3Client,
           params: {
-            Bucket: "${process.env.S3_MIGRATION_BUCKET_NAME}",
+            Bucket: "${S3_MIGRATION_BUCKET_NAME}",
             Key: key,
             Body: fs.createReadStream(filePath)
           },
