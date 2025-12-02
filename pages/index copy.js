@@ -3,7 +3,6 @@ import { useRouter } from 'next/router';
 import styles from '../styles/Home.module.css';
 import Link from 'next/link';
 import Head from 'next/head';
-import { FiLock, FiUser, FiEye, FiEyeOff, FiShield } from 'react-icons/fi';
 
 export default function Login() {
   const router = useRouter();
@@ -11,8 +10,6 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [isAdminLogin, setIsAdminLogin] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -23,7 +20,7 @@ export default function Login() {
       const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password, isAdmin: isAdminLogin }),
+        body: JSON.stringify({ username, password }),
       });
 
       const result = await response.json();
@@ -32,15 +29,7 @@ export default function Login() {
         localStorage.setItem('authenticated', 'true');
         localStorage.setItem('username', result.user.username);
         localStorage.setItem('name', result.user.name);
-        localStorage.setItem('is_admin', result.user.is_admin);
-
-        if (isAdminLogin && result.user.is_admin) {
-          router.push('/admin');
-        } else if (isAdminLogin && !result.user.is_admin) {
-          setError('This user does not have admin privileges');
-        } else {
-          router.push('/home');
-        }
+        router.push('/home');
       } else {
         setError(result.message || 'Login failed');
       }
@@ -69,9 +58,7 @@ export default function Login() {
           <div className={styles.card} style={{ padding: '2rem', maxWidth: '400px' }}>
             <form onSubmit={handleLogin}>
               <div style={{ marginBottom: '1rem' }}>
-                <label htmlFor="username" style={{ display: 'block', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <FiUser /> Username
-                </label>
+                <label htmlFor="username" style={{ display: 'block', marginBottom: '0.5rem' }}>Username</label>
                 <input
                   type="text"
                   id="username"
@@ -79,80 +66,36 @@ export default function Login() {
                   onChange={(e) => setUsername(e.target.value)}
                   className={styles.styledinput}
                   required
-                  style={{ width: '100%', paddingLeft: '40px' }}
+                  style={{ width: '100%' }}
                   disabled={isLoading}
                 />
               </div>
 
-              <div style={{ marginBottom: '1rem' }}>
-              <label htmlFor="password" style={{ display: 'block', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <FiLock /> Password
-              </label>
-              <div style={{ position: 'relative' }}>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label htmlFor="password" style={{ display: 'block', marginBottom: '0.5rem' }}>Password</label>
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type="password"
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className={styles.styledinput}
                   required
-                  style={{ width: '100%', paddingLeft: '40px', paddingRight: '40px' }}
+                  style={{ width: '100%' }}
                   disabled={isLoading}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{
-                    position: 'absolute',
-                    right: '10px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: '#64748b'
-                  }}
-                >
-                  {showPassword ? <FiEyeOff /> : <FiEye />}
-                </button>
               </div>
-            </div>
 
-            <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <input
-                type="checkbox"
-                id="adminLogin"
-                checked={isAdminLogin}
-                onChange={(e) => setIsAdminLogin(e.target.checked)}
+              {error && <div style={{ color: 'red', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
+
+              <button
+                type="submit"
+                className={styles.btndescription}
+                style={{ width: '100%', fontSize: '1.1rem' }}
                 disabled={isLoading}
-              />
-              <label htmlFor="adminLogin" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                <FiShield /> Login as Administrator
-              </label>
-            </div>
-
-            {error && (
-              <div style={{
-                color: '#ef4444',
-                backgroundColor: '#fef2f2',
-                padding: '0.75rem',
-                borderRadius: '6px',
-                marginBottom: '1rem',
-                borderLeft: '4px solid #ef4444'
-              }}>
-                {error}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              className={styles.btndescription}
-              style={{ width: '100%', fontSize: '1.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
-              disabled={isLoading}
-            >
-              {isLoading ? 'Logging in...' : (isAdminLogin ? 'Login as Admin' : 'Login')}
-            </button>
-          </form>
+              >
+                {isLoading ? 'Logging in...' : 'Login'}
+              </button>
+            </form>
           </div>
         </div>
       </main>

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { LogOut } from "lucide-react";
 import styles from '/styles/Home.module.css';
+import { FiSettings, FiHome, FiLogOut, FiUser } from 'react-icons/fi';
 
 export default function Header() {
   const router = useRouter();
@@ -13,6 +14,13 @@ export default function Header() {
   const fullText = "Northstar Automation Tool";
   const [isTyping, setIsTyping] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setIsAdmin(localStorage.getItem('is_admin') === 'true');
+    }
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -153,7 +161,20 @@ export default function Header() {
             )}
           </div>
         ))}
+      {isAdmin && (
+        <Link
+          href="/admin"
+          className={`${styles.navLink} ${
+            router.pathname.startsWith('/admin') ? styles.activeNavLink : ''
+          }`}
+        >
+          Admin
+        </Link>
+      )}
+
       </nav>
+
+      
 
 <div className={styles.logoutContainer}>
         <button 

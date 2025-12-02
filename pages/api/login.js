@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  const { username, password } = req.body;
+  const { username, password, isAdmin } = req.body;
 
   if (!username || !password) {
     return res.status(400).json({ success: false, message: 'Username and password are required' });
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
     try {
       // Query user from database
       const [rows] = await connection.execute(
-        'SELECT username, password, name FROM app_users WHERE username = ? AND is_active = TRUE',
+        'SELECT username, password, name, is_admin FROM app_users WHERE username = ? AND is_active = TRUE',
         [username]
       );
 
@@ -45,12 +45,21 @@ export default async function handler(req, res) {
         return res.status(401).json({ success: false, message: 'Invalid username or password' });
       }
 
+      // After successful login, check if admin access is requested
+      if (isAdmin && !user.is_admin) {
+        return res.status(403).json({ 
+          success: false, 
+          message: 'User does not have admin privileges' 
+        });
+      }
+
       // Login successful
       return res.status(200).json({ 
         success: true, 
         user: { 
           username: user.username, 
-          name: user.name 
+          name: user.name,
+          is_admin: Boolean(user.is_admin)
         } 
       });
     } finally {
