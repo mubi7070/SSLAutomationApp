@@ -240,6 +240,36 @@ export default function AdminDashboard() {
         type: 'success' // success, error, warning, info
     });
 
+    //AWS Config Variables
+    const [awsConfig, setAwsConfig] = useState({
+        access_key_id: '',
+        secret_access_key: '',
+        region: 'us-east-2',
+        s3_bucket_name: '',
+        s3_migration_bucket_name: ''
+    });
+    const [awsLoading, setAwsLoading] = useState(false);
+    const [testLoading, setTestLoading] = useState(false);
+    const [testResult, setTestResult] = useState(null);
+    const [showSecretKey, setShowSecretKey] = useState(false);
+    const [awsError, setAwsError] = useState(null);
+    const [awsNotification, setAwsNotification] = useState({
+        show: false,
+        message: '',
+        type: 'success'
+    });
+
+
+useEffect(() => {
+  if (awsNotification.show) {
+    const timer = setTimeout(() => {
+      setAwsNotification({ show: false, message: '', type: 'success' });
+    }, 3000);
+    return () => clearTimeout(timer);
+  }
+}, [awsNotification.show]);
+
+
 useEffect(() => {
   if (notification.show) {
     const timer = setTimeout(() => {
@@ -248,6 +278,19 @@ useEffect(() => {
     return () => clearTimeout(timer);
   }
 }, [notification.show]);
+
+
+// Add this useEffect for auto-dismissing test results
+useEffect(() => {
+  if (testResult) {
+    const timer = setTimeout(() => {
+      setTestResult(null);
+    }, 10000); // Auto-dismiss after 10 seconds
+    
+    return () => clearTimeout(timer);
+  }
+}, [testResult]);
+
 
 useEffect(() => {
   // Check if user is authenticated and admin
@@ -267,6 +310,14 @@ useEffect(() => {
 
 const showNotification = (message, type = 'success') => {
   setNotification({
+    show: true,
+    message,
+    type
+  });
+};
+
+const showAwsNotification = (message, type = 'success') => {
+  setAwsNotification({
     show: true,
     message,
     type
@@ -313,9 +364,147 @@ const showNotification = (message, type = 'success') => {
     }
 };
 
-  const handleTabChange = (tab) => {
-    setActiveTab(tab);
-  };
+const handleTabChange = (tab) => {
+  setActiveTab(tab);
+  if (tab === 'aws') {
+    fetchAwsConfig();
+  }
+};
+
+// AWS Configuration Functions
+const fetchAwsConfig = async () => {
+  try {
+    setAwsLoading(true);
+    const username = localStorage.getItem('username');
+    const response = await fetch('/api/admin/config/aws', {
+      headers: {
+        'Authorization': username
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch AWS configuration');
+    }
+
+    const data = await response.json();
+    
+    if (data.success && data.config) {
+      setAwsConfig(data.config);
+    } else {
+      // Set default values if no config exists
+      setAwsConfig({
+        access_key_id: '',
+        secret_access_key: '',
+        region: 'us-east-2',
+        s3_bucket_name: '',
+        s3_migration_bucket_name: ''
+      });
+    }
+  } catch (error) {
+    console.error('Error fetching AWS config:', error);
+    showAwsNotification('Failed to load AWS configuration', 'error');
+    setAwsError(error.message);
+  } finally {
+    setAwsLoading(false);
+  }
+};
+
+const saveAwsConfig = async (e) => {
+  e.preventDefault();
+  try {
+    setAwsLoading(true);
+    const username = localStorage.getItem('username');
+    
+    const response = await fetch('/api/admin/config/aws', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': username
+      },
+      body: JSON.stringify(awsConfig)
+    });
+
+    const data = await response.json();
+    
+    if (data.success) {
+      showAwsNotification('AWS configuration saved successfully');
+      // Refresh the config
+      fetchAwsConfig();
+    } else {
+      throw new Error(data.error || 'Failed to save configuration');
+    }
+  } catch (error) {
+    console.error('Error saving AWS config:', error);
+    showAwsNotification(error.message, 'error');
+    setAwsError(error.message);
+  } finally {
+    setAwsLoading(false);
+  }
+};
+
+const resetAwsConfig = () => {
+  if (confirm('Are you sure you want to reset all changes?')) {
+    fetchAwsConfig();
+    setTestResult(null);
+    setAwsError(null); // Also clear any error details
+    showAwsNotification('Configuration reset to saved values');
+  }
+};
+
+const testAwsConnection = async () => {
+  try {
+    setTestLoading(true);
+    setTestResult(null);
+    setAwsError(null);
+    
+    const username = localStorage.getItem('username');
+    const response = await fetch('/api/admin/config/aws/test', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': username
+      },
+      body: JSON.stringify(awsConfig)
+    });
+
+    // Check if response is OK and content type is JSON
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error('Non-JSON response:', text);
+      throw new Error(`Server returned non-JSON response: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.success) {
+      setTestResult({
+        success: true,
+        message: data.message || 'Connection test successful!'
+      });
+      showAwsNotification('AWS S3 connection test succeeded');
+    } else {
+      setTestResult({
+        success: false,
+        message: data.error || 'Connection test failed'
+      });
+      showAwsNotification('AWS S3 connection test failed', 'error');
+    }
+  } catch (error) {
+    console.error('Error testing AWS connection:', error);
+    setTestResult({
+      success: false,
+      message: error.message || 'Failed to test connection'
+    });
+    showAwsNotification('Failed to test AWS connection', 'error');
+    setAwsError(error.message);
+  } finally {
+    setTestLoading(false);
+  }
+};
+
+
+
 
   const renderDashboard = () => (
   <>
@@ -585,81 +774,168 @@ const renderUsers = () => {
   );
 };
 
-  const renderAWSConfig = () => (
-    <div>
-      <div className={styles.configCard}>
+const renderAWSConfig = () => (
+  <div>
+    <div className={styles.awsConfigCard}>
+      <div className={styles.awsConfigHeader}>
         <h3><FiSettings /> AWS Configuration</h3>
-        <div className={styles.apiTest}>
-          <p>Test AWS S3 Connection:</p>
-          <button className={styles.btnPrimary}>
-            <FiRefreshCw /> Test Connection
+        <div className={styles.awsTestButtons}>
+          <button 
+            className={styles.btnPrimary} 
+            onClick={testAwsConnection}
+            disabled={testLoading}
+          >
+            <FiRefreshCw /> {testLoading ? 'Testing...' : 'Test Connection'}
           </button>
-          <div className={styles.apiResult}>
-            {/* API test results will appear here */}
+        </div>
+      </div>
+
+      {/* Loading Bar */}
+      {(awsLoading || testLoading) && (
+        <div className={styles.awsLoadingBar}>
+          <div className={styles.awsLoadingProgress}></div>
+        </div>
+      )}
+
+      {/* Test Connection Results with Close Button */}
+      {testResult && (
+        <div className={`${styles.awsTestResultContainer} ${testResult.success ? styles.awsTestSuccess : styles.awsTestError}`}>
+          <div className={styles.awsTestResultHeader}>
+            <strong>{testResult.success ? '✓ Success:' : '✗ Error:'}</strong>
+            <button 
+              onClick={() => setTestResult(null)}
+              className={styles.awsTestResultClose}
+              title="Close"
+            >
+              ×
+            </button>
+          </div>
+          <div className={styles.awsTestResultContent}>
+            {testResult.message}
           </div>
         </div>
-        
-        <form onSubmit={(e) => handleSaveConfig(e, 'aws')}>
+      )}
+
+      {/* Error Details with Close Button */}
+      {awsError && (
+        <div className={styles.awsErrorDetail}>
+          <div className={styles.awsErrorHeader}>
+            <strong>Error Details:</strong>
+            <button 
+              onClick={() => setAwsError(null)}
+              className={styles.awsErrorClose}
+              title="Close"
+            >
+              ×
+            </button>
+          </div>
+          <pre>{awsError}</pre>
+        </div>
+      )}
+
+      <form onSubmit={saveAwsConfig}>
+        <div className={styles.formGroup}>
+          <label className={styles.formLabel}>Access Key ID</label>
+          <input
+            type="text"
+            className={styles.formInput}
+            value={awsConfig.access_key_id}
+            onChange={(e) => setAwsConfig({...awsConfig, access_key_id: e.target.value})}
+            placeholder="Enter Access Key ID"
+            required
+          />
+        </div>
+
+        <div className={styles.formGroup}>
+          <label className={styles.formLabel}>Secret Access Key</label>
+          <div className={styles.awsPasswordContainer}>
+            <input
+              type={showSecretKey ? 'text' : 'password'}
+              className={`${styles.formInput} ${styles.awsPasswordInput}`}
+              value={awsConfig.secret_access_key}
+              onChange={(e) => setAwsConfig({...awsConfig, secret_access_key: e.target.value})}
+              placeholder="Enter Secret Access Key"
+              required
+            />
+            <button 
+              type="button" 
+              onClick={() => setShowSecretKey(!showSecretKey)}
+              className={styles.awsEyeButton}
+              title={showSecretKey ? 'Hide Secret Key' : 'Show Secret Key'}
+            >
+              {showSecretKey ? <FiEye /> : <FiEye />}
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.awsFormRow}>
           <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Access Key ID</label>
+            <label className={styles.formLabel}>Region</label>
+            <select
+              className={styles.formSelect}
+              value={awsConfig.region}
+              onChange={(e) => setAwsConfig({...awsConfig, region: e.target.value})}
+              required
+            >
+              <option value="us-east-1">US East (N. Virginia)</option>
+              <option value="us-east-2">US East (Ohio)</option>
+              <option value="us-west-1">US West (N. California)</option>
+              <option value="us-west-2">US West (Oregon)</option>
+              <option value="eu-west-1">Europe (Ireland)</option>
+              <option value="eu-central-1">Europe (Frankfurt)</option>
+              <option value="ap-south-1">Asia Pacific (Mumbai)</option>
+              <option value="ap-southeast-1">Asia Pacific (Singapore)</option>
+              <option value="ap-southeast-2">Asia Pacific (Sydney)</option>
+              <option value="ap-northeast-1">Asia Pacific (Tokyo)</option>
+            </select>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.formLabel}>S3 Bucket Name</label>
             <input
               type="text"
               className={styles.formInput}
-              defaultValue="AKIAIOSFODNN7EXAMPLE"
+              value={awsConfig.s3_bucket_name}
+              onChange={(e) => setAwsConfig({...awsConfig, s3_bucket_name: e.target.value})}
+              placeholder="Enter S3 Bucket Name"
+              required
             />
           </div>
+        </div>
 
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Secret Access Key</label>
-            <input
-              type="password"
-              className={styles.formInput}
-              defaultValue="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
-            />
-          </div>
+        <div className={styles.formGroup}>
+          <label className={styles.formLabel}>Migration Bucket Name</label>
+          <input
+            type="text"
+            className={styles.formInput}
+            value={awsConfig.s3_migration_bucket_name}
+            onChange={(e) => setAwsConfig({...awsConfig, s3_migration_bucket_name: e.target.value})}
+            placeholder="Enter Migration Bucket Name"
+            required
+          />
+        </div>
 
-          <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>Region</label>
-              <select className={styles.formSelect} defaultValue="us-east-2">
-                <option value="us-east-1">US East (N. Virginia)</option>
-                <option value="us-east-2">US East (Ohio)</option>
-                <option value="us-west-1">US West (N. California)</option>
-                <option value="us-west-2">US West (Oregon)</option>
-              </select>
-            </div>
-
-            <div className={styles.formGroup}>
-              <label className={styles.formLabel}>S3 Bucket Name</label>
-              <input
-                type="text"
-                className={styles.formInput}
-                defaultValue="s1234kup"
-              />
-            </div>
-          </div>
-
-          <div className={styles.formGroup}>
-            <label className={styles.formLabel}>Migration Bucket Name</label>
-            <input
-              type="text"
-              className={styles.formInput}
-              defaultValue="aut1234n"
-            />
-          </div>
-
-          <div className={styles.formActions}>
-            <button type="submit" className={styles.btnPrimary}>
-              Save Changes
-            </button>
-            <button type="button" className={styles.btnSecondary}>
-              Reset
-            </button>
-          </div>
-        </form>
-      </div>
+        <div className={styles.awsFormActions}>
+          <button 
+            type="button" 
+            onClick={resetAwsConfig} 
+            className={styles.btnSecondary}
+            disabled={awsLoading}
+          >
+            Reset
+          </button>
+          <button 
+            type="submit" 
+            className={styles.btnPrimary}
+            disabled={awsLoading}
+          >
+            {awsLoading ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </form>
     </div>
-  );
+  </div>
+);
 
   const handleEditUser = (user) => {
     setModalMode('edit');
@@ -922,6 +1198,13 @@ const handleViewUser = async (user) => {
         {notification.show && (
         <div className={`${styles.notification} ${styles[notification.type]}`}>
             {notification.message}
+        </div>
+        )}
+
+        {/* AWS Notification Component */}
+        {awsNotification.show && (
+        <div className={`${styles.awsNotification} ${styles[awsNotification.type]}`}>
+            {awsNotification.message}
         </div>
         )}
 
