@@ -31,10 +31,10 @@ const UserModal = ({ mode, user, onClose, onSave }) => {
     onSave(formData);
   };
 
-  // Add this useEffect to handle password display in view mode
+  // Update useEffect to properly handle password display
   useEffect(() => {
     if (mode === 'view' && user) {
-      // Check if user has a password in the current state (might not be loaded)
+      // Check if user has a password
       setShowPasswordField(!!user.password);
     }
   }, [mode, user]);
@@ -72,43 +72,42 @@ const UserModal = ({ mode, user, onClose, onSave }) => {
                 {mode === 'edit' ? 'New Password (leave blank to keep current)' : mode === 'add' ? 'Password *' : 'Password'}
               </label>
               {mode === 'view' ? (
-                showPasswordField ? (
-                  <div className={styles.passwordViewContainer}>
-                    <div className={styles.passwordViewField}>
-                      {showPassword ? formData.password : '••••••••'}
-                    </div>
+                <div className={styles.passwordViewContainer}>
+                  <div className={styles.passwordViewField2}>
+                    {showPassword ? formData.password || 'No password set' : '••••••••'}
+                  </div>
+                  {formData.password && (
                     <button 
                       type="button" 
                       onClick={() => setShowPassword(!showPassword)}
-                      className={styles.eyeButtonView}
+                      className={styles.eyeButtonView2}
                     >
-                      {showPassword ? <FiEyeOff /> : <FiEye />}
+                      {showPassword ? <FiEye /> : <FiEye />}
                     </button>
-                  </div>
-                ) : (
-                  <div className={styles.viewField}>Password not available</div>
-                )
-              ) : (
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  className={styles.formInput}
-                  value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
-                  required={mode === 'add'}
-                />
-              )}
-              {mode !== 'view' && (
-                <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <input
-                    type="checkbox"
-                    id="showPassword"
-                    checked={showPassword}
-                    onChange={(e) => setShowPassword(e.target.checked)}
-                  />
-                  <label htmlFor="showPassword" style={{ fontSize: '0.9rem', color: '#64748b' }}>
-                    Show password
-                  </label>
+                  )}
                 </div>
+              ) : (
+                <>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    className={styles.formInput}
+                    value={formData.password}
+                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                    required={mode === 'add'}
+                    placeholder={mode === 'edit' ? 'Enter new password or leave blank' : ''}
+                  />
+                  <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <input
+                      type="checkbox"
+                      id="showPassword"
+                      checked={showPassword}
+                      onChange={(e) => setShowPassword(e.target.checked)}
+                    />
+                    <label htmlFor="showPassword" style={{ fontSize: '0.9rem', color: '#64748b' }}>
+                      Show password
+                    </label>
+                  </div>
+                </>
               )}
             </div>
 
@@ -209,6 +208,8 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [users, setUsers] = useState([]);
+  const [recentUsers, setRecentUsers] = useState([]); // For dashboard - limited to 5
+  const [allUsers, setAllUsers] = useState([]); // For users tab - all users
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [stats, setStats] = useState({
@@ -232,21 +233,46 @@ export default function AdminDashboard() {
         is_admin: false,
         is_active: true
     });
+    // Add these with other state variables
+    const [notification, setNotification] = useState({
+        show: false,
+        message: '',
+        type: 'success' // success, error, warning, info
+    });
 
 useEffect(() => {
-    // Check if user is authenticated and admin
-    const authenticated = localStorage.getItem('authenticated') === 'true';
-    const isAdmin = localStorage.getItem('is_admin') === 'true';
-    const username = localStorage.getItem('username');
+  if (notification.show) {
+    const timer = setTimeout(() => {
+      setNotification({ show: false, message: '', type: 'success' });
+    }, 3000);
+    return () => clearTimeout(timer);
+  }
+}, [notification.show]);
 
-    if (!authenticated || !isAdmin || !username) {
-        router.push('/');
-        return;
-    }
+useEffect(() => {
+  // Check if user is authenticated and admin
+  const authenticated = localStorage.getItem('authenticated') === 'true';
+  const isAdmin = localStorage.getItem('is_admin') === 'true';
+  const username = localStorage.getItem('username');
 
-    fetchDashboardData(username);
-    fetchAllUsers(); // Fetch all users initially
+  if (!authenticated || !isAdmin || !username) {
+    router.push('/');
+    return;
+  }
+
+  fetchDashboardData(username);
+  fetchAllUsers(); // Fetch all users initially
 }, []);
+
+
+const showNotification = (message, type = 'success') => {
+  setNotification({
+    show: true,
+    message,
+    type
+  });
+};
+
 
   const fetchDashboardData = async (username) => {
     try {
@@ -275,7 +301,7 @@ useEffect(() => {
         
         if (data.success) {
             setStats(data.stats);
-            setUsers(data.recentUsers || []);
+            setRecentUsers(data.recentUsers || []); // Changed from setUsers
         } else {
             setError(data.error || 'Failed to fetch data');
         }
@@ -292,156 +318,115 @@ useEffect(() => {
   };
 
   const renderDashboard = () => (
-    <>
-      <div className={styles.dashboardGrid}>
-        <div className={styles.statCard} style={{ borderLeftColor: '#3b82f6' }}>
-          <h3>Total Users</h3>
-          <div className={styles.statValue}>{stats.totalUsers}</div>
-          <div className={`${styles.statChange} ${styles.positive}`}>
-            <FiActivity /> +12% from last month
-          </div>
+  <>
+    <div className={styles.dashboardGrid}>
+      <div className={styles.statCard} style={{ borderLeftColor: '#3b82f6' }}>
+        <h3>Total Users</h3>
+        <div className={styles.statValue}>{stats.totalUsers}</div>
+        <div className={`${styles.statChange} ${styles.positive}`}>
+          <FiActivity /> +12% from last month
         </div>
+      </div>
 
-        <div className={styles.statCard} style={{ borderLeftColor: '#10b981' }}>
-          <h3>Active Users</h3>
-          <div className={styles.statValue}>{stats.activeUsers}</div>
-          <div className={`${styles.statChange} ${styles.positive}`}>
-            <FiActivity /> +8% from last month
-          </div>
+      <div className={styles.statCard} style={{ borderLeftColor: '#10b981' }}>
+        <h3>Active Users</h3>
+        <div className={styles.statValue}>{stats.activeUsers}</div>
+        <div className={`${styles.statChange} ${styles.positive}`}>
+          <FiActivity /> +8% from last month
         </div>
+      </div>
 
-        <div className={styles.statCard} style={{ borderLeftColor: '#8b5cf6' }}>
-          <h3>Admin Users</h3>
-          <div className={styles.statValue}>{stats.adminUsers}</div>
-          <div className={`${styles.statChange} ${styles.positive}`}>
-            <FiActivity /> +2% from last month
-          </div>
+      <div className={styles.statCard} style={{ borderLeftColor: '#8b5cf6' }}>
+        <h3>Admin Users</h3>
+        <div className={styles.statValue}>{stats.adminUsers}</div>
+        <div className={`${styles.statChange} ${styles.positive}`}>
+          <FiActivity /> +2% from last month
         </div>
+      </div>
 
-        <div className={styles.statCard} style={{ borderLeftColor: '#f59e0b' }}>
-          <h3>Configurations</h3>
-          <div className={styles.statValue}>{stats.totalConfigs}</div>
-          <div className={`${styles.statChange} ${styles.positive}`}>
-            <FiActivity /> All systems operational
+      <div className={styles.statCard} style={{ borderLeftColor: '#f59e0b' }}>
+        <h3>Configurations</h3>
+        <div className={styles.statValue}>{stats.totalConfigs}</div>
+        <div className={`${styles.statChange} ${styles.positive}`}>
+          <FiActivity /> All systems operational
+        </div>
+      </div>
+    </div>
+
+    <div className={styles.chartContainer}>
+      <div className={styles.chartHeader}>
+        <h3>Recent User Activity</h3>
+        <div className={styles.chartControls}>
+          <button className={styles.chartButton}>Today</button>
+          <button className={`${styles.chartButton} ${styles.active}`}>Week</button>
+          <button className={styles.chartButton}>Month</button>
+        </div>
+      </div>
+      
+      <div style={{ 
+        textAlign: 'center', 
+        padding: '3rem',
+        backgroundColor: '#f8fafc',
+        borderRadius: '8px',
+        border: '1px dashed #e2e8f0',
+        color: '#64748b'
+      }}>
+        <FiClock size={48} style={{ marginBottom: '1rem', color: '#94a3b8' }} />
+        <h4 style={{ marginBottom: '0.5rem', color: '#475569' }}>User Activity Tracking</h4>
+        <p>This feature will be available soon. We're currently setting up the activity logging system.</p>
+        <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>
+          Check back later to view recent user activities and login history.
+        </p>
+      </div>
+    </div>
+
+    <div className={styles.dashboardGrid}>
+      <div className={styles.configCard}>
+        <h3><FiShield /> System Status</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Database Connection</span>
+            <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FiUnlock /> Connected
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>API Services</span>
+            <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FiUnlock /> Operational
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>SSL Certificate</span>
+            <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <FiLock /> Valid
+            </span>
           </div>
         </div>
       </div>
 
-      <div className={styles.chartContainer}>
-        <div className={styles.chartHeader}>
-          <h3>Recent User Activity</h3>
-          <div className={styles.chartControls}>
-            <button className={styles.chartButton}>Today</button>
-            <button className={`${styles.chartButton} ${styles.active}`}>Week</button>
-            <button className={styles.chartButton}>Month</button>
+      <div className={styles.configCard}>
+        <h3><FiClock /> Recent Actions</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div style={{ padding: '0.75rem', background: '#f8fafc', borderRadius: '6px' }}>
+            <div style={{ fontWeight: '500', color: '#1e3a8a' }}>Configuration Updated</div>
+            <div style={{ fontSize: '0.9rem', color: '#64748b' }}>AWS credentials were updated</div>
+            <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>2 hours ago</div>
           </div>
-        </div>
-        
-        {loading ? (
-          <div className={styles.loading}>Loading...</div>
-        ) : users.length > 0 ? (
-          <div className={styles.tableContainer}>
-            <table className={styles.adminTable}>
-              <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th>Last Login</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
-                  <tr key={user.id}>
-                    <td>
-                      <strong>{user.name}</strong>
-                      <div style={{ fontSize: '0.9rem', color: '#64748b' }}>
-                        {user.username}
-                      </div>
-                    </td>
-                    <td>{user.email || 'Not set'}</td>
-                    <td>
-                      <span className={`${styles.statusBadge} ${user.is_admin ? styles.statusAdmin : ''}`}>
-                        {user.is_admin ? 'Admin' : 'User'}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`${styles.statusBadge} ${user.is_active ? styles.statusActive : styles.statusInactive}`}>
-                        {user.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td>
-                      {user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never'}
-                    </td>
-                    <td>
-                      <div className={styles.actionButtons}>
-                        <button className={styles.btnEdit} onClick={() => handleEditUser(user)}>
-                          <FiEdit2 /> Edit
-                        </button>
-                        <button className={styles.btnDelete} onClick={() => handleDeleteUser(user.id)}>
-                          <FiTrash2 />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className={styles.noData}>No recent user activity</div>
-        )}
-      </div>
-
-      <div className={styles.dashboardGrid}>
-        <div className={styles.configCard}>
-          <h3><FiShield /> System Status</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>Database Connection</span>
-              <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <FiUnlock /> Connected
-              </span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>API Services</span>
-              <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <FiUnlock /> Operational
-              </span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>SSL Certificate</span>
-              <span style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <FiLock /> Valid
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className={styles.configCard}>
-          <h3><FiClock /> Recent Actions</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <div style={{ padding: '0.75rem', background: '#f8fafc', borderRadius: '6px' }}>
-              <div style={{ fontWeight: '500', color: '#1e3a8a' }}>Configuration Updated</div>
-              <div style={{ fontSize: '0.9rem', color: '#64748b' }}>AWS credentials were updated</div>
-              <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>2 hours ago</div>
-            </div>
-            <div style={{ padding: '0.75rem', background: '#f8fafc', borderRadius: '6px' }}>
-              <div style={{ fontWeight: '500', color: '#1e3a8a' }}>New User Added</div>
-              <div style={{ fontSize: '0.9rem', color: '#64748b' }}>User "john.doe" was created</div>
-              <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>1 day ago</div>
-            </div>
+          <div style={{ padding: '0.75rem', background: '#f8fafc', borderRadius: '6px' }}>
+            <div style={{ fontWeight: '500', color: '#1e3a8a' }}>New User Added</div>
+            <div style={{ fontSize: '0.9rem', color: '#64748b' }}>User "john.doe" was created</div>
+            <div style={{ fontSize: '0.8rem', color: '#94a3b8' }}>1 day ago</div>
           </div>
         </div>
       </div>
-    </>
-  );
+    </div>
+  </>
+);
 
 const renderUsers = () => {
   // Filter users based on search term
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = allUsers.filter(user => {
     const matchesSearch = searchTerm === '' || 
       user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -457,26 +442,6 @@ const renderUsers = () => {
     
     return matchesSearch && matchesRole && matchesStatus;
   });
-
-  // Add scrollable container with fixed height
-  const tableHeight = Math.min(filteredUsers.length * 60, 600); // Max 600px height
-
-//   const handleSelectAll = (e) => {
-//     if (e.target.checked) {
-//       setSelectedUsers(filteredUsers.map(user => user.id));
-//     } else {
-//       setSelectedUsers([]);
-//     }
-//   };
-
-//   const handleSelectUser = (userId) => {
-//     setSelectedUsers(prev => 
-//       prev.includes(userId) 
-//         ? prev.filter(id => id !== userId)
-//         : [...prev, userId]
-//     );
-//   };
-  
 
   return (
     <div>
@@ -526,11 +491,11 @@ const renderUsers = () => {
         </div>
       </div>
 
-      <div className={styles.tableContainer} style={{ maxHeight: '600px', overflowY: 'auto' }}>
+      <div className={styles.tableContainer}>
         <table className={styles.adminTable}>
           <thead>
             <tr>
-              <th style={{ width: '50px' }}>
+              <th>
                 <input
                   type="checkbox"
                   checked={selectedUsers.length === filteredUsers.length && filteredUsers.length > 0}
@@ -551,7 +516,7 @@ const renderUsers = () => {
               <th>Role</th>
               <th>Status</th>
               <th>Created</th>
-              <th style={{ width: '200px' }}>Actions</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -572,11 +537,11 @@ const renderUsers = () => {
                   />
                 </td>
                 <td>{user.id}</td>
-                <td>
+                <td title={user.username}>
                   <strong>{user.username}</strong>
                 </td>
-                <td>{user.name}</td>
-                <td>{user.email || '-'}</td>
+                <td title={user.username}>{user.name}</td>
+                <td title={user.username}>{user.email || '-'}</td>
                 <td>
                   <span className={`${styles.statusBadge} ${user.is_admin ? styles.statusAdmin : ''}`}>
                     {user.is_admin ? 'Admin' : 'User'}
@@ -590,10 +555,10 @@ const renderUsers = () => {
                 <td>{new Date(user.created_at).toLocaleDateString()}</td>
                 <td>
                   <div className={styles.actionButtons} style={{ display: 'flex', gap: '0.3rem' }}> 
-                    <button className={`${styles.actionButton} ${styles.btnView}`} onClick={() => handleViewUser(user)}>
+                    <button className={`${styles.actionButton} ${styles.btnView}`} onClick={() => handleViewUser(user)} title="View">
                       <FiEye />
                     </button>
-                    <button className={`${styles.actionButton} ${styles.btnEdit}`} onClick={() => handleEditUser(user)}>
+                    <button className={`${styles.actionButton} ${styles.btnEdit}`} onClick={() => handleEditUser(user)} title="Edit">
                       <FiEdit2 />
                     </button>
                     <button 
@@ -603,7 +568,7 @@ const renderUsers = () => {
                     >
                       {user.is_active ? <FiLock /> : <FiUnlock />}
                     </button>
-                    <button className={`${styles.actionButton} ${styles.btnDelete}`} onClick={() => handleDeleteUser(user.id)}>
+                    <button className={`${styles.actionButton} ${styles.btnDelete}`} onClick={() => handleDeleteUser(user.id)} title="Delete">
                       <FiTrash2 />
                     </button>
                   </div>
@@ -719,15 +684,21 @@ const handleDeleteUser = async (userId) => {
     const data = await response.json();
     
     if (data.success) {
-      setUsers(users.filter(user => user.id !== userId));
+      // Remove from allUsers
+      setAllUsers(prev => prev.filter(user => user.id !== userId));
       // Remove from selected users if present
       setSelectedUsers(prev => prev.filter(id => id !== userId));
+      // Refresh stats
+      fetchAllUsers();
+      showNotification('User deleted successfully');
     } else {
       setError(data.error || 'Failed to delete user');
+      showNotification(data.error || 'Failed to delete user', 'error');
     }
   } catch (error) {
     console.error('Error deleting user:', error);
     setError('Failed to delete user');
+    showNotification('Failed to delete user', 'error');
   }
 };
 
@@ -752,14 +723,19 @@ const handleDeleteSelected = async () => {
     const data = await response.json();
     
     if (data.success) {
-      setUsers(users.filter(user => !selectedUsers.includes(user.id)));
+      setAllUsers(prev => prev.filter(user => !selectedUsers.includes(user.id)));
       setSelectedUsers([]);
+      // Refresh stats
+      fetchAllUsers();
+      showNotification(`${selectedUsers.length} user(s) deleted successfully`);
     } else {
       setError(data.error || 'Failed to delete selected users');
+      showNotification(data.error || 'Failed to delete selected users', 'error');
     }
   } catch (error) {
     console.error('Error deleting users:', error);
     setError('Failed to delete selected users');
+    showNotification('Failed to delete selected users', 'error');
   }
 };
 
@@ -767,12 +743,13 @@ const handleSaveUser = async (userData) => {
   try {
     const method = modalMode === 'add' ? 'POST' : 'PUT';
     const url = '/api/admin/users';
+    const username = localStorage.getItem('username');
     
     const response = await fetch(url, {
       method,
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': localStorage.getItem('username')
+        'Authorization': username
       },
       body: JSON.stringify(modalMode === 'add' ? userData : { id: currentUser.id, ...userData })
     });
@@ -783,29 +760,36 @@ const handleSaveUser = async (userData) => {
         // Refresh the user list
         fetchAllUsers();
         setIsModalOpen(false);
+        showNotification(modalMode === 'add' ? 'User added successfully' : 'Saved successfully');
       }
     }
   } catch (error) {
     console.error('Error saving user:', error);
     setError('Failed to save user');
+    showNotification('Failed to save user', 'error');
   }
 };
 
 
 const fetchAllUsers = async () => {
   try {
-    const response = await fetch('/api/admin/users', {
+    const username = localStorage.getItem('username');
+    // Fetch users
+    const usersResponse = await fetch('/api/admin/users', {
       headers: {
-        'Authorization': localStorage.getItem('username')
+        'Authorization': username
       }
     });
-    
-    if (response.ok) {
-      const data = await response.json();
-      if (data.success) {
-        setUsers(data.users);
+     
+    if (usersResponse.ok) {
+      const usersData = await usersResponse.json();
+      if (usersData.success) {
+        setAllUsers(usersData.users);
       }
     }
+    
+    // Also refresh dashboard stats
+    await fetchDashboardData(username);
   } catch (error) {
     console.error('Error fetching users:', error);
   }
@@ -819,11 +803,28 @@ const fetchAllUsers = async () => {
     setIsModalOpen(true);
   };
 
-  const handleViewUser = (user) => {
-    setModalMode('view');
-    setCurrentUser(user);
-    setIsModalOpen(true);
-  };
+const handleViewUser = async (user) => {
+  try {
+    const username = localStorage.getItem('username');
+    const response = await fetch(`/api/admin/users?single=true&id=${user.id}`, {
+      headers: {
+        'Authorization': username
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success) {
+        setModalMode('view');
+        setCurrentUser(data.user);
+        setIsModalOpen(true);
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching user details:', error);
+    showNotification('Failed to load user details', 'error');
+  }
+};
 
   const handleToggleStatus = async (user) => {
     if (!confirm(`Are you sure you want to ${user.is_active ? 'deactivate' : 'activate'} this user?`)) {
@@ -831,11 +832,12 @@ const fetchAllUsers = async () => {
     }
 
     try {
+        const username = localStorage.getItem('username');
         const response = await fetch('/api/admin/users', {
         method: 'PATCH',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': localStorage.getItem('username')
+            'Authorization': username
         },
         body: JSON.stringify({
             id: user.id,
@@ -846,19 +848,23 @@ const fetchAllUsers = async () => {
         if (response.ok) {
         const data = await response.json();
         if (data.success) {
-            // Update the user in the list
-            setUsers(users.map(u => 
+        // Update the user in allUsers list
+        setAllUsers(prev => 
+          prev.map(u => 
             u.id === user.id ? { ...u, is_active: !user.is_active } : u
-            ));
-        }
-        }
+          )
+        );
+        // Refresh stats
+        fetchAllUsers();
+        showNotification(`User marked ${!user.is_active ? 'Active' : 'Inactive'}`);
+      }
+    }
     } catch (error) {
         console.error('Error toggling user status:', error);
         setError('Failed to update user status');
+        showNotification('Failed to update user status', 'error');
     }
     };
-
-
 
   const handleSaveConfig = (e, configType) => {
     e.preventDefault();
@@ -909,6 +915,13 @@ const fetchAllUsers = async () => {
             borderLeft: '4px solid #ef4444'
         }}>
             <strong>Error:</strong> {error}
+        </div>
+        )}
+
+        {/* Notification Component */}
+        {notification.show && (
+        <div className={`${styles.notification} ${styles[notification.type]}`}>
+            {notification.message}
         </div>
         )}
 

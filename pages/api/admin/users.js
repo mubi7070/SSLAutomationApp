@@ -22,41 +22,64 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'GET') {
-      // Get all users
-      let query = 'SELECT id, username, name, email, is_admin, is_active, created_at, last_login FROM app_users WHERE 1=1';
-      const params = [];
+    // Get all users
+    let query = 'SELECT id, username, name, email, is_admin, is_active, created_at, last_login FROM app_users WHERE 1=1';
+    const params = [];
 
-      // Handle search if provided
-      if (req.query.search) {
+    // Handle search if provided
+    if (req.query.search) {
         query += ' AND (username LIKE ? OR name LIKE ? OR email LIKE ?)';
         const searchTerm = `%${req.query.search}%`;
         params.push(searchTerm, searchTerm, searchTerm);
-      }
-      
-      // Handle role filter
-      if (req.query.role && req.query.role !== 'all') {
+    }
+    
+    // Handle role filter
+    if (req.query.role && req.query.role !== 'all') {
         query += ' AND is_admin = ?';
         params.push(req.query.role === 'admin' ? 1 : 0);
-      }
-      
-      // Handle status filter
-      if (req.query.status && req.query.status !== 'all') {
+    }
+    
+    // Handle status filter
+    if (req.query.status && req.query.status !== 'all') {
         query += ' AND is_active = ?';
         params.push(req.query.status === 'active' ? 1 : 0);
-      }
-      
-      query += ' ORDER BY created_at DESC';
-      
-      const [users] = await connection.execute(query, params);
-      
-      return res.status(200).json({ 
+    }
+    
+    // Check if single user is requested with password
+    if (req.query.single && req.query.id) {
+        // For single user view, include password
+        query = 'SELECT id, username, password, name, email, is_admin, is_active, created_at, last_login FROM app_users WHERE id = ?';
+        params.length = 0;
+        params.push(req.query.id);
+        
+        const [user] = await connection.execute(query, params);
+        
+        if (user.length === 0) {
+        return res.status(404).json({ success: false, error: 'User not found' });
+        }
+        
+        return res.status(200).json({ 
+        success: true, 
+        user: {
+            ...user[0],
+            is_admin: Boolean(user[0].is_admin),
+            is_active: Boolean(user[0].is_active)
+        }
+        });
+    }
+    
+    query += ' ORDER BY created_at DESC';
+    
+    const [users] = await connection.execute(query, params);
+    
+    return res.status(200).json({ 
         success: true, 
         users: users.map(user => ({
-          ...user,
-          is_admin: Boolean(user.is_admin),
-          is_active: Boolean(user.is_active)
+        ...user,
+        is_admin: Boolean(user.is_admin),
+        is_active: Boolean(user.is_active)
         }))
-      });
+    });
     }
     
     if (req.method === 'POST') {
@@ -76,19 +99,28 @@ export default async function handler(req, res) {
     }
     
     if (req.method === 'PUT') {
-      // Update user
-      const { id, username, name, email, is_admin, is_active } = req.body;
-      
-      if (!id || !username || !name) {
+    // Update user
+    const { id, username, password, name, email, is_admin, is_active } = req.body;
+    
+    if (!id || !username || !name) {
         return res.status(400).json({ success: false, error: 'Missing required fields' });
-      }
-      
-      await connection.execute(
+    }
+    
+    if (password) {
+        // If password is provided, update it
+        await connection.execute(
+        'UPDATE app_users SET username = ?, password = ?, name = ?, email = ?, is_admin = ?, is_active = ? WHERE id = ?',
+        [username, password, name, email || null, is_admin ? 1 : 0, is_active ? 1 : 0, id]
+        );
+    } else {
+        // If password is not provided, don't update it
+        await connection.execute(
         'UPDATE app_users SET username = ?, name = ?, email = ?, is_admin = ?, is_active = ? WHERE id = ?',
         [username, name, email || null, is_admin ? 1 : 0, is_active ? 1 : 0, id]
-      );
-      
-      return res.status(200).json({ success: true });
+        );
+    }
+    
+    return res.status(200).json({ success: true });
     }
     
     if (req.method === 'DELETE') {

@@ -149,11 +149,15 @@
   overflow-x: auto;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
+  max-height: 600px;
+  overflow-y: auto;
+  width: 100%;
 }
 
 .adminTable {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed; /* This ensures consistent column widths */
 }
 
 .adminTable thead {
@@ -166,12 +170,76 @@
   font-weight: 600;
   color: #1e3a8a;
   border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  background-color: #e3ecf5;
+  z-index: 1;
 }
 
 .adminTable td {
   padding: 1rem;
   border-bottom: 1px solid #e2e8f0;
   color: #475569;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Set specific column widths */
+.adminTable th:nth-child(1),
+.adminTable td:nth-child(1) { /* Checkbox column */
+  width: 50px;
+  min-width: 50px;
+  max-width: 50px;
+}
+
+.adminTable th:nth-child(2),
+.adminTable td:nth-child(2) { /* ID column */
+  width: 60px;
+  min-width: 60px;
+  max-width: 60px;
+}
+
+.adminTable th:nth-child(3),
+.adminTable td:nth-child(3) { /* Username column */
+  width: 120px;
+  min-width: 120px;
+}
+
+.adminTable th:nth-child(4),
+.adminTable td:nth-child(4) { /* Name column */
+  width: 150px;
+  min-width: 150px;
+}
+
+.adminTable th:nth-child(5),
+.adminTable td:nth-child(5) { /* Email column */
+  width: 180px;
+  min-width: 180px;
+}
+
+.adminTable th:nth-child(6),
+.adminTable td:nth-child(6) { /* Role column */
+  width: 80px;
+  min-width: 80px;
+}
+
+.adminTable th:nth-child(7),
+.adminTable td:nth-child(7) { /* Status column */
+  width: 80px;
+  min-width: 80px;
+}
+
+.adminTable th:nth-child(8),
+.adminTable td:nth-child(8) { /* Created column */
+  width: 100px;
+  min-width: 100px;
+}
+
+.adminTable th:nth-child(9),
+.adminTable td:nth-child(9) { /* Actions column */
+  width: 200px;
+  min-width: 200px;
 }
 
 .adminTable tr:hover {
@@ -260,7 +328,7 @@
 }
 
 .formInput, .formSelect, .formTextarea {
-  width: 100%;
+  width: 97%;
   padding: 0.75rem;
   border: 1px solid #e2e8f0;
   border-radius: 6px;
@@ -749,7 +817,7 @@ input:checked + .toggleSlider:before {
 .modalContent2 {
   background: white;
   border-radius: 12px;
-  max-width: 600px;
+  max-width: 700px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
@@ -790,12 +858,6 @@ input:checked + .toggleSlider:before {
   box-sizing: border-box;
 }
 
-.passwordViewContainer {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
 .passwordViewField {
   flex: 1;
   padding: 0.75rem;
@@ -828,3 +890,71 @@ input:checked + .toggleSlider:before {
   background: #f1f5f9;
 }
 
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background-color: #10b981;
+  color: white;
+  padding: 1rem;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  animation: slideIn 0.3s ease-out;
+  min-width: 300px;
+  max-width: 400px;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.notification.error {
+  background-color: #ef4444;
+}
+
+.notification.warning {
+  background-color: #f59e0b;
+}
+
+.notification.info {
+  background-color: #3b82f6;
+}
+
+.passwordViewContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.passwordViewField2 {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 4px;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  font-family: 'Courier New', monospace;
+}
+
+.eyeButtonView2 {
+  background: none;
+  border: 1px solid #e2e8f0;
+  padding: 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #64748b;
+}
+
+.eyeButtonView2:hover {
+  background-color: #f1f5f9;
+}
