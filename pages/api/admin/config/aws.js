@@ -27,25 +27,40 @@ export default async function handler(req, res) {
         'SELECT * FROM aws_config LIMIT 1'
       );
 
-      if (configRows.length === 0) {
-        return res.status(200).json({ 
-          success: true, 
-          config: null,
-          message: 'No AWS configuration found'
-        });
-      }
+        if (configRows.length === 0) {
+            return res.status(200).json({ 
+            success: true, 
+            config: null,
+            message: 'No AWS configuration found'
+            });
+        }
+
+        // Mask the secret key before sending to frontend
+        const originalKey = configRows[0].secret_access_key;
+        let maskedKey = '';
+        
+        if (originalKey && originalKey.length > 8) {
+            const firstFour = originalKey.substring(0, 4);
+            const lastFour = originalKey.substring(originalKey.length - 4);
+            const maskedLength = originalKey.length - 8;
+            const maskedChars = '*'.repeat(maskedLength);
+            maskedKey = firstFour + maskedChars + lastFour;
+        } else if (originalKey) {
+            // If key is 8 chars or less, just return it as-is
+            maskedKey = originalKey;
+        }
 
       return res.status(200).json({ 
         success: true, 
         config: {
-          id: configRows[0].id,
-          access_key_id: configRows[0].access_key_id,
-          secret_access_key: configRows[0].secret_access_key,
-          region: configRows[0].region,
-          s3_bucket_name: configRows[0].s3_bucket_name,
-          s3_migration_bucket_name: configRows[0].s3_migration_bucket_name
+        id: configRows[0].id,
+        access_key_id: configRows[0].access_key_id,
+        secret_access_key: maskedKey, // Send masked version
+        region: configRows[0].region,
+        s3_bucket_name: configRows[0].s3_bucket_name,
+        s3_migration_bucket_name: configRows[0].s3_migration_bucket_name
         }
-      });
+    });
     }
 
     if (req.method === 'POST') {

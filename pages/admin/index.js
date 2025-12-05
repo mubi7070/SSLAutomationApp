@@ -260,6 +260,21 @@ export default function AdminDashboard() {
     });
 
 
+// // Add this useEffect to properly mask the secret key on load
+// useEffect(() => {
+//   if (awsConfig.secret_access_key && !showSecretKey && !isSecretKeyFocused) {
+//     // Check if it's already masked (contains asterisks)
+//     const isMasked = awsConfig.secret_access_key.includes('*'.repeat(Math.max(awsConfig.secret_access_key.length - 8, 0)));
+//     if (!isMasked) {
+//       setAwsConfig(prev => ({
+//         ...prev,
+//         secret_access_key: maskSecretKey(prev.secret_access_key)
+//       }));
+//     }
+//   }
+// }, [awsConfig.secret_access_key, showSecretKey, isSecretKeyFocused]);
+
+
 useEffect(() => {
   if (awsNotification.show) {
     const timer = setTimeout(() => {
@@ -307,6 +322,52 @@ useEffect(() => {
   fetchAllUsers(); // Fetch all users initially
 }, []);
 
+
+// Helper function to mask the secret key (show first 4 and last 4 chars)
+const maskSecretKey = (key) => {
+  if (!key || key.trim() === '') return '';
+  if (key.length <= 8) return key; // If key is too short, return as is
+  
+  // Check if the key is already masked (contains mostly asterisks)
+  if (key.includes('*'.repeat(key.length - 8))) {
+    return key;
+  }
+  
+  const firstFour = key.substring(0, 4);
+  const lastFour = key.substring(key.length - 4);
+  const maskedLength = key.length - 8;
+  const maskedChars = '*'.repeat(maskedLength);
+  return firstFour + maskedChars + lastFour;
+};
+
+// Helper function to check if a value is masked (contains asterisks)
+const isMaskedKey = (key) => {
+  return key && key.includes('*') && key.length > 8;
+};
+
+
+// Helper function to get the display value for secret key
+const getDisplaySecretKey = () => {
+  // If we have the actual secret key, mask it for display
+  if (actualSecretKey) {
+    return maskSecretKey(actualSecretKey);
+  }
+  // Otherwise use what's in awsConfig (might be masked already)
+  return awsConfig.secret_access_key;
+};
+
+
+
+// Add this function to handle secret key changes
+const handleSecretKeyChange = (value) => {
+  setAwsConfig(prev => ({
+    ...prev,
+    secret_access_key: value
+  }));
+  
+  // Also update the actual secret key
+  setActualSecretKey(value);
+};
 
 const showNotification = (message, type = 'success') => {
   setNotification({
@@ -389,7 +450,14 @@ const fetchAwsConfig = async () => {
     const data = await response.json();
     
     if (data.success && data.config) {
-      setAwsConfig(data.config);
+      // Set the config - secret key will be displayed as-is (it's already masked in API)
+      setAwsConfig({
+        access_key_id: data.config.access_key_id || '',
+        secret_access_key: data.config.secret_access_key || '',
+        region: data.config.region || 'us-east-2',
+        s3_bucket_name: data.config.s3_bucket_name || '',
+        s3_migration_bucket_name: data.config.s3_migration_bucket_name || ''
+      });
     } else {
       // Set default values if no config exists
       setAwsConfig({
@@ -414,21 +482,31 @@ const saveAwsConfig = async (e) => {
   try {
     setAwsLoading(true);
     const username = localStorage.getItem('username');
+
+    // Prepare data for saving
+    const saveData = {
+      access_key_id: awsConfig.access_key_id,
+      secret_access_key: awsConfig.secret_access_key,
+      region: awsConfig.region,
+      s3_bucket_name: awsConfig.s3_bucket_name,
+      s3_migration_bucket_name: awsConfig.s3_migration_bucket_name
+    };
     
+    // Send the data as-is to the API
     const response = await fetch('/api/admin/config/aws', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': username
       },
-      body: JSON.stringify(awsConfig)
+      body: JSON.stringify(saveData)
     });
 
     const data = await response.json();
     
     if (data.success) {
       showAwsNotification('AWS configuration saved successfully');
-      // Refresh the config
+      // Refresh the config to get the masked version
       fetchAwsConfig();
     } else {
       throw new Error(data.error || 'Failed to save configuration');
@@ -440,6 +518,25 @@ const saveAwsConfig = async (e) => {
   } finally {
     setAwsLoading(false);
   }
+};
+
+// Helper function to fetch current config for getting actual secret key
+const fetchCurrentAwsConfig = async (username) => {
+  try {
+    const response = await fetch('/api/admin/config/aws', {
+      headers: {
+        'Authorization': username
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      return data.config;
+    }
+  } catch (error) {
+    console.error('Error fetching current AWS config:', error);
+  }
+  return null;
 };
 
 const resetAwsConfig = () => {
@@ -458,13 +555,42 @@ const testAwsConnection = async () => {
     setAwsError(null);
     
     const username = localStorage.getItem('username');
+
+    // For testing, we need to get the actual secret key from the database
+    // since the one in state might be masked
+    const currentConfigResponse = await fetch('/api/admin/config/aws/get-actual', {
+      headers: {
+        'Authorization': username
+      }
+    });
+    
+    let actualSecretKey = awsConfig.secret_access_key;
+    
+    if (currentConfigResponse.ok) {
+      const currentData = await currentConfigResponse.json();
+      if (currentData.success && currentData.config) {
+        // If the displayed key is masked, use the actual one from DB
+        if (awsConfig.secret_access_key.includes('*'.repeat(awsConfig.secret_access_key.length - 8))) {
+          actualSecretKey = currentData.config.secret_access_key;
+        }
+      }
+    }
+
+    const testData = {
+      access_key_id: awsConfig.access_key_id,
+      secret_access_key: actualSecretKey,
+      region: awsConfig.region,
+      s3_bucket_name: awsConfig.s3_bucket_name,
+      s3_migration_bucket_name: awsConfig.s3_migration_bucket_name
+    };
+
     const response = await fetch('/api/admin/config/aws/test', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': username
       },
-      body: JSON.stringify(awsConfig)
+      body: JSON.stringify(testData)
     });
 
     // Check if response is OK and content type is JSON
@@ -778,7 +904,7 @@ const renderAWSConfig = () => (
   <div>
     <div className={styles.awsConfigCard}>
       <div className={styles.awsConfigHeader}>
-        <h3><FiSettings /> AWS Configuration</h3>
+        <h3 style={{color: '#1e3a8a'}}><FiSettings /> AWS Configuration</h3>
         <div className={styles.awsTestButtons}>
           <button 
             className={styles.btnPrimary} 
@@ -848,24 +974,19 @@ const renderAWSConfig = () => (
 
         <div className={styles.formGroup}>
           <label className={styles.formLabel}>Secret Access Key</label>
-          <div className={styles.awsPasswordContainer}>
             <input
-              type={showSecretKey ? 'text' : 'password'}
-              className={`${styles.formInput} ${styles.awsPasswordInput}`}
+              type="text"
+              className={styles.formInput}
               value={awsConfig.secret_access_key}
-              onChange={(e) => setAwsConfig({...awsConfig, secret_access_key: e.target.value})}
+              onChange={(e) => {
+                setAwsConfig(prev => ({
+                    ...prev,
+                    secret_access_key: e.target.value
+                }));
+                }}
               placeholder="Enter Secret Access Key"
               required
             />
-            <button 
-              type="button" 
-              onClick={() => setShowSecretKey(!showSecretKey)}
-              className={styles.awsEyeButton}
-              title={showSecretKey ? 'Hide Secret Key' : 'Show Secret Key'}
-            >
-              {showSecretKey ? <FiEye /> : <FiEye />}
-            </button>
-          </div>
         </div>
 
         <div className={styles.awsFormRow}>

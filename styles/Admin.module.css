@@ -1045,24 +1045,6 @@ input:checked + .toggleSlider:before {
   padding-right: 40px; /* Space for the eye button */
 }
 
-.awsEyeButton {
-  position: absolute;
-  right: 10px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: #64748b;
-  padding: 0.5rem;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.awsEyeButton:hover {
-  background-color: #f1f5f9;
-}
-
 .awsFormRow {
   display: grid;
   grid-template-columns: 1fr 1fr;
