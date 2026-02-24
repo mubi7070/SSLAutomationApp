@@ -1,208 +1,123 @@
 import axios from 'axios';
 import { getConfig } from '../lib/config';
 import pool from '../lib/db';
+
 export default async function handler(req, res) {
-
-  try{
-
-    // Get config from database
+  try {
     const config = await getConfig();
     const SENDGRID_API_KEY = config.SENDGRID_API_KEY;
-    const BASE_URL = config.BASE_URL;
 
-  
-  // Handle Suppressions Endpoint First
-  if (req.url.includes('/api/sendgridlimit/suppressions')) {
-    try {
-      const { type, username } = req.query;
-      const endpoints = {
-        bounces: 'suppression/bounces',
-        invalids: 'suppression/invalid_emails',
-        blocks: 'suppression/blocks'
-      };
+    if (req.url.includes('/api/sendgridlimit/suppressions')) {
+      try {
+        const { type, username } = req.query;
+        const endpoints = { bounces: 'suppression/bounces', invalids: 'suppression/invalid_emails', blocks: 'suppression/blocks' };
+        if (!endpoints[type]) return res.status(400).json({ error: 'Invalid suppression type' });
 
-      if (!endpoints[type]) {
-        return res.status(400).json({ error: 'Invalid suppression type' });
-      }
-
-      const response = await axios.get(`https://api.sendgrid.com/v3/${endpoints[type]}`, {
-        headers: {
-          Authorization: `Bearer ${SENDGRID_API_KEY}`,
-          'Content-Type': 'application/json',
-          ...(username && { 'on-behalf-of': username })
-        },
-        params: { limit: 1000 },
-        validateStatus: () => true // Important to handle non-200 responses
-      });
-
-      if (response.status >= 400) {
-        console.error('SendGrid Suppression Error:', {
-          status: response.status,
-          data: response.data
+        const response = await axios.get(`https://api.sendgrid.com/v3/${endpoints[type]}`, {
+          headers: {
+            Authorization: `Bearer ${SENDGRID_API_KEY}`,
+            'Content-Type': 'application/json',
+            ...(username && { 'on-behalf-of': username })
+          },
+          params: { limit: 1000 },
+          validateStatus: () => true
         });
-        return res.status(response.status).json({ 
-          error: response.data?.errors?.[0]?.message || 'Failed to fetch suppression data'
+
+        if (response.status >= 400) {
+          return res.status(response.status).json({ error: response.data?.errors?.[0]?.message || 'Failed to fetch suppression data' });
+        }
+
+        return res.status(200).json({ 
+          data: response.data.map(item => ({ email: item.email, created: item.created, reason: item.reason || 'N/A' }))
         });
+      } catch (error) {
+        return res.status(500).json({ error: error.message || 'Failed to process suppression request' });
       }
-
-      return res.status(200).json({ 
-        data: response.data.map(item => ({
-          email: item.email,
-          created: item.created,
-          reason: item.reason || 'N/A'
-        }))
-      });
-
-    } catch (error) {
-      console.error('Suppression API Error:', error);
-      return res.status(500).json({ 
-        error: error.message || 'Failed to process suppression request'
-      });
     }
-  }
-
 
     if (req.method === 'GET') {
-        if (req.query.username) {
-          // First get subuser details
-          const subuserResponse = await axios.get(
-            `https://api.sendgrid.com/v3/subusers/${req.query.username}`,
-            {
-              headers: {
-                Authorization: `Bearer ${SENDGRID_API_KEY}`,
-                'Content-Type': 'application/json'
-              }
-            }
-          );
-  
-          // Then get credit details using on-behalf-of header
-          const creditsResponse = await axios.get(
-            `https://api.sendgrid.com/v3/user/credits`,
-            {
-              headers: {
-                Authorization: `Bearer ${SENDGRID_API_KEY}`,
-                'Content-Type': 'application/json',
-                'on-behalf-of': req.query.username
-              }
-            }
-          );
-  
-          // Combine both responses
-          const combinedData = {
-            ...subuserResponse.data,
-            credits: creditsResponse.data
-          };
-  
-          return res.status(200).json({ 
-            subuser: {
-              ...combinedData,
-              monthly_limit: creditsResponse.data.total,
-              remaining: creditsResponse.data.remain,
-              used: creditsResponse.data.used,
-              overdrawn: creditsResponse.data.overage
-            }
-          });
-        } else {
-        // New paginated implementation for all subusers
+      if (req.query.username) {
+        const subuserResponse = await axios.get(`https://api.sendgrid.com/v3/subusers/${req.query.username}`, {
+          headers: { Authorization: `Bearer ${SENDGRID_API_KEY}`, 'Content-Type': 'application/json' }
+        });
+        const creditsResponse = await axios.get(`https://api.sendgrid.com/v3/user/credits`, {
+          headers: { Authorization: `Bearer ${SENDGRID_API_KEY}`, 'Content-Type': 'application/json', 'on-behalf-of': req.query.username }
+        });
+        const combinedData = { ...subuserResponse.data, credits: creditsResponse.data };
+
+        return res.status(200).json({ 
+          subuser: {
+            ...combinedData,
+            monthly_limit: creditsResponse.data.total,
+            remaining: creditsResponse.data.remain,
+            used: creditsResponse.data.used,
+            overdrawn: creditsResponse.data.overage
+          }
+        });
+      } else {
         let allSubusers = [];
-        let limit = 500; // Max allowed by SendGrid API
+        let limit = 500; 
         let offset = 0;
         let hasMore = true;
 
         while (hasMore) {
           const response = await axios.get('https://api.sendgrid.com/v3/subusers', {
-            headers: {
-              Authorization: `Bearer ${SENDGRID_API_KEY}`,
-              'Content-Type': 'application/json'
-            },
-            params: {
-              limit,
-              offset,
-              region: 'all',
-              include_region: false
-            }
+            headers: { Authorization: `Bearer ${SENDGRID_API_KEY}`, 'Content-Type': 'application/json' },
+            params: { limit, offset, region: 'all', include_region: false }
           });
-
           const subusersChunk = Array.isArray(response.data) ? response.data : [];
           allSubusers = [...allSubusers, ...subusersChunk];
 
-          // Check if we've reached the end of the list
-          if (subusersChunk.length < limit) {
-            hasMore = false;
-          } else {
-            offset += limit;
-          }
+          if (subusersChunk.length < limit) hasMore = false;
+          else offset += limit;
         }
-
         return res.status(200).json({ subusers: allSubusers });
       }
-  
-      } else if (req.method === 'POST') {
 
-        const connection = await pool.getConnection();
+    } else if (req.method === 'POST') {
+      const connection = await pool.getConnection();
 
-        try {
+      try {
         const [users] = await connection.execute(
           'SELECT username, password, name FROM app_users WHERE username = ? AND password = ? AND is_active = TRUE',
           [req.body.usernameInput, req.body.userPassword]
         );
 
-      if (users.length === 0) {
-          return res.status(401).json({ error: 'Invalid credentials' });
-      }
+        if (users.length === 0) return res.status(401).json({ error: 'Invalid credentials' });
 
-      const user = users[0];
+        const user = users[0];
+        if (!req.body.username || !req.body.newLimit) return res.status(400).json({ error: 'Missing required fields' });
 
-      if (!req.body.username || !req.body.newLimit) {
-        return res.status(400).json({ error: 'Missing required fields' });
-      }
+        await axios.patch(
+          `https://api.sendgrid.com/v3/subusers/${req.body.username}/credits/remaining`,
+          { allocation_update: Number(req.body.newLimit) },
+          { headers: { Authorization: `Bearer ${SENDGRID_API_KEY}`, 'Content-Type': 'application/json' } }
+        );
 
-      // Update temporary limit using SendGrid API
-      const updateResponse = await axios.patch(
-        `https://api.sendgrid.com/v3/subusers/${req.body.username}/credits/remaining`,
-        { allocation_update: Number(req.body.newLimit) },
-        {
-          headers: {
-            Authorization: `Bearer ${SENDGRID_API_KEY}`,
-            'Content-Type': 'application/json'
+        // -- NEW DATABASE LOGGING INSTEAD OF SHEET --
+        try {
+          await connection.execute(
+            `INSERT INTO sendgrid_limit_logs (sub_account, credits_adjusted, person_name, username, ticket) 
+             VALUES (?, ?, ?, ?, ?)`,
+            [req.body.username, req.body.newLimit, user.name, req.body.usernameInput, req.body.fdTicket]
+          );
+        } catch (dbError) {
+          console.error('Database logging failed:', dbError);
+        }
+
+        const creditsResponse = await axios.get(`https://api.sendgrid.com/v3/user/credits`, {
+          headers: { Authorization: `Bearer ${SENDGRID_API_KEY}`, 'Content-Type': 'application/json', 'on-behalf-of': req.body.username }
+        });
+
+        return res.status(200).json({
+          updatedAccount: {
+            username: req.body.username,
+            monthly_limit: creditsResponse.data.total,
+            remaining: creditsResponse.data.remain,
+            used: creditsResponse.data.used,
+            overdrawn: creditsResponse.data.overage
           }
-        }
-      );
-
-      try {
-           await axios.post(`${BASE_URL}/api/sendgridsheet`, {
-              subAccount: req.body.username,
-              credits: req.body.newLimit,
-              date: new Date().toLocaleDateString("en-US"),
-              personName: user.name,
-              username: req.body.usernameInput,
-              fdTicket: req.body.fdTicket
-          });
-      } catch (sheetError) {
-        console.error('Google Sheet logging failed:', sheetError);
-      }
-
-      // Fetch updated credit information
-      const creditsResponse = await axios.get(
-        `https://api.sendgrid.com/v3/user/credits`,
-        {
-          headers: {
-            Authorization: `Bearer ${SENDGRID_API_KEY}`,
-            'Content-Type': 'application/json',
-            'on-behalf-of': req.body.username
-          }
-        }
-      );
-
-      return res.status(200).json({
-        updatedAccount: {
-          username: req.body.username,
-          monthly_limit: creditsResponse.data.total,
-          remaining: creditsResponse.data.remain,
-          used: creditsResponse.data.used,
-          overdrawn: creditsResponse.data.overage
-        }
-      });
+        });
 
       } finally {
         connection.release();
@@ -214,9 +129,6 @@ export default async function handler(req, res) {
     }
   } catch (error) {
     console.error('SendGrid API Error:', error.response?.data || error.message);
-    const errorMessage = error.response?.data?.errors?.[0]?.message || 
-      'Failed to process SendGrid request';
-    res.status(500).json({ error: errorMessage });
+    res.status(500).json({ error: error.response?.data?.errors?.[0]?.message || 'Failed to process SendGrid request' });
   }
-
 }
