@@ -11,22 +11,22 @@ export default async function handler(req, res) {
     if (userRows.length === 0 || !userRows[0].is_admin) return res.status(403).json({ success: false, error: 'Admin access required' });
 
     if (req.method === 'GET') {
-      const [configRows] = await connection.execute('SELECT * FROM google_sheets_config LIMIT 1');
+      const [configRows] = await connection.execute('SELECT * FROM base_url_config LIMIT 1');
       if (configRows.length === 0) return res.status(200).json({ success: true, config: null });
-      return res.status(200).json({ success: true, config: { id: configRows[0].id, license_sheet_id: configRows[0].license_sheet_id } });
+      return res.status(200).json({ success: true, config: { id: configRows[0].id, base_url: configRows[0].base_url, environment: configRows[0].environment } });
     }
 
     if (req.method === 'POST') {
-      const { license_sheet_id } = req.body;
-      if (!license_sheet_id) return res.status(400).json({ success: false, error: 'Missing License Sheet ID' });
+      const { base_url, environment } = req.body;
+      if (!base_url || !environment) return res.status(400).json({ success: false, error: 'Missing Base URL or Environment' });
 
-      const [existing] = await connection.execute('SELECT id FROM google_sheets_config LIMIT 1');
+      const [existing] = await connection.execute('SELECT id FROM base_url_config LIMIT 1');
       if (existing.length > 0) {
-        await connection.execute('UPDATE google_sheets_config SET license_sheet_id = ?, updated_at = NOW() WHERE id = ?', [license_sheet_id, existing[0].id]);
+        await connection.execute('UPDATE base_url_config SET base_url = ?, environment = ?, updated_at = NOW() WHERE id = ?', [base_url, environment, existing[0].id]);
       } else {
-        await connection.execute('INSERT INTO google_sheets_config (license_sheet_id) VALUES (?)', [license_sheet_id]);
+        await connection.execute('INSERT INTO base_url_config (base_url, environment) VALUES (?, ?)', [base_url, environment]);
       }
-      return res.status(200).json({ success: true, message: 'Google Sheets config saved successfully' });
+      return res.status(200).json({ success: true, message: 'Base URL config saved successfully' });
     }
 
     return res.status(405).json({ success: false, error: 'Method not allowed' });
