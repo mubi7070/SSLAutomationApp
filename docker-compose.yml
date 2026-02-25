@@ -1,4 +1,23 @@
 services:
+  mysql:
+    image: mysql:8
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 'sibi@soft'
+      MYSQL_DATABASE: 'automationapp'
+      MYSQL_USER: 'automation_app'
+      MYSQL_PASSWORD: 'sibi@soft'
+    volumes: 
+      - /home/sibisoft/Application/backup/DB:/var/lib/mysql
+    networks:
+      - SSLAutomationNetwork
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-psibi@soft"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
   sslautomation:
     build:
       context: .        
@@ -6,9 +25,19 @@ services:
     container_name: automationapp
     ports:
       - "3000:3000"
+    environment:
+      # We override the .env.local here so it points to the mysql container
+      - DB_HOST=mysql
+      - DB_USER=automation_app
+      - DB_PASSWORD=sibi@soft
+      - DB_NAME=automationapp
+      - DB_PORT=3306
     volumes:
       - /home/sibisoft/Application/backup/Certs:/app/Certs
       - /home/sibisoft/Application/backup/Files:/app/Files
+    depends_on:
+      mysql:
+        condition: service_healthy
     networks:
       - SSLAutomationNetwork
 
