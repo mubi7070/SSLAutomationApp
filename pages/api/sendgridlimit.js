@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { getConfig } from '../lib/config';
 import pool from '../lib/db';
+import bcrypt from 'bcrypt';
 
 export default async function handler(req, res) {
   try {
@@ -79,13 +80,21 @@ export default async function handler(req, res) {
 
       try {
         const [users] = await connection.execute(
-          'SELECT username, password, name FROM app_users WHERE username = ? AND password = ? AND is_active = TRUE',
-          [req.body.usernameInput, req.body.userPassword]
+          'SELECT username, password, name FROM app_users WHERE username = ? AND is_active = TRUE',
+          [req.body.usernameInput]
         );
 
         if (users.length === 0) return res.status(401).json({ error: 'Invalid credentials' });
 
         const user = users[0];
+
+        // STRICT CHECK: Only accepts bcrypt hashed passwords
+        const isPasswordValid = await bcrypt.compare(req.body.userPassword, user.password);
+
+        if (!isPasswordValid) {
+          return res.status(401).json({ error: 'Invalid credentials' });
+        }
+
         if (!req.body.username || !req.body.newLimit) return res.status(400).json({ error: 'Missing required fields' });
 
         await axios.patch(
@@ -94,7 +103,6 @@ export default async function handler(req, res) {
           { headers: { Authorization: `Bearer ${SENDGRID_API_KEY}`, 'Content-Type': 'application/json' } }
         );
 
-        // -- NEW DATABASE LOGGING INSTEAD OF SHEET --
         try {
           await connection.execute(
             `INSERT INTO sendgrid_limit_logs (sub_account, credits_adjusted, person_name, username, ticket) 

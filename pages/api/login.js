@@ -1,6 +1,6 @@
 import mysql from 'mysql2/promise';
+import bcrypt from 'bcrypt';
 
-// Create MySQL connection pool
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -24,11 +24,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get connection from pool
     const connection = await pool.getConnection();
     
     try {
-      // Query user from database
       const [rows] = await connection.execute(
         'SELECT username, password, name, is_admin FROM app_users WHERE username = ? AND is_active = TRUE',
         [username]
@@ -40,12 +38,13 @@ export default async function handler(req, res) {
 
       const user = rows[0];
 
-      // Compare plain text passwords
-      if (user.password !== password) {
+      // STRICT CHECK: Only accepts bcrypt hashed passwords
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+
+      if (!isPasswordValid) {
         return res.status(401).json({ success: false, message: 'Invalid username or password' });
       }
 
-      // Login successful, return user info
       return res.status(200).json({ 
         success: true, 
         user: { 
@@ -55,7 +54,6 @@ export default async function handler(req, res) {
         } 
       });
     } finally {
-      // Release connection back to pool
       connection.release();
     }
   } catch (error) {
