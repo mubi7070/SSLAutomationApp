@@ -1,24 +1,29 @@
-// components/Header.js
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { LogOut } from "lucide-react";
 import styles from '/styles/Home.module.css';
-import { FiSettings, FiHome, FiLogOut, FiUser } from 'react-icons/fi';
+import { FiUser } from 'react-icons/fi';
 
 export default function Header() {
   const router = useRouter();
   const [displayText, setDisplayText] = useState('');
   const [activeCategory, setActiveCategory] = useState(null);
-  const [isHovered, setIsHovered] = useState(false);
+  
   const fullText = "Northstar Automation Tool";
   const [isTyping, setIsTyping] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  
+  // Profile State
+  const [userName, setUserName] = useState('');
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileTimeoutRef = useRef(null); // Reference for the 2-second delay timer
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       setIsAdmin(localStorage.getItem('is_admin') === 'true');
+      setUserName(localStorage.getItem('name') || localStorage.getItem('username') || 'User');
     }
   }, []);
 
@@ -26,6 +31,7 @@ export default function Header() {
     try {
       const response = await fetch('/api/logout');
       if (response.ok) {
+        localStorage.clear();
         router.push('/');
       }
     } catch (error) {
@@ -104,6 +110,30 @@ export default function Header() {
            (category.path === router.pathname);
   };
 
+  // Helper to extract Name Initials
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  // --- Profile Hover Handlers ---
+  const handleProfileMouseEnter = () => {
+    if (profileTimeoutRef.current) {
+      clearTimeout(profileTimeoutRef.current);
+    }
+    setShowProfileMenu(true);
+  };
+
+  const handleProfileMouseLeave = () => {
+    profileTimeoutRef.current = setTimeout(() => {
+      setShowProfileMenu(false);
+    }, 1000); // 1000 milliseconds = 1 second delay
+  };
+
   return (
     <header className={styles.header}>
       <div className={styles.logoContainer}>
@@ -119,7 +149,7 @@ export default function Header() {
             key={category.name}
             className={styles.categoryContainer}
             onMouseEnter={() => category.items && setActiveCategory(category.name)}
-            onMouseLeave={() => !isHovered && setActiveCategory(null)}
+            onMouseLeave={() => setActiveCategory(null)}
           >
             {category.items ? (
               <>
@@ -132,8 +162,6 @@ export default function Header() {
                 </button>
                 <div 
                   className={`${styles.dropdown} ${activeCategory === category.name ? styles.active : ''}`}
-                  onMouseEnter={() => setIsHovered(true)}
-                  onMouseLeave={() => setIsHovered(false)}
                 >
                   {category.items.map((item) => (
                     <Link
@@ -171,38 +199,92 @@ export default function Header() {
           Admin
         </Link>
       )}
-
       </nav>
 
-      
-
-<div className={styles.logoutContainer}>
-        <button 
-          onClick={() => setShowLogoutModal(true)}
-          className={styles.navLink}
-          style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+      {/* User Profile Section */}
+      <div 
+        style={{ position: 'relative', marginLeft: '1rem' }} 
+        onMouseEnter={handleProfileMouseEnter}
+        onMouseLeave={handleProfileMouseLeave}
+      >
+        {/* Rounded Rectangle Profile Button */}
+        <div 
+          style={{
+            height: '40px', 
+            padding: '0 14px',
+            backgroundColor: '#1e3a8a', 
+            borderRadius: '15px', 
+            color: 'white', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            gap: '8px',
+            fontWeight: 'bold', 
+            fontSize: '1rem', 
+            cursor: 'pointer', 
+            userSelect: 'none',
+            border: '1px solid #e2e8f0', 
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            transition: 'background-color 0.2s'
+          }}
+          title={userName}
         >
-          <LogOut size={20} />
-          Logout
-        </button>
+          <FiUser size={18} />
+          {getInitials(userName)}
+        </div>
+        
+        {/* Dropdown Menu */}
+        {showProfileMenu && (
+           <div style={{ 
+              position: 'absolute', top: '50px', right: '0', background: 'white', 
+              border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px 12px 12px', 
+              boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 1000, minWidth: '180px' 
+           }}>
+              <div style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '12px', marginBottom: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                
+                {/* User Icon inside a circle */}
+                <div style={{ 
+                  backgroundColor: '#f8fafc', 
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '50%', 
+                  width: '48px', 
+                  height: '48px', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  marginBottom: '8px' 
+                }}>
+                  <FiUser size={24} color="#64748b" />
+                </div>
 
+                {/* USER label in bold */}
+                <span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '2px' }}>
+                  User
+                </span>
+
+                {/* Name of the user in dark blue */}
+                <span style={{ fontWeight: 'bold', color: '#1e3a8a', fontSize: '1.05rem', textAlign: 'center' }}>
+                  {userName}
+                </span>
+
+              </div>
+              <button 
+                onClick={() => setShowLogoutModal(true)} 
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: '5px 0', fontSize: '0.95rem', fontWeight: '500' }}
+              >
+                <LogOut size={18} /> Logout
+              </button>
+           </div>
+        )}
+
+        {/* Existing Logout Confirmation Modal */}
         {showLogoutModal && (
           <div className={styles.popupContainer}>
             <div className={styles.popupBox}>
               <p>Are you sure you want to logout?</p>
               <div className={styles.popupButtons}>
-                <button 
-                  onClick={handleLogout}
-                  className={styles.yesButton}
-                >
-                  Logout
-                </button>
-                <button 
-                  onClick={() => setShowLogoutModal(false)}
-                  className={styles.noButton}
-                >
-                  Cancel
-                </button>
+                <button onClick={handleLogout} className={styles.yesButton}>Logout</button>
+                <button onClick={() => setShowLogoutModal(false)} className={styles.noButton}>Cancel</button>
               </div>
             </div>
           </div>

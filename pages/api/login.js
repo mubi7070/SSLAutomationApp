@@ -38,12 +38,15 @@ export default async function handler(req, res) {
 
       const user = rows[0];
 
-      // STRICT CHECK: Only accepts bcrypt hashed passwords
+      // Verify bcrypt password
       const isPasswordValid = await bcrypt.compare(password, user.password);
 
       if (!isPasswordValid) {
         return res.status(401).json({ success: false, message: 'Invalid username or password' });
       }
+
+      // SET SECURE HTTP-ONLY COOKIE (valid for 8 hours)
+      res.setHeader('Set-Cookie', `sessionToken=authenticated; Path=/; HttpOnly; SameSite=Strict; Max-Age=28800`);
 
       return res.status(200).json({ 
         success: true, 
