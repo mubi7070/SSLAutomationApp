@@ -330,6 +330,28 @@ export default function AdminDashboard() {
     finally { setSendgridTestLoading(false); }
   };
 
+  // Handler for Deleting a Log
+  const handleDeleteSgLog = async (logId) => {
+    if (!confirm('Are you sure you want to delete this log entry?')) return;
+    try {
+      const username = localStorage.getItem('username');
+      const response = await fetch(`/api/admin/sendgrid-logs?id=${logId}`, { 
+        method: 'DELETE', 
+        headers: { 'Authorization': username } 
+      });
+      const data = await response.json();
+      if (data.success) {
+        fetchSendgridLogs();
+        setSgLogs(prev => prev.filter(log => log.id !== logId));
+        showNotification('Log entry deleted successfully');
+      } else {
+        showNotification(data.error || 'Failed to delete log entry', 'error');
+      }
+    } catch (error) { 
+      showNotification('Failed to delete log entry', 'error'); 
+    }
+  };
+
   const fetchGoogleConfig = async () => {
     try {
       setGoogleLoading(true);
@@ -834,6 +856,7 @@ export default function AdminDashboard() {
                     <th>Person Name</th>
                     <th>Username</th>
                     <th>Ticket</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -851,9 +874,18 @@ export default function AdminDashboard() {
                       <td>{log.person_name}</td>
                       <td>{log.username}</td>
                       <td>{log.ticket}</td>
+                      <td>
+                        <button 
+                          className={`${styles.actionButton} ${styles.btnDelete}`} 
+                          onClick={() => handleDeleteSgLog(log.id)} 
+                          title="Delete Log"
+                        >
+                          <FiTrash2 />
+                        </button>
+                      </td>
                     </tr>
                   )) : (
-                    <tr><td colSpan="6" style={{ textAlign: 'center' }}>No logs found matching your criteria.</td></tr>
+                    <tr><td colSpan="7" style={{ textAlign: 'center' }}>No logs found matching your criteria.</td></tr>
                   )}
                 </tbody>
               </table>
