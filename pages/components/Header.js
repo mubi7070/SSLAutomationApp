@@ -283,7 +283,7 @@ export default function Header() {
             <div className={styles.popupBox}>
               <p>Are you sure you want to logout?</p>
               <div className={styles.popupButtons}>
-                <button onClick={handleLogout} className={styles.yesButton}>Logout</button>
+                <button onClick={handleLogout} className={styles.yesButton2}>Logout</button>
                 <button onClick={() => setShowLogoutModal(false)} className={styles.noButton}>Cancel</button>
               </div>
             </div>
