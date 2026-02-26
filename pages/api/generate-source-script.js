@@ -7,7 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { exec } from 'child_process';
-import { getConfig } from '../lib/config';
+import { getConfig } from '@/lib/config';
 
 // Generate strong 12-character password (alphanumeric + special characters)
 function generatePassword(length = 12) {

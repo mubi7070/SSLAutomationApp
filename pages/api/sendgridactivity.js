@@ -1,5 +1,5 @@
 import client from '@sendgrid/client';
-import { getConfig } from '../lib/config';
+import { getConfig } from '@/lib/config';
 
 export default async function handler(req, res) {
   const { username } = req.query;

@@ -1,7 +1,7 @@
 import { google } from "googleapis";
 import { promises as fs } from "fs";
 import path from "path";
-import { getConfig } from '../lib/config';
+import { getConfig } from '@/lib/config';
 
 const APPS_SCRIPT_ID = "AKfycbxurmnd_d2X3Jpq0Zw6gCsh83L3-fJd8tJzxbkxjEkg3EfGx61KjvlNcM7jRUaHAn2Tjg";
 

@@ -1,6 +1,6 @@
 // pages/api/sendgridlimit/suppressions.js
 import axios from 'axios';
-import { getConfig } from '../../lib/config';
+import { getConfig } from '@/lib/config';
 
 export default async function handler(req, res) {
   // Get config from database

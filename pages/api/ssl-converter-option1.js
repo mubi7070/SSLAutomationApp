@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { spawn } from 'child_process';
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
-import { getConfig } from '../lib/config';
+import { getConfig } from '@/lib/config';
 
 
 const deleteExistingFile = (filePath) => {

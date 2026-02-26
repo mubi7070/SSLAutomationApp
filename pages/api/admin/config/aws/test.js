@@ -1,4 +1,4 @@
-import pool from '../../../../lib/db';
+import pool from '@/lib/db';
 import { S3Client, HeadBucketCommand } from '@aws-sdk/client-s3';
 
 export default async function handler(req, res) {

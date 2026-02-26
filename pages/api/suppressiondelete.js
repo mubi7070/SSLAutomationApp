@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getConfig } from '../lib/config';
+import { getConfig } from '@/lib/config';
 
 const ENDPOINT_MAP = {
   bounces: 'bounces',

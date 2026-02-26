@@ -1,7 +1,7 @@
 import { google } from "googleapis";
 import { promises as fs } from "fs";
 import path from "path";
-import { getConfig } from '../lib/config';
+import { getConfig } from '@/lib/config';
 
 export async function updateGoogleSheet(data) {
     const config = await getConfig();

@@ -1,6 +1,6 @@
 import axios from 'axios';
-import { getConfig } from '../lib/config';
-import pool from '../lib/db';
+import { getConfig } from '@/lib/config';
+import pool from '@/lib/db';
 import bcrypt from 'bcrypt';
 
 export default async function handler(req, res) {
