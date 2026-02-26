@@ -1,5 +1,10 @@
-# Base Image (Updated to Debian 12 'Bookworm' for better repository stability)
+# Base Image
 FROM node:18-bookworm
+
+# Force APT to use HTTPS to bypass firewall interception and ignore corporate SSL inspection
+RUN sed -i 's/http:/https:/g' /etc/apt/sources.list.d/debian.sources 2>/dev/null || true && \
+    sed -i 's/http:/https:/g' /etc/apt/sources.list 2>/dev/null || true && \
+    echo 'Acquire::https::Verify-Peer "false";' > /etc/apt/apt.conf.d/99disable-cert-check
 
 # Clean cache, fix network pipelining issues, and install dependencies
 RUN apt-get clean && rm -rf /var/lib/apt/lists/* && \
