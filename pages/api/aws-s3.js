@@ -2,7 +2,7 @@
 const AWS = require('aws-sdk');
 const fs = require('fs');
 const path = require('path');
-const { getConfig } = require('../lib/config');
+const { getConfig } = require('@/lib/config');
 
 // Configure AWS with your credentials and region.
 // It’s best practice to set these via environment variables.
