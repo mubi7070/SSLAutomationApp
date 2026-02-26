@@ -1,14 +1,14 @@
-#Base Image
+# Base Image (Updated to Debian 12 'Bookworm' for better repository stability)
+FROM node:18-bookworm
 
-FROM node:18-bullseye
-
-# Install Java, OpenSSL, wget, and rar
-RUN apt-get update && \
+# Clean cache, fix network pipelining issues, and install dependencies
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* && \
+    apt-get update -o Acquire::http::Pipeline-Depth=0 -o Acquire::http::No-Cache=true --fix-missing && \
     apt-get install -y openjdk-17-jdk openssl tar && \
     rm -rf /var/lib/apt/lists/*
 
 # Set JAVA_HOME for OpenJDK 17
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk
+ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
 # Copy and Install RAR (Offline)
@@ -22,7 +22,6 @@ RUN cd /tmp && \
     cd / && rm -rf /tmp/rar /tmp/rarlinux-x64-621.tar.gz
 
 # Working Dir
-
 WORKDIR /app
 
 # Copy the dependencies files
@@ -32,22 +31,20 @@ COPY package.json package-lock.json ./
 RUN npm install
 
 # Copy Stuff Files
-
 COPY . .
 
-#Install Dependencies
+# Install Dependencies
 RUN npm run build
 
 # Environment variables
-
 ENV CERTS_DIR=./Certs
 ENV FILES_DIR=./Files
 
 # Make sure that the folders exists
 RUN mkdir -p ${CERTS_DIR} ${FILES_DIR}
 
-#Running Port
+# Running Port
 EXPOSE 3000
 
-#Command to Run
+# Command to Run
 CMD ["npm","run","start"]
